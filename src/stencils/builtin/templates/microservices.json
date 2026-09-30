@@ -1,0 +1,184 @@
+{
+  "kind": "chalkline-template",
+  "id": "template:microservices",
+  "name": "Microservices with gateway",
+  "category": "Architecture",
+  "description": "Clients reach services through one gateway; each service owns its data.",
+  "tags": [
+    "api",
+    "services"
+  ],
+  "diagram": {
+    "schemaVersion": 4,
+    "meta": {
+      "title": "Microservices with gateway",
+      "created": "2026-09-30T00:00:00.000Z",
+      "updated": "2026-09-30T00:00:00.000Z"
+    },
+    "nodes": [
+      {
+        "id": "clients",
+        "type": "user-group",
+        "position": {
+          "x": 0,
+          "y": 140
+        },
+        "size": {
+          "width": 128,
+          "height": 128
+        },
+        "label": "Clients"
+      },
+      {
+        "id": "gw",
+        "type": "hexagon",
+        "position": {
+          "x": 220,
+          "y": 164
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "API gateway",
+        "style": {
+          "fill": "token:swatch-purple-soft",
+          "stroke": "token:swatch-purple"
+        }
+      },
+      {
+        "id": "s1",
+        "type": "rounded",
+        "position": {
+          "x": 480,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Accounts service",
+        "groupId": "g_svc"
+      },
+      {
+        "id": "s2",
+        "type": "rounded",
+        "position": {
+          "x": 480,
+          "y": 164
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Catalogue service",
+        "groupId": "g_svc"
+      },
+      {
+        "id": "s3",
+        "type": "rounded",
+        "position": {
+          "x": 480,
+          "y": 308
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Orders service",
+        "groupId": "g_svc"
+      },
+      {
+        "id": "d1",
+        "type": "database",
+        "position": {
+          "x": 740,
+          "y": 10
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Accounts DB"
+      },
+      {
+        "id": "d2",
+        "type": "database",
+        "position": {
+          "x": 740,
+          "y": 154
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Catalogue DB"
+      },
+      {
+        "id": "d3",
+        "type": "database",
+        "position": {
+          "x": 740,
+          "y": 298
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "clients",
+        "target": "gw"
+      },
+      {
+        "id": "e2",
+        "source": "gw",
+        "target": "s1"
+      },
+      {
+        "id": "e3",
+        "source": "gw",
+        "target": "s2"
+      },
+      {
+        "id": "e4",
+        "source": "gw",
+        "target": "s3"
+      },
+      {
+        "id": "e5",
+        "source": "s1",
+        "target": "d1"
+      },
+      {
+        "id": "e6",
+        "source": "s2",
+        "target": "d2"
+      },
+      {
+        "id": "e7",
+        "source": "s3",
+        "target": "d3"
+      }
+    ],
+    "groups": [
+      {
+        "id": "g_svc",
+        "label": "Services",
+        "kind": "container",
+        "position": {
+          "x": 460,
+          "y": -40
+        },
+        "size": {
+          "width": 200,
+          "height": 448
+        }
+      }
+    ]
+  }
+}

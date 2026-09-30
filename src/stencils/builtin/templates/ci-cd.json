@@ -1,0 +1,160 @@
+{
+  "kind": "chalkline-template",
+  "id": "template:ci-cd",
+  "name": "CI/CD pipeline",
+  "category": "Process",
+  "description": "From commit to production, with a failure path.",
+  "tags": [
+    "delivery",
+    "devops"
+  ],
+  "diagram": {
+    "schemaVersion": 4,
+    "meta": {
+      "title": "CI/CD pipeline",
+      "created": "2026-09-30T00:00:00.000Z",
+      "updated": "2026-09-30T00:00:00.000Z"
+    },
+    "nodes": [
+      {
+        "id": "commit",
+        "type": "ellipse",
+        "position": {
+          "x": 0,
+          "y": 15
+        },
+        "size": {
+          "width": 150,
+          "height": 90
+        },
+        "label": "Commit"
+      },
+      {
+        "id": "build",
+        "type": "rounded",
+        "position": {
+          "x": 210,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Build"
+      },
+      {
+        "id": "test",
+        "type": "rounded",
+        "position": {
+          "x": 430,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Test"
+      },
+      {
+        "id": "check",
+        "type": "diamond",
+        "position": {
+          "x": 650,
+          "y": 10
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Tests pass?"
+      },
+      {
+        "id": "stage",
+        "type": "rounded",
+        "position": {
+          "x": 850,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Deploy to staging",
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        }
+      },
+      {
+        "id": "prod",
+        "type": "rounded",
+        "position": {
+          "x": 1070,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Deploy to production",
+        "style": {
+          "fill": "token:swatch-green-soft",
+          "stroke": "token:swatch-green"
+        }
+      },
+      {
+        "id": "notify",
+        "type": "rounded",
+        "position": {
+          "x": 640,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Notify team",
+        "style": {
+          "fill": "token:swatch-red-soft",
+          "stroke": "token:swatch-red"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "commit",
+        "target": "build"
+      },
+      {
+        "id": "e2",
+        "source": "build",
+        "target": "test"
+      },
+      {
+        "id": "e3",
+        "source": "test",
+        "target": "check"
+      },
+      {
+        "id": "e4",
+        "source": "check",
+        "target": "stage",
+        "label": "Yes"
+      },
+      {
+        "id": "e5",
+        "source": "stage",
+        "target": "prod",
+        "label": "approved"
+      },
+      {
+        "id": "e6",
+        "source": "check",
+        "target": "notify",
+        "label": "No"
+      }
+    ],
+    "groups": []
+  }
+}

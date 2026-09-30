@@ -1,0 +1,73 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:load-balancer",
+  "name": "Load balancer with two servers",
+  "category": "Architecture",
+  "tags": [
+    "scaling",
+    "traffic",
+    "web"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "lb",
+        "type": "hexagon",
+        "position": {
+          "x": 130,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Load balancer",
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        }
+      },
+      {
+        "id": "s1",
+        "type": "server",
+        "position": {
+          "x": 0,
+          "y": 180
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "Server 1"
+      },
+      {
+        "id": "s2",
+        "type": "server",
+        "position": {
+          "x": 280,
+          "y": 180
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "Server 2"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "lb",
+        "target": "s1"
+      },
+      {
+        "id": "e2",
+        "source": "lb",
+        "target": "s2"
+      }
+    ],
+    "groups": []
+  }
+}

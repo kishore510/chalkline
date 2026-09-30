@@ -1,0 +1,71 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:decision",
+  "name": "Decision with two outcomes",
+  "category": "Process",
+  "tags": [
+    "branch",
+    "flow",
+    "condition"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "d",
+        "type": "diamond",
+        "position": {
+          "x": 0,
+          "y": 70
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Condition?"
+      },
+      {
+        "id": "y",
+        "type": "rounded",
+        "position": {
+          "x": 240,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Yes path"
+      },
+      {
+        "id": "n",
+        "type": "rounded",
+        "position": {
+          "x": 240,
+          "y": 160
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "No path"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "d",
+        "target": "y",
+        "label": "Yes"
+      },
+      {
+        "id": "e2",
+        "source": "d",
+        "target": "n",
+        "label": "No"
+      }
+    ],
+    "groups": []
+  }
+}

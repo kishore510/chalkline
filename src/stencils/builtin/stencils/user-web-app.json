@@ -1,0 +1,56 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:user-web-app",
+  "name": "User group and web app",
+  "category": "Architecture",
+  "tags": [
+    "users",
+    "frontend",
+    "web"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "u",
+        "type": "user-group",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 128,
+          "height": 128
+        },
+        "label": "Users"
+      },
+      {
+        "id": "w",
+        "type": "rounded",
+        "position": {
+          "x": 240,
+          "y": 24
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Web app",
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "u",
+        "target": "w",
+        "label": "uses"
+      }
+    ],
+    "groups": []
+  }
+}

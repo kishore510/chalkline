@@ -1,0 +1,155 @@
+{
+  "kind": "chalkline-template",
+  "id": "template:event-driven",
+  "name": "Event-driven flow",
+  "category": "Architecture",
+  "description": "Producers publish events to a bus; consumers react independently.",
+  "tags": [
+    "events",
+    "async"
+  ],
+  "diagram": {
+    "schemaVersion": 4,
+    "meta": {
+      "title": "Event-driven flow",
+      "created": "2026-09-30T00:00:00.000Z",
+      "updated": "2026-09-30T00:00:00.000Z"
+    },
+    "nodes": [
+      {
+        "id": "p1",
+        "type": "rounded",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Orders service"
+      },
+      {
+        "id": "p2",
+        "type": "rounded",
+        "position": {
+          "x": 0,
+          "y": 160
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Payments service"
+      },
+      {
+        "id": "bus",
+        "type": "queue",
+        "position": {
+          "x": 260,
+          "y": 90
+        },
+        "size": {
+          "width": 180,
+          "height": 60
+        },
+        "label": "Event bus",
+        "style": {
+          "fill": "token:swatch-amber-soft",
+          "stroke": "token:swatch-amber"
+        }
+      },
+      {
+        "id": "c1",
+        "type": "rounded",
+        "position": {
+          "x": 540,
+          "y": -40
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Notifications"
+      },
+      {
+        "id": "c2",
+        "type": "rounded",
+        "position": {
+          "x": 540,
+          "y": 80
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Analytics"
+      },
+      {
+        "id": "c3",
+        "type": "rounded",
+        "position": {
+          "x": 540,
+          "y": 200
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Fulfilment"
+      },
+      {
+        "id": "store",
+        "type": "database",
+        "position": {
+          "x": 800,
+          "y": 70
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Event store",
+        "style": {
+          "fill": "token:swatch-teal-soft",
+          "stroke": "token:swatch-teal"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "p1",
+        "target": "bus",
+        "label": "publishes"
+      },
+      {
+        "id": "e2",
+        "source": "p2",
+        "target": "bus",
+        "label": "publishes"
+      },
+      {
+        "id": "e3",
+        "source": "bus",
+        "target": "c1"
+      },
+      {
+        "id": "e4",
+        "source": "bus",
+        "target": "c2"
+      },
+      {
+        "id": "e5",
+        "source": "bus",
+        "target": "c3"
+      },
+      {
+        "id": "e6",
+        "source": "c2",
+        "target": "store"
+      }
+    ],
+    "groups": []
+  }
+}

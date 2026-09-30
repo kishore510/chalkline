@@ -1,0 +1,91 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:api-gateway",
+  "name": "API gateway with three services",
+  "category": "Architecture",
+  "tags": [
+    "microservices",
+    "api",
+    "routing"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "gw",
+        "type": "hexagon",
+        "position": {
+          "x": 240,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "API gateway",
+        "style": {
+          "fill": "token:swatch-purple-soft",
+          "stroke": "token:swatch-purple"
+        }
+      },
+      {
+        "id": "a",
+        "type": "rounded",
+        "position": {
+          "x": 0,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Service A"
+      },
+      {
+        "id": "b",
+        "type": "rounded",
+        "position": {
+          "x": 240,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Service B"
+      },
+      {
+        "id": "c",
+        "type": "rounded",
+        "position": {
+          "x": 480,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Service C"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "gw",
+        "target": "a"
+      },
+      {
+        "id": "e2",
+        "source": "gw",
+        "target": "b"
+      },
+      {
+        "id": "e3",
+        "source": "gw",
+        "target": "c"
+      }
+    ],
+    "groups": []
+  }
+}

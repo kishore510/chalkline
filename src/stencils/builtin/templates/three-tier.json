@@ -1,0 +1,184 @@
+{
+  "kind": "chalkline-template",
+  "id": "template:three-tier",
+  "name": "Three-tier web application",
+  "category": "Architecture",
+  "description": "Presentation, application and data tiers.",
+  "tags": [
+    "web",
+    "layers"
+  ],
+  "diagram": {
+    "schemaVersion": 4,
+    "meta": {
+      "title": "Three-tier web application",
+      "created": "2026-09-30T00:00:00.000Z",
+      "updated": "2026-09-30T00:00:00.000Z"
+    },
+    "nodes": [
+      {
+        "id": "user",
+        "type": "actor",
+        "position": {
+          "x": 0,
+          "y": 110
+        },
+        "size": {
+          "width": 96,
+          "height": 128
+        },
+        "label": "User"
+      },
+      {
+        "id": "web",
+        "type": "rounded",
+        "position": {
+          "x": 200,
+          "y": 130
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Web front end",
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        },
+        "groupId": "g_pres"
+      },
+      {
+        "id": "api",
+        "type": "rectangle",
+        "position": {
+          "x": 480,
+          "y": 80
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Application server",
+        "groupId": "g_app"
+      },
+      {
+        "id": "worker",
+        "type": "rectangle",
+        "position": {
+          "x": 480,
+          "y": 200
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Background worker",
+        "groupId": "g_app"
+      },
+      {
+        "id": "db",
+        "type": "database",
+        "position": {
+          "x": 760,
+          "y": 120
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Database",
+        "style": {
+          "fill": "token:swatch-teal-soft",
+          "stroke": "token:swatch-teal"
+        },
+        "groupId": "g_data"
+      },
+      {
+        "id": "cache",
+        "type": "database",
+        "position": {
+          "x": 760,
+          "y": 250
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Cache",
+        "groupId": "g_data"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "user",
+        "target": "web",
+        "label": "HTTPS"
+      },
+      {
+        "id": "e2",
+        "source": "web",
+        "target": "api"
+      },
+      {
+        "id": "e3",
+        "source": "api",
+        "target": "db"
+      },
+      {
+        "id": "e4",
+        "source": "worker",
+        "target": "db"
+      },
+      {
+        "id": "e5",
+        "source": "api",
+        "target": "cache",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "g_pres",
+        "label": "Presentation",
+        "kind": "container",
+        "position": {
+          "x": 180,
+          "y": 60
+        },
+        "size": {
+          "width": 200,
+          "height": 200
+        }
+      },
+      {
+        "id": "g_app",
+        "label": "Application",
+        "kind": "container",
+        "position": {
+          "x": 460,
+          "y": 40
+        },
+        "size": {
+          "width": 200,
+          "height": 280
+        }
+      },
+      {
+        "id": "g_data",
+        "label": "Data",
+        "kind": "container",
+        "position": {
+          "x": 740,
+          "y": 60
+        },
+        "size": {
+          "width": 160,
+          "height": 310
+        }
+      }
+    ]
+  }
+}

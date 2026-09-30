@@ -1,0 +1,75 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:queue",
+  "name": "Queue with producer and consumer",
+  "category": "Messaging",
+  "tags": [
+    "events",
+    "async",
+    "messaging"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "p",
+        "type": "rounded",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Producer"
+      },
+      {
+        "id": "q",
+        "type": "queue",
+        "position": {
+          "x": 240,
+          "y": 10
+        },
+        "size": {
+          "width": 180,
+          "height": 60
+        },
+        "label": "Queue",
+        "style": {
+          "fill": "token:swatch-amber-soft",
+          "stroke": "token:swatch-amber"
+        }
+      },
+      {
+        "id": "c",
+        "type": "rounded",
+        "position": {
+          "x": 500,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Consumer"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "p",
+        "target": "q",
+        "label": "publishes"
+      },
+      {
+        "id": "e2",
+        "source": "q",
+        "target": "c",
+        "label": "delivers"
+      }
+    ],
+    "groups": []
+  }
+}

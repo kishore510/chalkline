@@ -10,7 +10,12 @@ import legacyV1 from './legacy-v1.json'
 import legacyV2 from './legacy-v2.json'
 import legacyV3 from './legacy-v3.json'
 import processFlow from './process-flow.json'
+import stencilCurrent from './stencil-current.json'
+import stencilLibrary from './stencil-library.json'
+import stencilUnknownShape from './stencil-unknown-shape.json'
+import stencilV1 from './stencil-v1.json'
 import swimlanePool from './swimlane-pool.json'
+import templateSwimlane from './template-swimlane.json'
 import unknownShape from './unknown-shape.json'
 import webArchitecture from './web-architecture.json'
 
@@ -47,4 +52,18 @@ export const legacyFixtures: Record<string, unknown> = {
 /** Deliberately broken documents, used to check loading fails cleanly. */
 export const invalidFixtures: Record<string, unknown> = {
   'invalid-dangling-edge': invalidDanglingEdge,
+}
+
+/** Stencil and template files (src/stencils). */
+export const stencilFixtures = {
+  /** A container with two nodes, a pinned, labelled, styled connector and notes; saved at the current version. */
+  current: stencilCurrent as unknown,
+  /** Saved at schema v1 (no kinds, no locks, no layers); must load through migration. */
+  v1: stencilV1 as unknown,
+  /** A library bundle holding three stencils (one of them v1). */
+  library: stencilLibrary as unknown,
+  /** A node whose shape this version doesn't know. */
+  unknownShape: stencilUnknownShape as unknown,
+  /** A template with a swimlane pool and a container. */
+  template: templateSwimlane as unknown,
 }

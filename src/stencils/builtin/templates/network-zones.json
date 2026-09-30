@@ -1,0 +1,194 @@
+{
+  "kind": "chalkline-template",
+  "id": "template:network-zones",
+  "name": "Network zones",
+  "category": "Security",
+  "description": "Public, private and data zones with traffic crossing between them.",
+  "tags": [
+    "network",
+    "security",
+    "zones"
+  ],
+  "diagram": {
+    "schemaVersion": 4,
+    "meta": {
+      "title": "Network zones",
+      "created": "2026-09-30T00:00:00.000Z",
+      "updated": "2026-09-30T00:00:00.000Z"
+    },
+    "nodes": [
+      {
+        "id": "internet",
+        "type": "cloud",
+        "position": {
+          "x": 0,
+          "y": 110
+        },
+        "size": {
+          "width": 180,
+          "height": 110
+        },
+        "label": "Internet"
+      },
+      {
+        "id": "lb",
+        "type": "hexagon",
+        "position": {
+          "x": 260,
+          "y": 120
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Load balancer",
+        "groupId": "z_public"
+      },
+      {
+        "id": "app1",
+        "type": "server",
+        "position": {
+          "x": 500,
+          "y": 40
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "App server",
+        "groupId": "z_private"
+      },
+      {
+        "id": "app2",
+        "type": "server",
+        "position": {
+          "x": 500,
+          "y": 190
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "App server",
+        "groupId": "z_private"
+      },
+      {
+        "id": "db",
+        "type": "database",
+        "position": {
+          "x": 760,
+          "y": 60
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Primary DB",
+        "groupId": "z_data"
+      },
+      {
+        "id": "backup",
+        "type": "database",
+        "position": {
+          "x": 760,
+          "y": 200
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Backup",
+        "groupId": "z_data"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "internet",
+        "target": "lb",
+        "label": "HTTPS"
+      },
+      {
+        "id": "e2",
+        "source": "lb",
+        "target": "app1"
+      },
+      {
+        "id": "e3",
+        "source": "lb",
+        "target": "app2"
+      },
+      {
+        "id": "e4",
+        "source": "app1",
+        "target": "db"
+      },
+      {
+        "id": "e5",
+        "source": "app2",
+        "target": "db"
+      },
+      {
+        "id": "e6",
+        "source": "db",
+        "target": "backup",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "z_public",
+        "label": "Public zone",
+        "kind": "container",
+        "position": {
+          "x": 240,
+          "y": 60
+        },
+        "size": {
+          "width": 200,
+          "height": 200
+        },
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        }
+      },
+      {
+        "id": "z_private",
+        "label": "Private zone",
+        "kind": "container",
+        "position": {
+          "x": 480,
+          "y": -20
+        },
+        "size": {
+          "width": 180,
+          "height": 350
+        },
+        "style": {
+          "fill": "token:swatch-amber-soft",
+          "stroke": "token:swatch-amber"
+        }
+      },
+      {
+        "id": "z_data",
+        "label": "Data zone",
+        "kind": "container",
+        "position": {
+          "x": 740,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 320
+        },
+        "style": {
+          "fill": "token:swatch-teal-soft",
+          "stroke": "token:swatch-teal"
+        }
+      }
+    ]
+  }
+}

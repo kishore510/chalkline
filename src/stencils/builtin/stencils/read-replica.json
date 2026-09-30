@@ -1,0 +1,59 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:read-replica",
+  "name": "Database with read replica",
+  "category": "Data",
+  "tags": [
+    "database",
+    "replication",
+    "storage"
+  ],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "db",
+        "type": "database",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Primary",
+        "style": {
+          "fill": "token:swatch-teal-soft",
+          "stroke": "token:swatch-teal"
+        }
+      },
+      {
+        "id": "r",
+        "type": "database",
+        "position": {
+          "x": 260,
+          "y": 0
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Read replica"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "db",
+        "target": "r",
+        "label": "replicates",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": []
+  }
+}

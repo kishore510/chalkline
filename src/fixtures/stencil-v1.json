@@ -1,0 +1,21 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 1,
+  "id": "s_old_backend",
+  "name": "Old backend",
+  "category": "Architecture",
+  "tags": ["legacy"],
+  "created": "2026-01-15T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {"id": "api", "type": "rectangle", "position": {"x": 20, "y": 50}, "size": {"width": 160, "height": 80}, "label": "API", "groupId": "g_backend"},
+      {"id": "db", "type": "database", "position": {"x": 40, "y": 160}, "size": {"width": 120, "height": 100}, "label": "DB", "groupId": "g_backend"}
+    ],
+    "edges": [
+      {"id": "e_api_db", "source": "api", "target": "db", "sourceHandle": "bottom", "targetHandle": "top"}
+    ],
+    "groups": [
+      {"id": "g_backend", "label": "Backend", "position": {"x": 0, "y": 0}, "size": {"width": 200, "height": 280}}
+    ]
+  }
+}

@@ -19,6 +19,8 @@ import { createNode, MIN_NODE_SIZE } from '@/schema/factories'
 import { getShape, isKnownShape } from '@/shapes/registry'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import type { LayoutChanges } from '@/layout/computeLayout'
+import { placeStencil } from '@/stencils/fragment'
+import type { StencilContent } from '@/stencils/format'
 import * as groups from './groups'
 import * as layers from './layers'
 import * as ops from './ops'
@@ -140,6 +142,14 @@ export interface DiagramState {
   /** Puts a fragment (e.g. from the system clipboard) on the clipboard and pastes it. */
   pasteFrom: (fragment: Fragment, at?: Position) => string[]
   duplicateSelection: () => string[]
+
+  /* Stencils */
+  /**
+   * Inserts stencil content centred on `center` (snapped to `grid`), on the
+   * active layer, with fresh ids, and selects it. One undo step. Returns the
+   * new ids, or null if the active layer is hidden or locked.
+   */
+  insertStencil: (content: StencilContent, center: Position, grid?: number) => string[] | null
 
   /* Layers. Add, rename, reorder, delete and move-to-layer are undo steps; visibility and locks are view state (saved, not undoable). */
   /** Where new items go. Not part of the document. */
@@ -599,6 +609,14 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     duplicateSelection() {
       const fragment = copyFragment(get().diagram, get().selection)
       return fragment ? pasteAt(fragment, undefined, 1, 'keep') : []
+    },
+
+    insertStencil(content, center, grid = 0) {
+      const active = usableActive()
+      if (!active) return null
+      const { diagram, ids } = placeStencil(get().diagram, content, center, active, grid)
+      commit(diagram, { extra: { selection: ids } })
+      return ids
     },
 
     setActiveLayer(id) {

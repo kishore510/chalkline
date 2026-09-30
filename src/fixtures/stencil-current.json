@@ -1,0 +1,21 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "s_web_pair",
+  "name": "Web pair",
+  "category": "Architecture",
+  "tags": ["web", "cache"],
+  "created": "2026-09-30T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {"id": "n_app", "type": "rounded", "position": {"x": 20, "y": 60}, "size": {"width": 160, "height": 80}, "label": "App", "notes": "Stateless", "style": {"fill": "token:swatch-blue-soft"}, "groupId": "g_box"},
+      {"id": "n_cache", "type": "database", "position": {"x": 240, "y": 50}, "size": {"width": 120, "height": 100}, "label": "Cache", "groupId": "g_box"}
+    ],
+    "edges": [
+      {"id": "e_app_cache", "source": "n_app", "target": "n_cache", "sourceHandle": "right", "targetHandle": "left", "label": "reads", "style": {"dashed": true}}
+    ],
+    "groups": [
+      {"id": "g_box", "label": "Tier", "kind": "container", "position": {"x": 0, "y": 0}, "size": {"width": 380, "height": 170}}
+    ]
+  }
+}
