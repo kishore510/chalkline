@@ -13,7 +13,8 @@ import {
 } from '@/schema/diagram'
 import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode } from '@/canvas/arrange'
 import { createId } from '@/lib/id'
-import { createNode, DEFAULT_NODE_SIZE, MIN_NODE_SIZE } from '@/schema/factories'
+import { createNode, MIN_NODE_SIZE } from '@/schema/factories'
+import { getShape } from '@/shapes/registry'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import type { LayoutChanges } from '@/layout/computeLayout'
 import * as groups from './groups'
@@ -299,7 +300,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     addNode(type, center, grid = 0) {
       const { diagram } = get()
-      const node = createNode(type, ops.placeNode(diagram, center, DEFAULT_NODE_SIZE[type], grid))
+      const node = createNode(type, ops.placeNode(diagram, center, getShape(type).defaultSize, grid))
       commit(ops.addNode(diagram, node), { extra: { selection: [node.id] } })
       return node.id
     },
@@ -307,7 +308,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     // Locked nodes (or nodes in locked groups) never move or resize.
     moveNodes: (moves) => apply((d) => ops.moveNodes(d, new Map([...moves].filter(([id]) => !nodeLocked(id))))),
     resizeNode: (id, size, position) => {
-      if (!nodeLocked(id)) apply((d) => ops.resizeNode(d, id, size, position, MIN_NODE_SIZE))
+      if (nodeLocked(id)) return
+      const node = get().diagram.nodes.find((n) => n.id === id)
+      const min = node ? getShape(node.type).minSize : { width: MIN_NODE_SIZE, height: MIN_NODE_SIZE }
+      apply((d) => ops.resizeNode(d, id, size, position, min))
     },
     growNodeToFit: (id, minHeight) => apply((d) => ops.growNodeHeight(d, id, minHeight), { merge: true }),
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label), { key: `label:${id}` }),

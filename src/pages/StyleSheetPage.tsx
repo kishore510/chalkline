@@ -25,8 +25,8 @@ import { Segmented } from '@/components/ui/segmented'
 import { COLOUR_PRESETS, PRESET_NAMES, presetToken } from '@/lib/colour'
 import { cn } from '@/lib/utils'
 import { nodeAppearance } from '@/canvas/appearance'
-import { NODE_TYPES } from '@/schema/diagram'
-import { DEFAULT_NODE_LABEL, DEFAULT_NODE_SIZE } from '@/schema/factories'
+import type { NodeType } from '@/schema/diagram'
+import { getShape, SHAPES } from '@/shapes/registry'
 
 const COLOUR_TOKENS = [
   'bg',
@@ -251,7 +251,7 @@ export function StyleSheetPage() {
                     </Button>
                   </PanelHeader>
                   <div className="flex gap-2 overflow-x-auto px-4 pb-4">
-                    {NODE_TYPES.map((type) => (
+                    {SHAPES.map(({ id: type }) => (
                       <Button key={type} variant="secondary" size="icon" aria-label={`Add ${type}`} title={type}>
                         <ShapeIcon type={type} />
                       </Button>
@@ -272,21 +272,21 @@ export function StyleSheetPage() {
         <Section id="shapes" title="Node shapes" description="Each shape at its default size with no styling, then selected.">
           <div className="cl-canvas-grid flex flex-col gap-8 rounded-lg border border-border p-6">
             <div className="flex flex-wrap items-center justify-center gap-8">
-              {NODE_TYPES.map((type) => (
-                <ShapeView key={type} type={type} size={DEFAULT_NODE_SIZE[type]} label={DEFAULT_NODE_LABEL[type]} />
+              {SHAPES.map(({ id: type }) => (
+                <ShapeView key={type} type={type as NodeType} size={getShape(type).defaultSize} label={getShape(type).defaultLabel} />
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-8">
-              {NODE_TYPES.map((type) => (
-                <ShapeView key={type} type={type} size={DEFAULT_NODE_SIZE[type]} label={`${DEFAULT_NODE_LABEL[type]}`} selected />
+              {SHAPES.map(({ id: type }) => (
+                <ShapeView key={type} type={type as NodeType} size={getShape(type).defaultSize} label={`${getShape(type).defaultLabel}`} selected />
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <ShapeView type="actor" size={DEFAULT_NODE_SIZE.actor} label="Customer" />
+              <ShapeView type="actor" size={getShape('actor').defaultSize} label="Customer" />
               <EdgePreview />
-              <ShapeView type="cloud" size={DEFAULT_NODE_SIZE.cloud} label="CDN" />
+              <ShapeView type="cloud" size={getShape('cloud').defaultSize} label="CDN" />
               <EdgePreview />
-              <ShapeView type="rectangle" size={DEFAULT_NODE_SIZE.rectangle} label="A longer label that wraps onto more lines" />
+              <ShapeView type="rectangle" size={getShape('rectangle').defaultSize} label="A longer label that wraps onto more lines" />
             </div>
           </div>
         </Section>

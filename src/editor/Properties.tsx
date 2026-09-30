@@ -19,7 +19,7 @@ import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
 import { deleteSelectionWithNotice } from './deleteSelection'
-import { SHAPE_NAMES } from './palette'
+import { getShape } from '@/shapes/registry'
 
 const store = () => useDiagramStore.getState()
 
@@ -455,7 +455,7 @@ function useSelectionSummary(): Summary {
   }
   if (groups.length > 0) return { kind: 'mixed', title: `${nodes.length + edges.length + groups.length} selected` }
   if (nodes.length + edges.length === 0) return { kind: 'none', title: 'Diagram' }
-  if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: SHAPE_NAMES[nodes[0]!.type], node: nodes[0]! }
+  if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: getShape(nodes[0]!.type).name, node: nodes[0]! }
   if (edges.length === 1 && nodes.length === 0) return { kind: 'edge', title: 'Connector', edge: edges[0]! }
   if (edges.length === 0) return { kind: 'nodes', title: `${nodes.length} shapes`, nodes }
   if (nodes.length === 0) return { kind: 'edges', title: `${edges.length} connectors`, edges }

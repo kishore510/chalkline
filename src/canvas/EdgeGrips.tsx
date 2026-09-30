@@ -7,7 +7,7 @@ import type { DiagramEdge, DiagramNode } from '@/schema/diagram'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore, type EdgeEnd } from '@/store/uiStore'
 import { findDockingTarget } from './docking'
-import { sidePoint, type Box } from './floating'
+import { sidePoint, sidesOf, type Box } from './floating'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 import type { FloatingEdgeData } from './flow'
 import { routeEdge } from './routing'
@@ -20,11 +20,13 @@ export const sideOf = (handle: string | undefined): HandleSide | undefined =>
   HANDLE_SIDES.includes(handle as HandleSide) ? (handle as HandleSide) : undefined
 
 export function internalBox(node: InternalNode): Box {
+  const type = node.type === 'shape' ? (node.data as { type?: string }).type : undefined
   return {
     x: node.internals.positionAbsolute.x,
     y: node.internals.positionAbsolute.y,
     width: node.measured.width ?? node.width ?? 0,
     height: node.measured.height ?? node.height ?? 0,
+    ...(type !== undefined && { type }),
   }
 }
 
@@ -38,10 +40,10 @@ function Unscaled({ x, y, zoom, children, className }: { x: number; y: number; z
 }
 
 function DockingPoints({ node, active, zoom }: { node: DiagramNode; active: HandleSide | null; zoom: number }) {
-  const box = { ...node.position, ...node.size }
+  const box = { ...node.position, ...node.size, type: node.type }
   return (
     <>
-      {HANDLE_SIDES.map((side) => {
+      {sidesOf(box).map((side) => {
         const p = sidePoint(box, side)
         return (
           <Unscaled key={side} x={p.x} y={p.y} zoom={zoom} className="pointer-events-none">

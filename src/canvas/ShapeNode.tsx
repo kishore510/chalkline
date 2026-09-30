@@ -2,7 +2,7 @@ import { Handle, NodeResizer, type NodeProps } from '@xyflow/react'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { minHeightForLabel } from '@/components/shapes/geometry'
 import { ShapeView } from '@/components/shapes/ShapeView'
-import { MIN_NODE_SIZE } from '@/schema/factories'
+import { getShape } from '@/shapes/registry'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { nodeAppearance } from './appearance'
@@ -32,10 +32,11 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
   const appearance = useMemo(() => nodeAppearance(data.style), [data.style])
   const [labelRef, labelHeight] = useHeight()
 
+  const shape = getShape(data.type)
   // Tallest the label needs the node to be; the node grows to fit rather than clipping.
   const minHeight = useMemo(
-    () => Math.max(MIN_NODE_SIZE, labelHeight ? minHeightForLabel(data.type, width, labelHeight) : 0),
-    [data.type, width, labelHeight],
+    () => Math.max(shape.minSize.height, labelHeight ? minHeightForLabel(data.type, width, labelHeight) : 0),
+    [shape, data.type, width, labelHeight],
   )
   useEffect(() => {
     if (labelHeight && height < minHeight) useDiagramStore.getState().growNodeToFit(id, minHeight)
@@ -45,8 +46,9 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
     <>
       <NodeResizer
         isVisible={selected && !editing && !data.locked}
-        minWidth={MIN_NODE_SIZE}
+        minWidth={shape.minSize.width}
         minHeight={minHeight}
+        keepAspectRatio={shape.keepAspect}
         handleClassName="cl-resize-handle"
         lineClassName="cl-resize-line"
         // One resize gesture is one undo step.

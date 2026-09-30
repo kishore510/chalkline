@@ -1,38 +1,21 @@
 import { createId } from '@/lib/id'
-import type { DiagramEdge, DiagramNode, NodeType, Position, Size } from './diagram'
-
-/** Sensible default size per node type, so new nodes look right with no styling. */
-export const DEFAULT_NODE_SIZE: Record<NodeType, Size> = {
-  rectangle: { width: 160, height: 80 },
-  rounded: { width: 160, height: 80 },
-  database: { width: 120, height: 100 },
-  cloud: { width: 180, height: 110 },
-  actor: { width: 96, height: 128 },
-  text: { width: 160, height: 40 },
-}
-
-export const DEFAULT_NODE_LABEL: Record<NodeType, string> = {
-  rectangle: 'Service',
-  rounded: 'Process',
-  database: 'Database',
-  cloud: 'Cloud',
-  actor: 'User',
-  text: 'Text',
-}
+import { getShape } from '@/shapes/registry'
+import type { DiagramEdge, DiagramNode, NodeType, Position } from './diagram'
 
 export function createNode(
   type: NodeType,
   position: Position,
   overrides: Partial<Omit<DiagramNode, 'type' | 'position'>> = {},
 ): DiagramNode {
+  const shape = getShape(type)
   return {
     id: createId('n_'),
     type,
     position,
-    size: { ...DEFAULT_NODE_SIZE[type] },
-    label: DEFAULT_NODE_LABEL[type],
+    size: { ...shape.defaultSize },
+    label: shape.defaultLabel,
     notes: '',
-    style: {},
+    style: { ...shape.defaultStyle },
     locked: false,
     ...overrides,
   }

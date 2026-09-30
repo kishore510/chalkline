@@ -5,23 +5,15 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { NODE_TYPES, type NodeType } from '@/schema/diagram'
+import type { NodeType } from '@/schema/diagram'
+import { getShape, SHAPES } from '@/shapes/registry'
 import { useUiStore } from '@/store/uiStore'
-
-export const SHAPE_NAMES: Record<NodeType, string> = {
-  rectangle: 'Rectangle',
-  rounded: 'Rounded box',
-  database: 'Database',
-  cloud: 'Cloud',
-  actor: 'Actor',
-  text: 'Text',
-}
 
 // Distance (CSS px) a pointer must travel before a press becomes a drag.
 const DRAG_THRESHOLD = 6
 
 interface Ghost {
-  type: NodeType
+  type: string
   x: number
   y: number
 }
@@ -37,7 +29,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
   const hooks = useRef({ onAdded, onDragStart })
   hooks.current = { onAdded, onDragStart }
 
-  const itemProps = (type: NodeType) => ({
+  const itemProps = (type: string) => ({
     onPointerDown(e: React.PointerEvent) {
       if (e.pointerType === 'mouse' && e.button !== 0) return
       const start = { x: e.clientX, y: e.clientY }
@@ -58,7 +50,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
         window.removeEventListener('pointercancel', end)
         setGhost(null)
         if (ev.type === 'pointercancel') return
-        const added = dragging ? actions.addAtScreenPoint(type, ev.clientX, ev.clientY) : (actions.addAtCenter(type), true)
+        const added = dragging ? actions.addAtScreenPoint(type as NodeType, ev.clientX, ev.clientY) : (actions.addAtCenter(type as NodeType), true)
         if (added) hooks.current.onAdded?.()
       }
       window.addEventListener('pointermove', move)
@@ -68,7 +60,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
     onClick(e: React.MouseEvent) {
       // Pointer taps are handled above; this covers keyboard activation (Enter/Space).
       if (e.detail === 0) {
-        actions.addAtCenter(type)
+        actions.addAtCenter(type as NodeType)
         hooks.current.onAdded?.()
       }
     },
@@ -90,12 +82,12 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
   return { itemProps, ghostElement }
 }
 
-function PaletteItem({ shape, compact, ...props }: { shape: NodeType; compact?: boolean } & Omit<ComponentProps<'button'>, 'type'>) {
+function PaletteItem({ shape, compact, ...props }: { shape: string; compact?: boolean } & Omit<ComponentProps<'button'>, 'type'>) {
   return (
     <button
       type="button"
-      title={`Add ${SHAPE_NAMES[shape].toLowerCase()}`}
-      aria-label={`Add ${SHAPE_NAMES[shape].toLowerCase()}`}
+      title={`Add ${getShape(shape).name.toLowerCase()}`}
+      aria-label={`Add ${getShape(shape).name.toLowerCase()}`}
       // touch-none: let pointer events drive the drag instead of scrolling.
       className={cn(
         'flex min-h-touch touch-none items-center gap-3 rounded-md text-sm text-text transition-colors select-none',
@@ -105,7 +97,7 @@ function PaletteItem({ shape, compact, ...props }: { shape: NodeType; compact?: 
       {...props}
     >
       <ShapeIcon type={shape} className="size-7 shrink-0" />
-      {!compact && <span className="text-xs text-text-muted">{SHAPE_NAMES[shape]}</span>}
+      {!compact && <span className="text-xs text-text-muted">{getShape(shape).name}</span>}
     </button>
   )
 }
@@ -154,7 +146,7 @@ export function PalettePanel() {
     <aside aria-label="Shapes" className="flex w-palette shrink-0 flex-col gap-3 overflow-y-auto border-r border-border bg-surface p-4">
       <h2 className="text-sm font-semibold">Shapes</h2>
       <div className="grid grid-cols-2 gap-2">
-        {NODE_TYPES.map((type) => (
+        {SHAPES.map(({ id: type }) => (
           <PaletteItem key={type} shape={type} {...itemProps(type)} />
         ))}
       </div>
@@ -193,7 +185,7 @@ export function PaletteRail() {
       {expanded ? (
         <>
           <div className="grid grid-cols-2 gap-2">
-            {NODE_TYPES.map((type) => (
+            {SHAPES.map(({ id: type }) => (
               <PaletteItem key={type} shape={type} {...itemProps(type)} />
             ))}
           </div>
@@ -204,7 +196,7 @@ export function PaletteRail() {
         </>
       ) : (
         <>
-          {NODE_TYPES.map((type) => (
+          {SHAPES.map(({ id: type }) => (
             <PaletteItem key={type} shape={type} compact {...itemProps(type)} />
           ))}
           <div aria-hidden="true" className="h-px w-8 bg-border" />
@@ -249,7 +241,7 @@ export function PaletteDrawer() {
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-2 px-4">
-        {NODE_TYPES.map((type) => (
+        {SHAPES.map(({ id: type }) => (
           <PaletteItem key={type} shape={type} {...itemProps(type)} tabIndex={open ? 0 : -1} />
         ))}
       </div>

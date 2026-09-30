@@ -162,8 +162,8 @@ function edgeSvg(
     d = polylinePath(route.points, lineType === 'smoothstep' || lineType === 'bezier' ? 8 : 0)
     ;({ x: labelX, y: labelY } = polylineMidpoint(route.points))
   } else {
-    const sp = shiftAlongSide(sidePoint({ ...source.position, ...source.size }, route.sourceSide), route.sourceSide, spread?.source ?? 0)
-    const tp = shiftAlongSide(sidePoint({ ...target.position, ...target.size }, route.targetSide), route.targetSide, spread?.target ?? 0)
+    const sp = shiftAlongSide(sidePoint({ ...source.position, ...source.size, type: source.type }, route.sourceSide), route.sourceSide, spread?.source ?? 0)
+    const tp = shiftAlongSide(sidePoint({ ...target.position, ...target.size, type: target.type }, route.targetSide), route.targetSide, spread?.target ?? 0)
     const params = {
       sourceX: sp.x,
       sourceY: sp.y,

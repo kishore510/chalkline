@@ -30,7 +30,7 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
   let targetSide: HandleSide | undefined = data.targetSide
   if (drag) {
     // Snapped: attach to that docking point. Free: a zero-size box at the pointer.
-    const box = snapNode && drag.target ? { ...snapNode.position, ...snapNode.size } : { ...drag.point, width: 0, height: 0 }
+    const box = snapNode && drag.target ? { ...snapNode.position, ...snapNode.size, type: snapNode.type } : { ...drag.point, width: 0, height: 0 }
     const side = drag.target?.side
     if (drag.end === 'source') [sourceBox, sourceSide] = [box, side]
     else [targetBox, targetSide] = [box, side]

@@ -1,6 +1,6 @@
 import type { Position, Size } from '@/schema/diagram'
-import { sidePoint } from './floating'
-import { HANDLE_SIDES, type HandleSide } from './handles'
+import { sidePoint, sidesOf } from './floating'
+import type { HandleSide } from './handles'
 
 export interface DockingTarget {
   nodeId: string
@@ -13,6 +13,7 @@ interface NodeLike {
   id: string
   position: Position
   size: Size
+  type?: string
 }
 
 /**
@@ -23,10 +24,10 @@ interface NodeLike {
  */
 export function findDockingTarget(point: Position, nodes: readonly NodeLike[], radius: number, excludeId: string): DockingTarget | null {
   const nearestSide = (node: NodeLike) => {
-    const box = { ...node.position, ...node.size }
+    const box = { ...node.position, ...node.size, ...(node.type !== undefined && { type: node.type }) }
     let best: DockingTarget | null = null
     let bestDistance = Infinity
-    for (const side of HANDLE_SIDES) {
+    for (const side of sidesOf(box)) {
       const p = sidePoint(box, side)
       const distance = Math.hypot(p.x - point.x, p.y - point.y)
       if (distance < bestDistance) {

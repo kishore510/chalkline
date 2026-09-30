@@ -9,7 +9,8 @@ import {
   type Diagram,
   type DiagramInput,
 } from './diagram'
-import { createEdge, createNode, DEFAULT_NODE_LABEL, DEFAULT_NODE_SIZE } from './factories'
+import { getShape } from '@/shapes/registry'
+import { createEdge, createNode } from './factories'
 
 const valid = fixtures['all-shapes'] as DiagramInput
 const clone = () => structuredClone(valid) as Diagram
@@ -132,9 +133,9 @@ describe('factories', () => {
 
   it.each(NODE_TYPES)('gives a %s node a default size and label', (type) => {
     const node = createNode(type, { x: 10, y: 20 })
-    expect(node.size).toEqual(DEFAULT_NODE_SIZE[type])
-    expect(node.size).not.toBe(DEFAULT_NODE_SIZE[type])
-    expect(node.label).toBe(DEFAULT_NODE_LABEL[type])
+    expect(node.size).toEqual(getShape(type).defaultSize)
+    expect(node.size).not.toBe(getShape(type).defaultSize)
+    expect(node.label).toBe(getShape(type).defaultLabel)
   })
 
   it('creates unique ids', () => {

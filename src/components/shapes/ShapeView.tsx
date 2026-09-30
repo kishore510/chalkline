@@ -3,6 +3,7 @@ import type { ReactNode, Ref } from 'react'
 import type { NodeAppearance } from '@/canvas/appearance'
 import { cn } from '@/lib/utils'
 import type { NodeType, Size } from '@/schema/diagram'
+import { getShape } from '@/shapes/registry'
 import { labelLayout, shapeGeometry } from './geometry'
 
 /** Label font size: the chosen (or default) size, but never below the touch minimum. */
@@ -70,7 +71,8 @@ export function ShapeView({
           <path key={d} d={d} className={cn('cl-node-stroke fill-none', strokeClass)} style={strokeStyle} />
         ))}
       </svg>
-      {type === 'text' && selected && <div className="absolute inset-0 rounded-sm border border-dashed border-accent" />}
+      {/* Shapes with no outline (like Text) show a dashed frame when selected. */}
+      {body.length === 0 && selected && <div className="absolute inset-0 rounded-sm border border-dashed border-accent" />}
       <div
         className={cn('absolute flex justify-center', align === 'center' ? 'items-center' : 'items-start')}
         style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
@@ -97,8 +99,8 @@ export function ShapeView({
             (label ? (
               label
             ) : (
-              // Keep empty text nodes findable.
-              type === 'text' && <span className="text-text-muted italic">Text</span>
+              // Keep empty outline-less nodes findable.
+              body.length === 0 && <span className="text-text-muted italic">{getShape(type).defaultLabel}</span>
             ))}
         </div>
       </div>

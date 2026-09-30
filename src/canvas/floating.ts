@@ -1,4 +1,5 @@
 import type { Diagram, Position as Point } from '@/schema/diagram'
+import { anchorPoint, getShape } from '@/shapes/registry'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
 /*
@@ -11,6 +12,8 @@ export interface Box {
   y: number
   width: number
   height: number
+  /** Shape id, for shape nodes: attachment points then sit on the shape's outline. */
+  type?: string
 }
 
 const OUTWARD: Record<HandleSide, Point> = {
@@ -20,17 +23,14 @@ const OUTWARD: Record<HandleSide, Point> = {
   left: { x: -1, y: 0 },
 }
 
+/** Where a connector attaches on a side: the shape's outline point, or the box side's midpoint. */
 export function sidePoint(box: Box, side: HandleSide): Point {
-  switch (side) {
-    case 'top':
-      return { x: box.x + box.width / 2, y: box.y }
-    case 'right':
-      return { x: box.x + box.width, y: box.y + box.height / 2 }
-    case 'bottom':
-      return { x: box.x + box.width / 2, y: box.y + box.height }
-    case 'left':
-      return { x: box.x, y: box.y + box.height / 2 }
-  }
+  return anchorPoint({ type: box.type, position: { x: box.x, y: box.y }, size: { width: box.width, height: box.height } }, side)
+}
+
+/** Sides a connector may use: all four for plain boxes, the shape's own list otherwise. */
+export function sidesOf(box: Box): readonly HandleSide[] {
+  return box.type === undefined ? HANDLE_SIDES : getShape(box.type).sides
 }
 
 export interface FloatingEnds {
@@ -50,8 +50,8 @@ const faces = (side: HandleSide, from: Point, to: Point) => OUTWARD[side].x * (t
  * kept. If the nodes overlap and nothing faces, the closest pair wins.
  */
 export function floatingEndpoints(source: Box, target: Box, fixedSource?: HandleSide, fixedTarget?: HandleSide): FloatingEnds {
-  const sourceSides = fixedSource ? [fixedSource] : HANDLE_SIDES
-  const targetSides = fixedTarget ? [fixedTarget] : HANDLE_SIDES
+  const sourceSides = fixedSource ? [fixedSource] : sidesOf(source)
+  const targetSides = fixedTarget ? [fixedTarget] : sidesOf(target)
   let best: { facing: boolean; distance: number; s: HandleSide; t: HandleSide } | null = null
   for (const s of sourceSides) {
     const sp = sidePoint(source, s)

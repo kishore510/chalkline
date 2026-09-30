@@ -1,3 +1,4 @@
+import { getShape } from '@/shapes/registry'
 import type { HandleSide } from './handles'
 import type { Route, RoutableNode } from './routing'
 
@@ -53,7 +54,8 @@ export function spreadAttachments(
     if (ends.length < 2) continue
     const [nodeId, side] = slot.split('|') as [string, HandleSide]
     const node = byId.get(nodeId)
-    if (!node) continue
+    // Only sides flat enough to spread along (a diamond's vertex, say, isn't).
+    if (!node || (node.type !== undefined && !getShape(node.type).spreadSides.includes(side))) continue
     const length = along(side) === 'y' ? node.size.height : node.size.width
     ends.sort((a, b) => a.key - b.key || a.edge.localeCompare(b.edge))
     ends.forEach((e, i) => {

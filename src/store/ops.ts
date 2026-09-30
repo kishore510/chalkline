@@ -44,10 +44,11 @@ export function moveNodes(diagram: Diagram, moves: ReadonlyMap<string, Position>
   })
 }
 
-export function resizeNode(diagram: Diagram, id: string, size: Size, position?: Position, minSize = 1): Diagram {
+export function resizeNode(diagram: Diagram, id: string, size: Size, position?: Position, minSize: number | Size = 1): Diagram {
   if (!Number.isFinite(size.width) || !Number.isFinite(size.height)) return diagram
-  const width = Math.max(minSize, size.width)
-  const height = Math.max(minSize, size.height)
+  const min = typeof minSize === 'number' ? { width: minSize, height: minSize } : minSize
+  const width = Math.max(min.width, size.width)
+  const height = Math.max(min.height, size.height)
   return mapNodes(diagram, (node) => {
     if (node.id !== id) return node
     const nextPosition = position && isFinitePoint(position) ? { x: position.x, y: position.y } : node.position

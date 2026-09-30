@@ -1,5 +1,5 @@
 import type { EdgeStyle, Position as Point, Size } from '@/schema/diagram'
-import { floatingEndpoints, sidePoint, type Box } from './floating'
+import { floatingEndpoints, sidePoint, sidesOf, type Box } from './floating'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
 /*
@@ -16,6 +16,8 @@ export interface RoutableNode {
   id: string
   position: Point
   size: Size
+  /** Shape id, so connectors attach on the shape's outline (bounding boxes stay the obstacle test). */
+  type?: string
 }
 
 export interface RoutableEdge {
@@ -54,7 +56,7 @@ export interface Route {
 const OUT: Record<HandleSide, Point> = { top: { x: 0, y: -1 }, right: { x: 1, y: 0 }, bottom: { x: 0, y: 1 }, left: { x: -1, y: 0 } }
 const horizontal = (side: HandleSide) => side === 'left' || side === 'right'
 const isSide = (h: string | undefined): h is HandleSide => HANDLE_SIDES.includes(h as HandleSide)
-const boxOf = (n: RoutableNode): Box => ({ ...n.position, ...n.size })
+const boxOf = (n: RoutableNode): Box => ({ ...n.position, ...n.size, ...(n.type !== undefined && { type: n.type }) })
 const pad = (b: Box, p: number): Box => ({ x: b.x - p, y: b.y - p, width: b.width + 2 * p, height: b.height + 2 * p })
 
 /** Drops repeated and collinear points so the point count reflects real bends. */
@@ -231,14 +233,14 @@ export function routeEdge(nodes: readonly RoutableNode[], edge: RoutableEdge, op
   if (blockers.length === 0) return base
 
   const candidates: Candidate[] = []
-  for (const s of fixedSource ? [fixedSource] : HANDLE_SIDES) {
-    for (const t of fixedTarget ? [fixedTarget] : HANDLE_SIDES) {
+  for (const s of fixedSource ? [fixedSource] : sidesOf(sBox)) {
+    for (const t of fixedTarget ? [fixedTarget] : sidesOf(tBox)) {
       if (s === nearest.sourceSide && t === nearest.targetSide) continue
       candidates.push({ sourceSide: s, targetSide: t, kind: 'direct', points: pathFor(s, t) })
     }
   }
-  for (const s of fixedSource ? [fixedSource] : HANDLE_SIDES) {
-    for (const t of fixedTarget ? [fixedTarget] : HANDLE_SIDES) {
+  for (const s of fixedSource ? [fixedSource] : sidesOf(sBox)) {
+    for (const t of fixedTarget ? [fixedTarget] : sidesOf(tBox)) {
       for (const points of detours(sidePoint(sBox, s), s, sidePoint(tBox, t), t, obstacles, options)) {
         candidates.push({ sourceSide: s, targetSide: t, kind: 'detour', points })
       }
