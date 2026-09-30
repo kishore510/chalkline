@@ -16,6 +16,8 @@ import { groupById, isGroupLocked, isNodeLocked, isPool, laneOrder, minLaneThick
 import { layerIdOf } from '@/store/layers'
 import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
+import { LearnMore } from '@/help/HelpEntry'
+import { LEARN_MORE } from '@/help/links'
 import { explainBlockedAdd } from './layerNotices'
 import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
@@ -189,12 +191,15 @@ function ConnectionSection({ edges }: { edges: DiagramEdge[] }) {
         />
       </div>
       <p className="text-xs text-text-muted">Auto attaches to the nearest side as shapes move. A chosen side stays put.</p>
-      {pinned && (
-        <Button variant="ghost" onClick={() => store().resetEdgeSides(ids)} className="self-start px-3 text-text-muted">
-          <RotateCcw />
-          Reset to auto
-        </Button>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {pinned && (
+          <Button variant="ghost" onClick={() => store().resetEdgeSides(ids)} className="px-3 text-text-muted">
+            <RotateCcw />
+            Reset to auto
+          </Button>
+        )}
+        <LearnMore topic={LEARN_MORE.connectorProperties} className="-mr-2 ml-auto" />
+      </div>
     </Section>
   )
 }

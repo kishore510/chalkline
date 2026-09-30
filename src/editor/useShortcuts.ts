@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { parseFragment, serializeFragment } from '@/store/clipboard'
+import { useHelpStore } from '@/help/helpStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { explainBlockedAdd } from './layerNotices'
@@ -117,6 +118,9 @@ export function useShortcuts() {
           }
           break
         }
+        case '?':
+          useHelpStore.getState().openHelp()
+          break
         case 'Escape':
           ui.clearLinkSource()
           ui.closeContextMenu()

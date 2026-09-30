@@ -147,7 +147,8 @@ export function TidyMenu({ layout, className }: { layout: Layout; className?: st
         className={className}
       >
         {busy ? <Loader2 className="animate-spin" /> : <Wand2 />}
-        {layout === 'desktop' && 'Tidy'}
+        {/* Text label from 1280px; narrower desktops keep room for the whole top bar. */}
+        {layout === 'desktop' && <span className="hidden xl:inline">Tidy</span>}
       </Button>
       {open && (
         <Panel

@@ -1,10 +1,12 @@
-import { Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Menu, PenTool, Sparkles } from 'lucide-react'
+import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { fixtures } from '@/fixtures'
 import type { Layout } from '@/hooks/useMediaQuery'
+import { UnseenDot } from '@/help/HelpEntry'
+import { useHelpStore } from '@/help/helpStore'
 import { cn } from '@/lib/utils'
 import { serializeDiagram, fileNameFor } from '@/persistence/serialize'
 import { safeParseDiagram } from '@/schema/diagram'
@@ -67,6 +69,9 @@ export function FileMenu({ layout }: { layout: Layout }) {
   const actions = useCanvasActions()
   const anyHidden = useDiagramStore((s) => s.diagram.layers.some((l) => !l.visible))
   const [includeHidden, setIncludeHidden] = useState(false)
+  // Phone: help lives in this menu, so the "what's new" dot shows on its button.
+  const unseen = useHelpStore((s) => s.unseen) && layout === 'phone'
+  const openHelp = useHelpStore((s) => s.openHelp)
 
   useEffect(() => {
     if (!open) return
@@ -112,13 +117,15 @@ export function FileMenu({ layout }: { layout: Layout }) {
         ref={buttonRef}
         variant="ghost"
         size="icon"
-        aria-label="File menu"
+        aria-label={unseen ? 'File menu (new: what’s changed in help)' : 'File menu'}
         aria-haspopup="menu"
         aria-expanded={open}
         title="File"
         onClick={() => setOpen((v) => !v)}
+        className="relative"
       >
         <Menu />
+        {unseen && <UnseenDot className="top-2.5 right-2.5" />}
       </Button>
       <input
         ref={fileRef}
@@ -170,6 +177,17 @@ export function FileMenu({ layout }: { layout: Layout }) {
           <Item icon={<Sparkles />} onClick={run(() => actions.load(fixtures['web-architecture']))}>
             Load example
           </Item>
+          {layout === 'phone' && (
+            <>
+              <Divider />
+              <Item icon={<CircleHelp />} hint={unseen ? 'New' : undefined} onClick={run(() => openHelp())}>
+                Help and what’s new
+              </Item>
+              <Item icon={<Info />} onClick={run(() => openHelp({ kind: 'about' }))}>
+                About Chalkline
+              </Item>
+            </>
+          )}
           <SaveStatusLine />
         </Panel>
       )}

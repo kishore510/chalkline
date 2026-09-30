@@ -4,6 +4,7 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { fixtures } from '@/fixtures'
 import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
+import { HelpSheetHost, VersionTag } from '@/help/HelpEntry'
 import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ArrangeBar } from './ArrangeControls'
@@ -46,6 +47,11 @@ function EditorLayout() {
           <LinkHint />
           <BusyIndicator />
           {layout === 'desktop' && <ArrangeBar />}
+          {layout === 'desktop' && (
+            <div className="pointer-events-none absolute bottom-0 left-0 z-10 p-1">
+              <VersionTag />
+            </div>
+          )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
             <Notice />
             <UndoToast />
@@ -65,6 +71,7 @@ function EditorLayout() {
       {layout !== 'desktop' && <LayersSheet />}
       <ContextMenu />
       <StencilDialogs />
+      <HelpSheetHost />
     </div>
   )
 }
