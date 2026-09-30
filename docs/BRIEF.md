@@ -38,6 +38,7 @@ Last updated: 30 Sep 2026
 | Testing | `tsc --noEmit`, Vitest, `vite build` locally. Visual testing on phone and laptop via the deployed URL |
 | Schema | Zod schema is the single source of truth, versioned with migrations. Colours are hex or `token:name` so diagrams follow themes |
 | Design | Chalk-on-slate theme direction (slate dark mode, paper light mode). Design tokens (CSS variables), light and dark from day one, mobile-first, pointer events, 44px touch targets, quiet chrome so the canvas is the focus |
+| Export | Built in-house, no new dependencies: SVG generated from diagram data, PNG rasterised from it, PDF via a small hand-written writer (decided 30 Sep 2026) |
 | AI (Phase 6) | Bring-your-own-key or a thin Cloudflare Worker proxy, decided when hosting is decided. Explicit buttons only, compact JSON payloads, size estimate before sending |
 
 ## 5. Phases and status
@@ -47,7 +48,7 @@ Last updated: 30 Sep 2026
 | 0. Foundations | Scaffold, `VITE_BASE`, Pages workflow, zod schema, fixtures and tests, design tokens, light/dark, static style-sheet page | Done, merged to `main` and deployed |
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
-| 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Not started |
+| 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | In progress on `phase-3-persistence` |
 | 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | Not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
 | 6. AI | Text-to-diagram, summary, annotation suggestions, review assistant | Not started |
