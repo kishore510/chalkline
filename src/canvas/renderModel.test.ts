@@ -70,6 +70,17 @@ describe('buildRenderModel', () => {
 describe('layers', () => {
   const layered = () => parseDiagram(fixtures.layers)
 
+  it('marks shapes on hidden layers as hidden, so the canvas does not draw them', () => {
+    // Regression: they were left out of routing but still drawn and clickable.
+    const d = layered()
+    const model = buildRenderModel(d)
+    expect([...model.hiddenNodes]).toEqual(['n_note'])
+    const allHidden = { ...d, layers: d.layers.map((l) => ({ ...l, visible: l.id !== 'default' ? true : false })) }
+    const baseHidden = buildRenderModel(allHidden)
+    for (const id of ['n_client', 'n_api', 'n_db']) expect(baseHidden.hiddenNodes.has(id)).toBe(true)
+    expect(baseHidden.hiddenNodes.has('n_firewall')).toBe(false)
+  })
+
   it('leaves out items on hidden layers and connectors touching them', () => {
     const model = buildRenderModel(layered())
     expect(model.routingNodes.map((n) => n.id)).not.toContain('n_note')

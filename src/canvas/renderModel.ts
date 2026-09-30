@@ -25,7 +25,7 @@ export interface GroupView {
 export interface RenderModel {
   /** Visible groups, parents before children. */
   groups: GroupView[]
-  /** Nodes inside a collapsed group. */
+  /** Nodes not drawn: on a hidden layer, or inside a collapsed group. */
   hiddenNodes: ReadonlySet<string>
   /** Visible edges, with ends moved to a collapsed group where needed. */
   edges: DiagramEdge[]
@@ -109,8 +109,11 @@ export function buildRenderModel(diagram: Diagram, { includeHidden = false }: { 
   const endpoint = new Map<string, string>()
   const visibleNodes: DiagramNode[] = []
   for (const node of diagram.nodes) {
-    // On a hidden layer: not drawn, and its connectors are left out above.
-    if (!includeHidden && isNodeHidden(diagram, node)) continue
+    // On a hidden layer: not drawn (the canvas skips hiddenNodes) and its connectors are left out below.
+    if (!includeHidden && isNodeHidden(diagram, node)) {
+      hiddenNodes.add(node.id)
+      continue
+    }
     const group = node.groupId ? groupsById.get(node.groupId) : undefined
     const around = group ? outermostCollapsed(group) : undefined
     if (around) {
