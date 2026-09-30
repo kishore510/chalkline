@@ -49,7 +49,7 @@ Last updated: 30 Sep 2026
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
 | 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Done, merged to `main` and deployed |
-| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a done (align/distribute); 4b (groups, swimlanes, locking; schema v2) built on `phase-4b-groups`; rest not started |
+| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a, 4b done; 4c (auto-arrange with ELK, tidy connectors) built on `phase-4c-arrange`; layers and stencils not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
 | 6. AI | Text-to-diagram, summary, annotation suggestions, review assistant | Not started |
 
@@ -111,3 +111,4 @@ Add one line per thread: date, phase, what was decided or built, what's next.
 - 30 Sep 2026: Phase 3 built (autosave with restore, canonical JSON open/save, in-house SVG/PNG/PDF export, 100-step undo/redo with typing/drag grouping, copy/cut/paste incl. across tabs, duplicate, file menu, pane long-press paste). No schema change. Next: review, then Phase 4.
 - 30 Sep 2026: Phase 4a built (align six ways, distribute with equal gaps by size, match width/height/both; one undo step each; desktop arrange bar, phone/tablet panel section). Alignment guides while dragging left out. No schema change.
 - 30 Sep 2026: Phase 4b built: schema v2 with migration (groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked), containers with header-only selection, nesting, adopt/release by drop, collapse, swimlane pools with lane operations that keep tiling, locking, copy/paste and export of groups. Next: review, then 4c.
+- 30 Sep 2026: Phase 4c built: Tidy menu with Auto-arrange (ELK layered, hierarchical, lazy-loaded in a Web Worker; direction and spacing remembered; pools and locked items left alone) and Tidy connectors (draw-time spreading of shared sides; optional clear pinned sides). No schema change.

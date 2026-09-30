@@ -21,6 +21,18 @@ export function Notice() {
       {notice && (
         <Panel role="status" className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full py-0 pr-1 pl-4 shadow-lg">
           <span className="min-w-0 text-sm">{notice.text}</span>
+          {notice.action && (
+            <Button
+              variant="ghost"
+              className="shrink-0 rounded-full px-3 text-accent"
+              onClick={() => {
+                notice.action!.run()
+                dismiss()
+              }}
+            >
+              {notice.action.label}
+            </Button>
+          )}
           <Button variant="ghost" size="icon" aria-label="Dismiss" onClick={dismiss} className="rounded-full">
             <X />
           </Button>

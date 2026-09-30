@@ -11,7 +11,7 @@ import {
   type NodeChange,
   type OnConnectEnd,
 } from '@xyflow/react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { MEDIA } from '@/styles/breakpoints'
 import { resolveColour } from '@/lib/colour'
@@ -34,6 +34,7 @@ import { GroupNode, type GroupFlowNode } from './GroupNode'
 import { buildRenderModel } from './renderModel'
 import { createRouteCache } from './routing'
 import { ShapeNode } from './ShapeNode'
+import { spreadAttachments, type Spread } from './spread'
 import { useLongPress, type PressTarget } from './useLongPress'
 
 const nodeTypes = { shape: ShapeNode, 'group-box': GroupNode }
@@ -92,6 +93,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const snapToGrid = useUiStore((s) => s.snapToGrid)
   const connecting = useUiStore((s) => s.connecting)
   const dropTarget = useUiStore((s) => s.dropTargetId)
+  const animating = useUiStore((s) => s.animating)
   const finePointer = useMediaQuery(MEDIA.finePointer)
 
   // Grid and minimap sizes come from tokens; read once on mount.
@@ -149,7 +151,14 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const route = useMemo(() => createRouteCache(), [])
   const mapEdges = useMemo(() => createEdgeMapper(), [])
   const routes = useMemo(() => route({ nodes: model.routingNodes, edges: model.edges }), [route, model])
-  const edges = useMemo(() => mapEdges(model.edges, selected, routes, sizes.edgeWidth), [mapEdges, model, selected, routes, sizes.edgeWidth])
+  // Connectors sharing a side are spread along it (draw time only; reuses unchanged results).
+  const lastSpread = useRef<Map<string, Spread>>(undefined)
+  const spreads = useMemo(() => {
+    const next = spreadAttachments(model.routingNodes, model.edges, routes, lastSpread.current)
+    lastSpread.current = next
+    return next
+  }, [model, routes])
+  const edges = useMemo(() => mapEdges(model.edges, selected, routes, sizes.edgeWidth, spreads), [mapEdges, model, selected, routes, sizes.edgeWidth, spreads])
 
   const onNodesChange = useCallback((changes: NodeChange<CanvasNode>[]) => {
     const { moves, resizes, removed, selection: flags } = summariseNodeChanges(changes)
@@ -279,7 +288,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         // Frame a restored or opened diagram when the canvas first appears.
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1.5 }}
-        className={cn(connecting && 'cl-connecting', !connectable && 'cl-no-handles', tool === 'pan' && 'cl-tool-pan', linkTool && 'cl-tool-link')}
+        className={cn(animating && 'cl-animating', connecting && 'cl-connecting', !connectable && 'cl-no-handles', tool === 'pan' && 'cl-tool-pan', linkTool && 'cl-tool-link')}
       >
         <Background variant={BackgroundVariant.Dots} gap={sizes.grid} size={sizes.dot} />
         <EdgeGrips />

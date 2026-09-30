@@ -14,6 +14,7 @@ import { Notice } from './Notice'
 import { PaletteDrawer, PalettePanel, PaletteRail } from './palette'
 import { PropertiesPanel, PropertiesSheet, PropertiesSlideOver } from './Properties'
 import { CanvasToolbar } from './Toolbar'
+import { BusyIndicator } from './TidyMenu'
 import { TopBar } from './TopBar'
 import { UndoToast } from './UndoToast'
 import { useShortcuts } from './useShortcuts'
@@ -41,6 +42,7 @@ function EditorLayout() {
           <Canvas minimap={layout === 'phone' ? 'none' : layout === 'desktop' ? 'bottom-right' : 'top-right'} />
           <EmptyCanvas layout={layout} />
           <LinkHint />
+          <BusyIndicator />
           {layout === 'desktop' && <ArrangeBar />}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
             <Notice />

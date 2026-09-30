@@ -2,6 +2,7 @@ import { MarkerType, type Edge, type EdgeChange, type EdgeMarker, type Node, typ
 import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType, Position, Size } from '@/schema/diagram'
 import { edgeAppearance } from './appearance'
 import type { Route } from './routing'
+import type { Spread } from './spread'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
 const isSide = (value: string | undefined): value is HandleSide => HANDLE_SIDES.includes(value as HandleSide)
@@ -23,7 +24,15 @@ export type LineType = NonNullable<EdgeStyle['lineType']>
  * chosen around obstacles); a missing side is chosen at render time. `detour`
  * is a routed polyline to follow instead of the line type's own path.
  */
-export type FloatingEdgeData = { lineType: LineType; sourceSide?: HandleSide; targetSide?: HandleSide; detour?: Position[] }
+export type FloatingEdgeData = {
+  lineType: LineType
+  sourceSide?: HandleSide
+  targetSide?: HandleSide
+  detour?: Position[]
+  /** Offsets along the side, so connectors sharing a side don't stack (see spread.ts). */
+  sourceShift?: number
+  targetShift?: number
+}
 export type FloatingFlowEdge = Edge<FloatingEdgeData, 'floating'>
 
 /** Rendering defaults for optional edge style fields. */
@@ -88,7 +97,7 @@ function marker(arrow: Arrowhead, colour: string): EdgeMarker | undefined {
 /** Default edge width in px; the canvas passes the --cl-edge-width token. */
 export const DEFAULT_EDGE_WIDTH = 1.5
 
-export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route): Edge {
+export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread): Edge {
   const style = edge.style
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
@@ -108,6 +117,8 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
           sourceSide: route.sourceSide,
           targetSide: route.targetSide,
           ...(route.kind === 'detour' && { detour: route.points }),
+          ...(spread?.source && { sourceShift: spread.source }),
+          ...(spread?.target && { targetShift: spread.target }),
         }
       : {
           lineType,
@@ -135,23 +146,25 @@ export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, def
  * edge, its selection and its route are unchanged, so React Flow skips it.
  */
 export function createEdgeMapper() {
-  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; width: number; flow: Edge }>()
+  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; spread: Spread | undefined; width: number; flow: Edge }>()
   /** `edges`: the visible edges (ends already moved onto collapsed groups). */
   return function toFlowEdgesCached(
     edges: readonly DiagramEdge[],
     selected: ReadonlySet<string>,
     routes: ReadonlyMap<string, Route>,
     defaultWidth = DEFAULT_EDGE_WIDTH,
+    spreads: ReadonlyMap<string, Spread> = new Map(),
   ): Edge[] {
     const seen = new Set<string>()
     const out = edges.map((edge) => {
       seen.add(edge.id)
       const isSelected = selected.has(edge.id)
       const route = routes.get(edge.id)
+      const spread = spreads.get(edge.id)
       const hit = cache.get(edge.id)
-      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.width === defaultWidth) return hit.flow
-      const flow = toFlowEdge(edge, isSelected, defaultWidth, route)
-      cache.set(edge.id, { source: edge, selected: isSelected, route, width: defaultWidth, flow })
+      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.spread === spread && hit.width === defaultWidth) return hit.flow
+      const flow = toFlowEdge(edge, isSelected, defaultWidth, route, spread)
+      cache.set(edge.id, { source: edge, selected: isSelected, route, spread, width: defaultWidth, flow })
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)

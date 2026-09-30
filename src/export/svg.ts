@@ -7,7 +7,8 @@ import { routeEdge } from '@/canvas/routing'
 import { dashArray } from '@/canvas/appearance'
 import { labelLayout, shapeGeometry } from '@/components/shapes/geometry'
 import { buildRenderModel, type GroupView } from '@/canvas/renderModel'
-import type { RoutableNode } from '@/canvas/routing'
+import type { Route, RoutableNode } from '@/canvas/routing'
+import { shiftAlongSide, spreadAttachments, type Spread } from '@/canvas/spread'
 import type { Diagram, DiagramEdge, DiagramNode } from '@/schema/diagram'
 import { wrapText, type Measure } from './text'
 
@@ -137,11 +138,18 @@ function groupSvg(view: GroupView, env: ExportEnv, bounds: Bounds): string {
   return parts.join('')
 }
 
-function edgeSvg(edge: DiagramEdge, nodes: readonly RoutableNode[], env: ExportEnv, bounds: Bounds, marker: (type: Arrow, colour: string) => string): string {
+function edgeSvg(
+  edge: DiagramEdge,
+  nodes: readonly RoutableNode[],
+  route: Route,
+  spread: Spread | undefined,
+  env: ExportEnv,
+  bounds: Bounds,
+  marker: (type: Arrow, colour: string) => string,
+): string {
   const source = nodes.find((n) => n.id === edge.source)
   const target = nodes.find((n) => n.id === edge.target)
   if (!source || !target) return ''
-  const route = routeEdge(nodes, edge)
   const style = edge.style
   const colour = resolve(style.colour, 'edge', env)
   const width = style.width ?? env.edgeWidth
@@ -154,8 +162,8 @@ function edgeSvg(edge: DiagramEdge, nodes: readonly RoutableNode[], env: ExportE
     d = polylinePath(route.points, lineType === 'smoothstep' || lineType === 'bezier' ? 8 : 0)
     ;({ x: labelX, y: labelY } = polylineMidpoint(route.points))
   } else {
-    const sp = sidePoint({ ...source.position, ...source.size }, route.sourceSide)
-    const tp = sidePoint({ ...target.position, ...target.size }, route.targetSide)
+    const sp = shiftAlongSide(sidePoint({ ...source.position, ...source.size }, route.sourceSide), route.sourceSide, spread?.source ?? 0)
+    const tp = shiftAlongSide(sidePoint({ ...target.position, ...target.size }, route.targetSide), route.targetSide, spread?.target ?? 0)
     const params = {
       sourceX: sp.x,
       sourceY: sp.y,
@@ -211,7 +219,9 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
   // Draw what the canvas shows: collapsed groups hide their members and take their connectors.
   const model = buildRenderModel(diagram)
   const groups = model.groups.map((v) => groupSvg(v, env, bounds)).join('')
-  const edges = model.edges.map((e) => edgeSvg(e, model.routingNodes, env, bounds, marker)).join('')
+  const routes = new Map(model.edges.map((e) => [e.id, routeEdge(model.routingNodes, e)]))
+  const spreads = spreadAttachments(model.routingNodes, model.edges, routes)
+  const edges = model.edges.map((e) => edgeSvg(e, model.routingNodes, routes.get(e.id)!, spreads.get(e.id), env, bounds, marker)).join('')
   const nodes = diagram.nodes
     .filter((n) => !model.hiddenNodes.has(n.id))
     .map((n) => nodeSvg(n, env, bounds))

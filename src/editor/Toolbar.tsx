@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore, type Tool } from '@/store/uiStore'
 import { deleteSelectionWithNotice } from './deleteSelection'
+import { TidyMenu } from './TidyMenu'
 
 const TOOL_OPTIONS: { value: Tool; label: string; icon: React.ReactNode }[] = [
   { value: 'select', label: 'Select and move (V)', icon: <MousePointer2 /> },
@@ -85,6 +86,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
       <Button variant="ghost" size="icon" aria-label="Fit to screen (F)" title="Fit to screen (F)" onClick={actions.fitView} className={round}>
         <Maximize />
       </Button>
+      {layout !== 'phone' && <TidyMenu layout={layout} className={round} />}
       <div aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border" />
       <Button
         variant="ghost"

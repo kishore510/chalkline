@@ -6,6 +6,7 @@ import { floatingEndpoints, type Box } from './floating'
 import type { FloatingFlowEdge } from './flow'
 import { HANDLE_POSITION, type HandleSide } from './handles'
 import { polylineMidpoint, polylinePath } from './polyline'
+import { shiftAlongSide } from './spread'
 
 // Corner radius for routed detours drawn with a rounded line type.
 const DETOUR_RADIUS = 8
@@ -60,11 +61,14 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
   }
 
   const ends = floatingEndpoints(sourceBox, targetBox, sourceSide, targetSide)
+  // Spread ends that share a side (not while a grip is being dragged).
+  const start = shiftAlongSide({ x: ends.sourceX, y: ends.sourceY }, ends.sourceSide, drag ? 0 : (data.sourceShift ?? 0))
+  const end = shiftAlongSide({ x: ends.targetX, y: ends.targetY }, ends.targetSide, drag ? 0 : (data.targetShift ?? 0))
   const params = {
-    sourceX: ends.sourceX,
-    sourceY: ends.sourceY,
-    targetX: ends.targetX,
-    targetY: ends.targetY,
+    sourceX: start.x,
+    sourceY: start.y,
+    targetX: end.x,
+    targetY: end.y,
     sourcePosition: HANDLE_POSITION[ends.sourceSide],
     targetPosition: HANDLE_POSITION[ends.targetSide],
   }

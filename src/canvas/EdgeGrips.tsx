@@ -9,7 +9,9 @@ import { useUiStore, type EdgeEnd } from '@/store/uiStore'
 import { findDockingTarget } from './docking'
 import { sidePoint, type Box } from './floating'
 import { HANDLE_SIDES, type HandleSide } from './handles'
+import type { FloatingEdgeData } from './flow'
 import { routeEdge } from './routing'
+import { shiftAlongSide } from './spread'
 
 // Distance (CSS px) a grip must move before a press becomes a drag rather than a tap.
 const DRAG_THRESHOLD = 6
@@ -152,13 +154,17 @@ function Grips({ edge }: { edge: DiagramEdge }) {
   const drag = useUiStore((s) => (s.edgeDrag?.edgeId === edge.id ? s.edgeDrag : null))
   const dockNode = useDiagramStore((s) => (drag?.target ? s.diagram.nodes.find((n) => n.id === drag.target!.nodeId) : undefined))
   const nodes = useDiagramStore((s) => s.diagram.nodes)
+  // The drawn edge's spread offsets, so grips sit exactly on its ends.
+  const data = useStore((s) => s.edgeLookup.get(edge.id)?.data as FloatingEdgeData | undefined)
   if (!sourceNode || !targetNode) return null
 
   // Same routing as the drawn edge, so grips sit exactly on its ends.
   const route = routeEdge(nodes, edge)
   const at = (end: EdgeEnd) => {
     if (drag?.end === end) return drag.target ?? drag.point
-    return end === 'source' ? sidePoint(internalBox(sourceNode), route.sourceSide) : sidePoint(internalBox(targetNode), route.targetSide)
+    return end === 'source'
+      ? shiftAlongSide(sidePoint(internalBox(sourceNode), route.sourceSide), route.sourceSide, data?.sourceShift ?? 0)
+      : shiftAlongSide(sidePoint(internalBox(targetNode), route.targetSide), route.targetSide, data?.targetShift ?? 0)
   }
   return (
     <>

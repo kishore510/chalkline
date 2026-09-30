@@ -195,6 +195,11 @@
   transform: scale(1.4);
 }
 
+/* After auto-arrange, shapes and groups glide to their new places (skipped under reduced motion). */
+.cl-animating .react-flow__node {
+  transition: transform var(--cl-duration-slow) var(--cl-ease);
+}
+
 /* Groups: the box lets pointer events through to the canvas and the nodes inside;
    only the header, border strips and resize controls take them. */
 .react-flow__node-group-box {

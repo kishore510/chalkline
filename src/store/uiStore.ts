@@ -9,6 +9,38 @@ export type LinkTapResult = 'source' | 'linked' | 'cleared' | 'refused' | 'ignor
 
 export type EdgeEnd = 'source' | 'target'
 
+/** Auto-arrange and tidy choices, remembered between visits. */
+export interface ArrangePrefs {
+  direction: 'right' | 'down'
+  spacing: 'compact' | 'normal' | 'roomy'
+  clearPinned: boolean
+}
+
+const PREFS_KEY = 'chalkline.arrange'
+const DEFAULT_PREFS: ArrangePrefs = { direction: 'right', spacing: 'normal', clearPinned: false }
+
+function loadPrefs(): ArrangePrefs {
+  try {
+    const raw = JSON.parse(globalThis.localStorage?.getItem(PREFS_KEY) ?? 'null') as Partial<ArrangePrefs> | null
+    return {
+      direction: raw?.direction === 'down' ? 'down' : 'right',
+      spacing: raw?.spacing === 'compact' || raw?.spacing === 'roomy' ? raw.spacing : 'normal',
+      // "Also clear pinned sides" is deliberately not remembered: it's off by default every time.
+      clearPinned: false,
+    }
+  } catch {
+    return DEFAULT_PREFS
+  }
+}
+
+function savePrefs(prefs: ArrangePrefs) {
+  try {
+    globalThis.localStorage?.setItem(PREFS_KEY, JSON.stringify({ direction: prefs.direction, spacing: prefs.spacing }))
+  } catch {
+    // Fine: the choice just isn't remembered.
+  }
+}
+
 /** Autosave state, shown in the file menu. */
 export type SaveStatus = 'off' | 'saved' | 'error'
 
@@ -47,9 +79,17 @@ interface UiState {
   contextMenu: ContextMenuState | null
   saveStatus: SaveStatus
   setSaveStatus: (status: SaveStatus) => void
-  /** A short message shown briefly at the bottom of the canvas. `id` changes each time. */
-  notice: { id: number; text: string } | null
-  notify: (text: string) => void
+  /** A short message shown briefly at the bottom of the canvas, optionally with one action. `id` changes each time. */
+  notice: { id: number; text: string; action?: { label: string; run: () => void } } | null
+  notify: (text: string, action?: { label: string; run: () => void }) => void
+  /** Long-running work (e.g. auto-arrange); shown as a busy indicator. */
+  busy: string | null
+  setBusy: (busy: string | null) => void
+  /** True briefly after auto-arrange, so shapes glide to their new places. */
+  animating: boolean
+  setAnimating: (animating: boolean) => void
+  arrangePrefs: ArrangePrefs
+  setArrangePrefs: (prefs: Partial<ArrangePrefs>) => void
   dismissNotice: () => void
   edgeDrag: EdgeDrag | null
   /** Group a dragged node would join if dropped now (drop feedback). */
@@ -82,7 +122,18 @@ export const useUiStore = create<UiState>()((set, get) => ({
   saveStatus: 'off',
   setSaveStatus: (saveStatus) => set({ saveStatus }),
   notice: null,
-  notify: (text) => set((s) => ({ notice: { id: (s.notice?.id ?? 0) + 1, text } })),
+  notify: (text, action) => set((s) => ({ notice: { id: (s.notice?.id ?? 0) + 1, text, ...(action && { action }) } })),
+  busy: null,
+  setBusy: (busy) => set({ busy }),
+  animating: false,
+  setAnimating: (animating) => set({ animating }),
+  arrangePrefs: loadPrefs(),
+  setArrangePrefs: (prefs) =>
+    set((s) => {
+      const arrangePrefs = { ...s.arrangePrefs, ...prefs }
+      savePrefs(arrangePrefs)
+      return { arrangePrefs }
+    }),
   dismissNotice: () => set({ notice: null }),
   edgeDrag: null,
   dropTargetId: null,

@@ -2,6 +2,7 @@ import { Logo, LogoMark } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { FileMenu } from './FileMenu'
+import { TidyMenu } from './TidyMenu'
 import { CanvasToolbar, HistoryButtons } from './Toolbar'
 
 export function TopBar({ layout }: { layout: Layout }) {
@@ -13,6 +14,7 @@ export function TopBar({ layout }: { layout: Layout }) {
           <div className="flex items-center gap-1">
             <LogoMark className="mr-1" />
             <HistoryButtons />
+            <TidyMenu layout={layout} />
           </div>
         ) : (
           <Logo />
