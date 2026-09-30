@@ -1,4 +1,4 @@
-import { Grid3x3, Hand, Link2, Maximize, MousePointer2, Plus, Redo2, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Hand, Link2, Maximize, MousePointer2, Plus, Redo2, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -10,22 +10,13 @@ import { useUiStore, type Tool } from '@/store/uiStore'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { LayersButton } from './LayersPanel'
 import { TidyMenu } from './TidyMenu'
+import { ViewMenu } from './ViewMenu'
 
 const TOOL_OPTIONS: { value: Tool; label: string; icon: React.ReactNode }[] = [
   { value: 'select', label: 'Select and move (V)', icon: <MousePointer2 /> },
   { value: 'pan', label: 'Pan (H)', icon: <Hand /> },
   { value: 'link', label: 'Link: tap source, then target (L)', icon: <Link2 /> },
 ]
-
-export function SnapButton({ className }: { className?: string }) {
-  const snap = useUiStore((s) => s.snapToGrid)
-  const toggleSnap = useUiStore((s) => s.toggleSnap)
-  return (
-    <Button variant="ghost" size="icon" aria-label="Snap to grid (G)" title="Snap to grid (G)" aria-pressed={snap} onClick={toggleSnap} className={className}>
-      <Grid3x3 />
-    </Button>
-  )
-}
 
 export function HistoryButtons({ className }: { className?: string }) {
   const canUndo = useDiagramStore((s) => s.canUndo)
@@ -47,7 +38,7 @@ export function HistoryButtons({ className }: { className?: string }) {
 /**
  * Canvas commands. The mode switch sits at one end and delete at the other,
  * behind a divider, so a mis-tap on Link can never hit delete.
- * Phone: floating pill (snap lives in the top bar, pinch zooms).
+ * Phone: floating pill (view options live in the file menu, pinch zooms).
  * Tablet: floating with zoom buttons. Desktop: inline in the top bar.
  */
 export function CanvasToolbar({ layout }: { layout: Layout }) {
@@ -73,7 +64,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
           <Plus />
         </Button>
       )}
-      {layout !== 'phone' && <SnapButton className={round} />}
+      {layout !== 'phone' && <ViewMenu layout={layout} className={round} />}
       {layout !== 'phone' && (
         <>
           <Button variant="ghost" size="icon" aria-label="Zoom out (-)" title="Zoom out (-)" onClick={actions.zoomOut} className={round}>

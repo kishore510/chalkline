@@ -1,4 +1,4 @@
-import { Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Grid3x3, Menu, PenTool, Sparkles } from 'lucide-react'
+import { Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Menu, PenTool, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { safeParseDiagram } from '@/schema/diagram'
 import { useStencilStore } from '@/stencils/stencilStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { ViewOptions } from './ViewMenu'
 
 const notify = (text: string) => useUiStore.getState().notify(text)
 
@@ -64,10 +65,8 @@ export function FileMenu({ layout }: { layout: Layout }) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const actions = useCanvasActions()
-  const snap = useUiStore((s) => s.snapToGrid)
   const anyHidden = useDiagramStore((s) => s.diagram.layers.some((l) => !l.visible))
   const [includeHidden, setIncludeHidden] = useState(false)
-  const toggleSnap = useUiStore((s) => s.toggleSnap)
 
   useEffect(() => {
     if (!open) return
@@ -133,7 +132,7 @@ export function FileMenu({ layout }: { layout: Layout }) {
         }}
       />
       {open && (
-        <Panel ref={menuRef} role="menu" aria-label="File" className="absolute top-full right-0 z-40 mt-1 flex w-72 flex-col p-1 shadow-lg">
+        <Panel ref={menuRef} role="menu" aria-label="File" className="absolute top-full right-0 z-40 mt-1 flex max-h-(--cl-drawer-max-height) w-72 flex-col overflow-y-auto p-1 shadow-lg">
           <Item icon={<FilePlus />} onClick={run(() => useStencilStore.getState().openDialog({ kind: 'templates' }))}>
             New diagram…
           </Item>
@@ -160,9 +159,13 @@ export function FileMenu({ layout }: { layout: Layout }) {
           )}
           <Divider />
           {layout === 'phone' && (
-            <Item icon={<Grid3x3 />} pressed={snap} onClick={toggleSnap}>
-              Snap to grid
-            </Item>
+            <>
+              <section aria-label="View">
+                <h3 className="px-3 pt-2 text-xs font-semibold tracking-wide text-text-muted uppercase">View</h3>
+                <ViewOptions layout={layout} />
+              </section>
+              <Divider />
+            </>
           )}
           <Item icon={<Sparkles />} onClick={run(() => actions.load(fixtures['web-architecture']))}>
             Load example

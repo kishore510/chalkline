@@ -7,6 +7,7 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { nodeAppearance } from './appearance'
 import type { ShapeFlowNode } from './flow'
+import { endResize, startResize } from './guideSession'
 import { HANDLE_POSITION, HANDLE_SIDES } from './handles'
 import { LabelEditor } from './LabelEditor'
 
@@ -52,8 +53,8 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         handleClassName="cl-resize-handle"
         lineClassName="cl-resize-line"
         // One resize gesture is one undo step.
-        onResizeStart={() => useDiagramStore.getState().beginBatch()}
-        onResizeEnd={() => useDiagramStore.getState().endBatch()}
+        onResizeStart={startResize}
+        onResizeEnd={endResize}
       />
       {linkSource && (
         <div aria-hidden="true" className="pointer-events-none absolute -inset-2 rounded-md border-2 border-dashed border-accent bg-accent-subtle" />

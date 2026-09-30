@@ -3,6 +3,7 @@ import type { DockingTarget } from '@/canvas/docking'
 import type { Position } from '@/schema/diagram'
 import { cleanRecents, pushRecent } from '@/editor/paletteModel'
 import { useDiagramStore } from './diagramStore'
+import { loadViewPrefs, saveViewPrefs, type GridDisplay, type ViewPrefs } from './viewPrefs'
 
 export type Tool = 'select' | 'pan' | 'link'
 
@@ -82,6 +83,11 @@ interface UiState {
   /** Link mode: the node tapped first, waiting for a target. */
   linkSourceId: string | null
   snapToGrid: boolean
+  /** Alignment and spacing guides while dragging or resizing. */
+  smartGuides: boolean
+  gridDisplay: GridDisplay
+  /** Changes view preferences (snap, guides, grid display) and remembers them. */
+  setViewPrefs: (prefs: Partial<ViewPrefs>) => void
   /** Node whose label is being edited inline, if any. */
   editingId: string | null
   /** True while a connector is being dragged, so every handle shows as a target. */
@@ -128,10 +134,25 @@ interface UiState {
   closeContextMenu: () => void
 }
 
+const initialView = loadViewPrefs()
+
+const viewPrefsOf = (s: Pick<UiState, 'snapToGrid' | 'smartGuides' | 'gridDisplay'>): ViewPrefs => ({
+  snapToGrid: s.snapToGrid,
+  smartGuides: s.smartGuides,
+  grid: s.gridDisplay,
+})
+
 export const useUiStore = create<UiState>()((set, get) => ({
   tool: 'select',
   linkSourceId: null,
-  snapToGrid: true,
+  snapToGrid: initialView.snapToGrid,
+  smartGuides: initialView.smartGuides,
+  gridDisplay: initialView.grid,
+  setViewPrefs(prefs) {
+    const next = { ...viewPrefsOf(get()), ...prefs }
+    saveViewPrefs(next)
+    set({ snapToGrid: next.snapToGrid, smartGuides: next.smartGuides, gridDisplay: next.grid })
+  },
   editingId: null,
   connecting: false,
   paletteOpen: false,
@@ -194,7 +215,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     return id ? 'linked' : 'refused'
   },
   clearLinkSource: () => set({ linkSourceId: null }),
-  toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+  toggleSnap: () => get().setViewPrefs({ snapToGrid: !get().snapToGrid }),
   setEditing: (editingId) => set({ editingId, contextMenu: null }),
   setConnecting: (connecting) => set({ connecting }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
