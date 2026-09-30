@@ -8,7 +8,7 @@ import { CanvasToolbar, HistoryButtons } from './Toolbar'
 
 export function TopBar({ layout }: { layout: Layout }) {
   return (
-    <header className="cl-safe-top z-10 shrink-0 border-b border-border bg-surface">
+    <header className="cl-safe-top z-30 shrink-0 border-b border-border bg-surface">
       <div className="cl-safe-x flex h-header items-center justify-between gap-4">
         {layout === 'phone' ? (
           // Phone: the logo mark only, with undo/redo in thumb reach of the top corner.
