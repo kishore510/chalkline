@@ -336,3 +336,13 @@ export function arrangeNodes(diagram: Diagram, moves: ReadonlyMap<string, Positi
     return position === node.position && nextSize === node.size ? node : { ...node, position, size: nextSize }
   })
 }
+
+/** Changes nodes' shape, keeping everything else; sizes grow to the new shape's minimum. */
+export function changeNodeType(diagram: Diagram, ids: Iterable<string>, type: string, minSize: Size): Diagram {
+  const wanted = new Set(ids)
+  return mapNodes(diagram, (node) => {
+    if (!wanted.has(node.id) || node.type === type) return node
+    const size = { width: Math.max(minSize.width, node.size.width), height: Math.max(minSize.height, node.size.height) }
+    return { ...node, type, size }
+  })
+}

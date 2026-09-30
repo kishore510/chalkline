@@ -3,13 +3,12 @@ import { fixtures, invalidFixtures } from '@/fixtures'
 import {
   createEmptyDiagram,
   DiagramSchema,
-  NODE_TYPES,
   parseDiagram,
   safeParseDiagram,
   type Diagram,
   type DiagramInput,
 } from './diagram'
-import { getShape } from '@/shapes/registry'
+import { getShape, SHAPE_IDS } from '@/shapes/registry'
 import { createEdge, createNode } from './factories'
 
 const valid = fixtures['all-shapes'] as DiagramInput
@@ -34,12 +33,12 @@ describe('fixtures', () => {
   })
 
   it('all-shapes covers every node type', () => {
-    expect([...new Set(valid.nodes.map((n) => n.type))].sort()).toEqual([...NODE_TYPES].sort())
+    expect([...new Set(valid.nodes.map((n) => n.type))].sort()).toEqual([...SHAPE_IDS].sort())
   })
 
   it('label-cases covers every shape with each kind of label', () => {
     const doc = parseDiagram(fixtures['label-cases'])
-    for (const type of NODE_TYPES) {
+    for (const type of SHAPE_IDS) {
       const labels = doc.nodes.filter((n) => n.type === type).map((n) => n.label)
       expect(labels).toContain('Customer')
       expect(labels.some((l) => l.split(' ').length >= 3)).toBe(true)
@@ -78,10 +77,13 @@ describe('DiagramSchema rejects bad documents', () => {
     expect(issuesOf(doc)).toEqual(['nodes.0.groupId: Unknown group "g_missing"'])
   })
 
-  it('rejects an unknown node type', () => {
+  it('accepts a shape id this version does not know (it loads and keeps its id)', () => {
     const doc = clone() as unknown as { nodes: { type: string }[] }
-    doc.nodes[0]!.type = 'hexagon'
-    expect(issuesOf(doc)).toHaveLength(1)
+    doc.nodes[0]!.type = 'hexagon-3d'
+    expect(issuesOf(doc)).toEqual([])
+    const empty = clone() as unknown as { nodes: { type: string }[] }
+    empty.nodes[0]!.type = ''
+    expect(issuesOf(empty)).toHaveLength(1)
   })
 
   it.each(['red', '#fff', '#12345678', 'token:Accent', 'token:'])('rejects the colour %s', (colour) => {
@@ -111,7 +113,7 @@ describe('DiagramSchema rejects bad documents', () => {
   })
 
   it('rejects the wrong schemaVersion and bad timestamps', () => {
-    expect(issuesOf({ ...clone(), schemaVersion: 3 })).toHaveLength(1)
+    expect(issuesOf({ ...clone(), schemaVersion: 99 })).toHaveLength(1)
     expect(issuesOf({ ...clone(), meta: { ...clone().meta, updated: 'yesterday' } })).toHaveLength(1)
   })
 })
@@ -131,7 +133,7 @@ describe('factories', () => {
     expect(diagram.meta.title).toBe('Mine')
   })
 
-  it.each(NODE_TYPES)('gives a %s node a default size and label', (type) => {
+  it.each(SHAPE_IDS)('gives a %s node a default size and label', (type) => {
     const node = createNode(type, { x: 10, y: 20 })
     expect(node.size).toEqual(getShape(type).defaultSize)
     expect(node.size).not.toBe(getShape(type).defaultSize)

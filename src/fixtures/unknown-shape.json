@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 3,
+  "meta": {"title": "Unknown shape", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_future", "type": "hologram", "position": {"x": 0, "y": 0}, "size": {"width": 140, "height": 90}, "label": "From a newer version", "notes": "Kept exactly as saved", "style": {"fill": "token:swatch-teal-soft"}},
+    {"id": "n_known", "type": "rounded", "position": {"x": 260, "y": 5}, "size": {"width": 160, "height": 80}, "label": "Known shape"}
+  ],
+  "edges": [
+    {"id": "e_1", "source": "n_future", "target": "n_known", "sourceHandle": "right"}
+  ]
+}

@@ -19,7 +19,7 @@ import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
 import { deleteSelectionWithNotice } from './deleteSelection'
-import { getShape } from '@/shapes/registry'
+import { CATEGORIES, getShape, isKnownShape, SHAPES } from '@/shapes/registry'
 
 const store = () => useDiagramStore.getState()
 
@@ -216,6 +216,7 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         hint={NODE_NOTES_HINT}
         onChange={(notes) => store().setNodeNotes(node.id, notes)}
       />
+      <ChangeShape nodes={[node]} />
       <GroupMembership node={node} />
       <NodeStyleSection nodes={[node]} />
       <Section title="Size">
@@ -225,6 +226,46 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         </div>
       </Section>
     </>
+  )
+}
+
+/* ---------- Shape type ---------- */
+
+/** Pick another shape; label, notes, style, size, connectors and group are kept. */
+function ChangeShape({ nodes }: { nodes: DiagramNode[] }) {
+  const current = nodes.every((n) => n.type === nodes[0]!.type) ? nodes[0]!.type : ''
+  const unknown = nodes.find((n) => !isKnownShape(n.type))
+  return (
+    <div className="flex flex-col gap-2">
+      {unknown && (
+        <p role="note" className="rounded-md border border-danger px-3 py-2 text-sm text-danger">
+          Unknown shape: {unknown.type}. It’s drawn as a rectangle and kept as saved; pick a shape below to replace it.
+        </p>
+      )}
+      <Label>
+        Shape
+        <select
+          value={isKnownShape(current) ? current : ''}
+          onChange={(e) => e.target.value && store().changeNodeType(nodes.map((n) => n.id), e.target.value)}
+          className="h-touch w-full min-w-0 rounded-md border border-border-strong bg-surface px-3 text-base text-text"
+        >
+          {!isKnownShape(current) && (
+            <option value="" disabled>
+              {current ? `Unknown (${current})` : 'Mixed'}
+            </option>
+          )}
+          {CATEGORIES.map((c) => (
+            <optgroup key={c.id} label={c.name}>
+              {SHAPES.filter((s) => s.category === c.id).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </Label>
+    </div>
   )
 }
 
@@ -455,7 +496,7 @@ function useSelectionSummary(): Summary {
   }
   if (groups.length > 0) return { kind: 'mixed', title: `${nodes.length + edges.length + groups.length} selected` }
   if (nodes.length + edges.length === 0) return { kind: 'none', title: 'Diagram' }
-  if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: getShape(nodes[0]!.type).name, node: nodes[0]! }
+  if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: isKnownShape(nodes[0]!.type) ? getShape(nodes[0]!.type).name : 'Unknown shape', node: nodes[0]! }
   if (edges.length === 1 && nodes.length === 0) return { kind: 'edge', title: 'Connector', edge: edges[0]! }
   if (edges.length === 0) return { kind: 'nodes', title: `${nodes.length} shapes`, nodes }
   if (nodes.length === 0) return { kind: 'edges', title: `${edges.length} connectors`, edges }
@@ -473,6 +514,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
       {summary.kind === 'nodes' && (
         <>
           <GroupButton />
+          <ChangeShape nodes={summary.nodes} />
           <NodeStyleSection nodes={summary.nodes} />
           <LockField ids={summary.nodes.map((n) => n.id)} locked={summary.nodes.every((n) => n.locked)} inherited={false} />
         </>

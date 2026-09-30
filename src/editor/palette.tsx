@@ -5,7 +5,6 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { NodeType } from '@/schema/diagram'
 import { getShape, SHAPES } from '@/shapes/registry'
 import { useUiStore } from '@/store/uiStore'
 
@@ -50,7 +49,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
         window.removeEventListener('pointercancel', end)
         setGhost(null)
         if (ev.type === 'pointercancel') return
-        const added = dragging ? actions.addAtScreenPoint(type as NodeType, ev.clientX, ev.clientY) : (actions.addAtCenter(type as NodeType), true)
+        const added = dragging ? actions.addAtScreenPoint(type, ev.clientX, ev.clientY) : (actions.addAtCenter(type), true)
         if (added) hooks.current.onAdded?.()
       }
       window.addEventListener('pointermove', move)
@@ -60,7 +59,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
     onClick(e: React.MouseEvent) {
       // Pointer taps are handled above; this covers keyboard activation (Enter/Space).
       if (e.detail === 0) {
-        actions.addAtCenter(type as NodeType)
+        actions.addAtCenter(type)
         hooks.current.onAdded?.()
       }
     },

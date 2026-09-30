@@ -12,19 +12,19 @@ const issuesOf = (input: unknown) => {
 describe('migration v1 -> v2', () => {
   it('the legacy fixture really is a v1 document', () => {
     expect(legacy.schemaVersion).toBe(1)
-    expect(SCHEMA_VERSION).toBe(2)
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(2)
   })
 
   it('turns existing groups into unlocked containers and leaves everything else alone', () => {
     const migrated = migrate(legacy) as { schemaVersion: number; nodes: Record<string, unknown>[]; groups: Record<string, unknown>[] }
-    expect(migrated.schemaVersion).toBe(2)
+    expect(migrated.schemaVersion).toBe(SCHEMA_VERSION)
     expect(migrated.groups).toEqual([{ ...(legacy.groups[0] as object), kind: 'container', locked: false }])
     migrated.nodes.forEach((node, i) => expect(node).toEqual({ ...(legacy.nodes[i] as object), locked: false }))
   })
 
   it('loads through parseDiagram with nodes still in their group', () => {
     const diagram = parseDiagram(legacy)
-    expect(diagram.schemaVersion).toBe(2)
+    expect(diagram.schemaVersion).toBe(SCHEMA_VERSION)
     expect(diagram.groups[0]).toMatchObject({ id: 'g_backend', kind: 'container', locked: false, collapsed: false })
     expect(diagram.nodes.filter((n) => n.groupId === 'g_backend').map((n) => n.id)).toEqual(['api', 'db'])
     expect(diagram.nodes.every((n) => n.locked === false)).toBe(true)
@@ -34,7 +34,7 @@ describe('migration v1 -> v2', () => {
     const map = new Map([['chalkline.autosave', JSON.stringify(legacy)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
     const diagram = loadAutosave(storage)
-    expect(diagram?.schemaVersion).toBe(2)
+    expect(diagram?.schemaVersion).toBe(SCHEMA_VERSION)
     expect(diagram?.groups[0]?.kind).toBe('container')
   })
 

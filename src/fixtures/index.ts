@@ -4,7 +4,9 @@ import empty from './empty.json'
 import invalidDanglingEdge from './invalid-dangling-edge.json'
 import labelCases from './label-cases.json'
 import legacyV1 from './legacy-v1.json'
+import legacyV2 from './legacy-v2.json'
 import swimlanePool from './swimlane-pool.json'
+import unknownShape from './unknown-shape.json'
 import webArchitecture from './web-architecture.json'
 
 /** Raw fixtures, exactly as they would be read from a saved file. All must be valid. */
@@ -18,11 +20,14 @@ export const fixtures: Record<string, unknown> = {
   container,
   /** A horizontal pool with three lanes and connectors across them. */
   'swimlane-pool': swimlanePool,
+  /** A node whose shape this version doesn't know; it must load, draw as a rectangle and save unchanged. */
+  'unknown-shape': unknownShape,
 }
 
 /** Documents saved by older versions, exactly as written then; they must load through migration. */
 export const legacyFixtures: Record<string, unknown> = {
   'v1-web-architecture': legacyV1,
+  'v2-container': legacyV2,
 }
 
 /** Deliberately broken documents, used to check loading fails cleanly. */

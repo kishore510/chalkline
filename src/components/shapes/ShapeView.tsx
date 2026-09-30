@@ -1,9 +1,9 @@
-import { Lock, StickyNote } from 'lucide-react'
+import { Lock, StickyNote, TriangleAlert } from 'lucide-react'
 import type { ReactNode, Ref } from 'react'
 import type { NodeAppearance } from '@/canvas/appearance'
 import { cn } from '@/lib/utils'
 import type { NodeType, Size } from '@/schema/diagram'
-import { getShape } from '@/shapes/registry'
+import { getShape, isKnownShape } from '@/shapes/registry'
 import { labelLayout, shapeGeometry } from './geometry'
 
 /** Label font size: the chosen (or default) size, but never below the touch minimum. */
@@ -104,6 +104,14 @@ export function ShapeView({
             ))}
         </div>
       </div>
+      {!isKnownShape(type) && (
+        <span
+          title={`Unknown shape: ${type}`}
+          className="absolute -bottom-2 -left-2 flex size-5 items-center justify-center rounded-full border border-danger bg-surface text-danger shadow-sm"
+        >
+          <TriangleAlert className="size-3" aria-label={`Unknown shape: ${type}`} />
+        </span>
+      )}
       {locked && (
         <span
           title="Locked"

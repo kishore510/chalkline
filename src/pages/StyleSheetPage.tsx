@@ -25,7 +25,6 @@ import { Segmented } from '@/components/ui/segmented'
 import { COLOUR_PRESETS, PRESET_NAMES, presetToken } from '@/lib/colour'
 import { cn } from '@/lib/utils'
 import { nodeAppearance } from '@/canvas/appearance'
-import type { NodeType } from '@/schema/diagram'
 import { getShape, SHAPES } from '@/shapes/registry'
 
 const COLOUR_TOKENS = [
@@ -273,12 +272,12 @@ export function StyleSheetPage() {
           <div className="cl-canvas-grid flex flex-col gap-8 rounded-lg border border-border p-6">
             <div className="flex flex-wrap items-center justify-center gap-8">
               {SHAPES.map(({ id: type }) => (
-                <ShapeView key={type} type={type as NodeType} size={getShape(type).defaultSize} label={getShape(type).defaultLabel} />
+                <ShapeView key={type} type={type} size={getShape(type).defaultSize} label={getShape(type).defaultLabel} />
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-8">
               {SHAPES.map(({ id: type }) => (
-                <ShapeView key={type} type={type as NodeType} size={getShape(type).defaultSize} label={`${getShape(type).defaultLabel}`} selected />
+                <ShapeView key={type} type={type} size={getShape(type).defaultSize} label={`${getShape(type).defaultLabel}`} selected />
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">

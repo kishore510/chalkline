@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Diagram document schema. Single source of truth for types.
  * Any change here requires: bump SCHEMA_VERSION, add a migration, add a test.
  */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 /* ---------- Primitives ---------- */
 
@@ -24,8 +24,13 @@ export const SizeSchema = z.object({
 
 /* ---------- Nodes ---------- */
 
-export const NodeTypeSchema = z.enum(['rectangle', 'rounded', 'database', 'cloud', 'actor', 'text'])
-export const NODE_TYPES = NodeTypeSchema.options
+/**
+ * A shape id from the shape registry (src/shapes/registry.ts). Deliberately any
+ * non-empty string: a diagram made by a newer version may use shapes this one
+ * doesn't know. Those still load, keep their id when saved, and draw as a
+ * plain rectangle; use isKnownShape() to tell them apart.
+ */
+export const NodeTypeSchema = z.string().min(1).max(64)
 
 export const NodeStyleSchema = z
   .object({
@@ -216,6 +221,9 @@ const records = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value) ? value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null) : []
 
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v3: node type is a registry id (any string) instead of a fixed list. Existing
+  // data is already valid, so this is a version bump only.
+  2: (doc) => ({ ...doc, schemaVersion: 3 }),
   // v2: groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked.
   // Existing groups become plain containers; nothing is locked.
   1: (doc) => ({

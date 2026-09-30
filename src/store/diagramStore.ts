@@ -14,7 +14,7 @@ import {
 import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode } from '@/canvas/arrange'
 import { createId } from '@/lib/id'
 import { createNode, MIN_NODE_SIZE } from '@/schema/factories'
-import { getShape } from '@/shapes/registry'
+import { getShape, isKnownShape } from '@/shapes/registry'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import type { LayoutChanges } from '@/layout/computeLayout'
 import * as groups from './groups'
@@ -52,6 +52,8 @@ export interface DiagramState {
   /** Grows a node's height so its label fits; never shrinks. Joins the previous undo step. */
   growNodeToFit: (id: string, minHeight: number) => void
   setNodeLabel: (id: string, label: string) => void
+  /** Changes nodes to another registry shape, keeping label, notes, style, size (grown to its minimum), connectors and group. Unknown ids and locked nodes are skipped. */
+  changeNodeType: (ids: string[], type: string) => void
   setTitle: (title: string) => void
   updateNodeStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
   resetNodeStyles: (ids: string[]) => void
@@ -314,6 +316,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       apply((d) => ops.resizeNode(d, id, size, position, min))
     },
     growNodeToFit: (id, minHeight) => apply((d) => ops.growNodeHeight(d, id, minHeight), { merge: true }),
+    changeNodeType(ids, type) {
+      if (!isKnownShape(type)) return
+      apply((d) => ops.changeNodeType(d, ids.filter((id) => !nodeLocked(id)), type, getShape(type).minSize))
+    },
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label), { key: `label:${id}` }),
     setTitle: (title) => apply((d) => ops.setTitle(d, title), { key: 'title' }),
     updateNodeStyles: (ids, patch) =>

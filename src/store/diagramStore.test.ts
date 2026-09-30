@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fixtures, invalidFixtures } from '@/fixtures'
-import { DiagramSchema, NODE_TYPES } from '@/schema/diagram'
+import { DiagramSchema } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
+import { SHAPE_IDS } from '@/shapes/registry'
 import { useDiagramStore } from './diagramStore'
 
 const store = () => useDiagramStore.getState()
@@ -24,7 +25,7 @@ describe('diagram store', () => {
   })
 
   it('keeps the document valid through a long sequence of edits', () => {
-    const ids = NODE_TYPES.map((type, i) => store().addNode(type, { x: i * 200, y: 0 }, 20))
+    const ids = SHAPE_IDS.map((type, i) => store().addNode(type, { x: i * 200, y: 0 }, 20))
     for (let i = 0; i < ids.length - 1; i++) {
       store().connect({ source: ids[i]!, target: ids[i + 1]!, sourceHandle: 'right', targetHandle: 'left' })
     }
