@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 3,
+  "meta": {"title": "Every shape", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_rectangle", "type": "rectangle", "position": {"x": 0, "y": 0}, "size": {"width": 160, "height": 80}, "label": "Rectangle"},
+    {"id": "n_rounded", "type": "rounded", "position": {"x": 240, "y": 0}, "size": {"width": 160, "height": 80}, "label": "Rounded box"},
+    {"id": "n_actor", "type": "actor", "position": {"x": 480, "y": 0}, "size": {"width": 96, "height": 128}, "label": "Actor"},
+    {"id": "n_diamond", "type": "diamond", "position": {"x": 720, "y": 0}, "size": {"width": 140, "height": 100}, "label": "Decision"},
+    {"id": "n_ellipse", "type": "ellipse", "position": {"x": 0, "y": 200}, "size": {"width": 150, "height": 90}, "label": "Ellipse"},
+    {"id": "n_hexagon", "type": "hexagon", "position": {"x": 240, "y": 200}, "size": {"width": 160, "height": 80}, "label": "Hexagon"},
+    {"id": "n_parallelogram", "type": "parallelogram", "position": {"x": 480, "y": 200}, "size": {"width": 160, "height": 80}, "label": "Input / output"},
+    {"id": "n_document", "type": "document", "position": {"x": 720, "y": 200}, "size": {"width": 160, "height": 90}, "label": "Document"},
+    {"id": "n_database", "type": "database", "position": {"x": 0, "y": 400}, "size": {"width": 120, "height": 100}, "label": "Database"},
+    {"id": "n_cloud", "type": "cloud", "position": {"x": 240, "y": 400}, "size": {"width": 180, "height": 110}, "label": "Cloud"},
+    {"id": "n_server", "type": "server", "position": {"x": 480, "y": 400}, "size": {"width": 140, "height": 120}, "label": "Server"},
+    {"id": "n_queue", "type": "queue", "position": {"x": 720, "y": 400}, "size": {"width": 180, "height": 60}, "label": "Queue"},
+    {"id": "n_user_group", "type": "user-group", "position": {"x": 0, "y": 600}, "size": {"width": 128, "height": 128}, "label": "User group"},
+    {"id": "n_text", "type": "text", "position": {"x": 240, "y": 600}, "size": {"width": 160, "height": 40}, "label": "Text"},
+    {"id": "n_sticky_note", "type": "sticky-note", "position": {"x": 480, "y": 600}, "size": {"width": 150, "height": 150}, "label": "Sticky note", "style": {"fill": "token:swatch-amber-soft", "stroke": "token:swatch-amber"}},
+    {"id": "n_callout", "type": "callout", "position": {"x": 720, "y": 600}, "size": {"width": 170, "height": 100}, "label": "Callout"}
+  ],
+  "edges": []
+}

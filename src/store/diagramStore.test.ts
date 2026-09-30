@@ -37,7 +37,8 @@ describe('diagram store', () => {
     expectValid()
     const resized = store().diagram.nodes.find((n) => n.id === ids[1])!
     expect(resized.size).toEqual({ width: MIN_NODE_SIZE, height: MIN_NODE_SIZE })
-    expect(store().diagram.edges).toHaveLength(3)
+    // A chain of one edge per neighbouring pair, minus the two touching the deleted node.
+    expect(store().diagram.edges).toHaveLength(ids.length - 3)
   })
 
   it('stamps updated only when something changes', () => {

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 3,
+  "meta": {"title": "Process flow", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_start", "type": "ellipse", "position": {"x": 0, "y": 20}, "size": {"width": 150, "height": 90}, "label": "Request received"},
+    {"id": "n_input", "type": "parallelogram", "position": {"x": 220, "y": 25}, "size": {"width": 160, "height": 80}, "label": "Capture details"},
+    {"id": "n_check", "type": "diamond", "position": {"x": 450, "y": 15}, "size": {"width": 140, "height": 100}, "label": "Details complete?"},
+    {"id": "n_doc", "type": "document", "position": {"x": 660, "y": -110}, "size": {"width": 160, "height": 90}, "label": "Create record"},
+    {"id": "n_fix", "type": "rounded", "position": {"x": 660, "y": 140}, "size": {"width": 160, "height": 80}, "label": "Ask for missing details"},
+    {"id": "n_end", "type": "ellipse", "position": {"x": 900, "y": -115}, "size": {"width": 150, "height": 90}, "label": "Done"}
+  ],
+  "edges": [
+    {"id": "e_start_input", "source": "n_start", "target": "n_input"},
+    {"id": "e_input_check", "source": "n_input", "target": "n_check"},
+    {"id": "e_check_doc", "source": "n_check", "target": "n_doc", "label": "Yes"},
+    {"id": "e_check_fix", "source": "n_check", "target": "n_fix", "label": "No"},
+    {"id": "e_fix_input", "source": "n_fix", "target": "n_input", "style": {"dashed": true}},
+    {"id": "e_doc_end", "source": "n_doc", "target": "n_end"}
+  ]
+}

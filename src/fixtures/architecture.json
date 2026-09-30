@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 3,
+  "meta": {"title": "Service architecture", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_users", "type": "user-group", "position": {"x": 0, "y": 30}, "size": {"width": 128, "height": 128}, "label": "Customers"},
+    {"id": "n_edge", "type": "cloud", "position": {"x": 200, "y": 40}, "size": {"width": 180, "height": 110}, "label": "Edge network"},
+    {"id": "n_app", "type": "server", "position": {"x": 450, "y": 30}, "size": {"width": 140, "height": 120}, "label": "App servers"},
+    {"id": "n_queue", "type": "queue", "position": {"x": 660, "y": 60}, "size": {"width": 180, "height": 60}, "label": "Work queue"},
+    {"id": "n_worker", "type": "server", "position": {"x": 900, "y": 30}, "size": {"width": 140, "height": 120}, "label": "Workers"},
+    {"id": "n_db", "type": "database", "position": {"x": 460, "y": 240}, "size": {"width": 120, "height": 100}, "label": "Main database"},
+    {"id": "n_note", "type": "sticky-note", "position": {"x": 900, "y": 220}, "size": {"width": 150, "height": 150}, "label": "Workers scale with queue depth", "style": {"fill": "token:swatch-amber-soft", "stroke": "token:swatch-amber"}}
+  ],
+  "edges": [
+    {"id": "e_users_edge", "source": "n_users", "target": "n_edge"},
+    {"id": "e_edge_app", "source": "n_edge", "target": "n_app"},
+    {"id": "e_app_queue", "source": "n_app", "target": "n_queue", "label": "publishes"},
+    {"id": "e_queue_worker", "source": "n_queue", "target": "n_worker", "label": "consumes"},
+    {"id": "e_app_db", "source": "n_app", "target": "n_db"},
+    {"id": "e_worker_db", "source": "n_worker", "target": "n_db"}
+  ]
+}

@@ -32,8 +32,9 @@ describe('fixtures', () => {
     expect(safeParseDiagram(invalidFixtures['invalid-dangling-edge']).success).toBe(false)
   })
 
-  it('all-shapes covers every node type', () => {
-    expect([...new Set(valid.nodes.map((n) => n.type))].sort()).toEqual([...SHAPE_IDS].sort())
+  it('every-shape covers every registry shape', () => {
+    const doc = parseDiagram(fixtures['every-shape'])
+    expect([...new Set(doc.nodes.map((n) => n.type))].sort()).toEqual([...SHAPE_IDS].sort())
   })
 
   it('label-cases covers every shape with each kind of label', () => {
