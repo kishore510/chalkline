@@ -37,7 +37,7 @@ describe('fragments', () => {
   })
 
   it('drops edges whose ends are missing from the fragment', () => {
-    const f = { nodes: copyFragment(d, ['n_rect'])!.nodes, edges: d.edges }
+    const f = { nodes: copyFragment(d, ['n_rect'])!.nodes, edges: d.edges, groups: [] }
     expect(pasteFragment(d, f, { x: 0, y: 0 }).ids).toHaveLength(1)
   })
 })

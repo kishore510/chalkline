@@ -1,4 +1,4 @@
-import { DiagramSchema, EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
+import { DiagramSchema, EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramGroup, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
 import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
 import { createEdge } from '@/schema/factories'
 
@@ -92,12 +92,13 @@ export function connect(diagram: Diagram, connection: Connection, id?: string): 
 export interface Removed {
   nodes: DiagramNode[]
   edges: DiagramEdge[]
+  groups: DiagramGroup[]
 }
 
 /** Removes nodes and edges by id, returning what went. Edges attached to a removed node go too. */
 export function removeElements(diagram: Diagram, ids: Iterable<string>): { diagram: Diagram; removed: Removed } {
   const remove = new Set(ids)
-  const removed: Removed = { nodes: [], edges: [] }
+  const removed: Removed = { nodes: [], edges: [], groups: [] }
   if (remove.size === 0) return { diagram, removed }
   const nodes = diagram.nodes.filter((n) => !remove.has(n.id) || (removed.nodes.push(n), false))
   const edges = diagram.edges.filter(
@@ -116,14 +117,19 @@ export function deleteElements(diagram: Diagram, ids: Iterable<string>): Diagram
  * are edges whose other end no longer exists, so the result is always valid.
  */
 export function restoreElements(diagram: Diagram, removed: Removed): { diagram: Diagram; restored: string[] } {
-  const taken = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id)])
-  const nodes = removed.nodes.filter((n) => !taken.has(n.id))
+  const taken = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id), ...diagram.groups.map((g) => g.id)])
+  const groups = removed.groups.filter((g) => !taken.has(g.id))
+  const groupIds = new Set([...diagram.groups.map((g) => g.id), ...groups.map((g) => g.id)])
+  // A member whose group is gone comes back ungrouped.
+  const nodes = removed.nodes
+    .filter((n) => !taken.has(n.id))
+    .map(({ groupId, ...n }) => (groupId && groupIds.has(groupId) ? { ...n, groupId } : n))
   const nodeIds = new Set([...diagram.nodes.map((n) => n.id), ...nodes.map((n) => n.id)])
   const edges = removed.edges.filter((e) => !taken.has(e.id) && nodeIds.has(e.source) && nodeIds.has(e.target))
-  if (nodes.length === 0 && edges.length === 0) return { diagram, restored: [] }
+  if (nodes.length === 0 && edges.length === 0 && groups.length === 0) return { diagram, restored: [] }
   return {
-    diagram: { ...diagram, nodes: [...diagram.nodes, ...nodes], edges: [...diagram.edges, ...edges] },
-    restored: [...nodes.map((n) => n.id), ...edges.map((e) => e.id)],
+    diagram: { ...diagram, groups: [...diagram.groups, ...groups], nodes: [...diagram.nodes, ...nodes], edges: [...diagram.edges, ...edges] },
+    restored: [...groups.map((g) => g.id), ...nodes.map((n) => n.id), ...edges.map((e) => e.id)],
   }
 }
 

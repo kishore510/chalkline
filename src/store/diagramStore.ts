@@ -7,12 +7,15 @@ import {
   type EdgeStyle,
   type NodeStyle,
   type NodeType,
+  type Orientation,
   type Position,
   type Size,
 } from '@/schema/diagram'
 import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode } from '@/canvas/arrange'
+import { createId } from '@/lib/id'
 import { createNode, DEFAULT_NODE_SIZE, MIN_NODE_SIZE } from '@/schema/factories'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
+import * as groups from './groups'
 import * as ops from './ops'
 
 /** Undo steps kept. */
@@ -64,11 +67,40 @@ export interface DiagramState {
   /** Connects two nodes with a floating edge (no stored handles; it attaches to the nearest sides). */
   linkNodes: (source: string, target: string) => string | null
 
-  /* Arranging (selected nodes only; selected edges are ignored). Each is one undo step. */
-  alignSelection: (mode: AlignMode) => void
-  /** Needs 3+ selected nodes. */
-  distributeSelection: (axis: Axis) => void
-  matchSizeSelection: (mode: MatchMode) => void
+  /* Arranging (selected nodes only; edges and groups are ignored, locked nodes skipped). One undo step each. */
+  alignSelection: (mode: AlignMode) => ArrangeResult
+  /** Needs 3+ selected (unlocked) nodes. */
+  distributeSelection: (axis: Axis) => ArrangeResult
+  matchSizeSelection: (mode: MatchMode) => ArrangeResult
+
+  /* Groups, pools and lanes. One undo step each. */
+  /** Wraps the selected nodes (and containers) in a new container and selects it. Returns its id, or null if refused. */
+  groupSelection: () => string | null
+  /** Removes a group; everything inside stays in place. */
+  ungroup: (id: string) => void
+  /** Moves a group and everything inside it. */
+  moveGroup: (id: string, to: Position) => void
+  /** Resizes a group without touching members; never smaller than its contents. */
+  resizeGroup: (id: string, box: { x: number; y: number; width: number; height: number }) => void
+  /** After a drag: each node joins the innermost group under its centre, or leaves its group. */
+  adoptDropped: (ids: string[]) => void
+  /** Takes nodes out of their group (one level up), in place. */
+  removeFromGroup: (ids: string[]) => void
+  setCollapsed: (id: string, collapsed: boolean) => void
+  /** Locks or unlocks nodes and/or groups. */
+  setLocked: (ids: string[], locked: boolean) => void
+  setGroupLabel: (id: string, label: string) => void
+  /** Grows a group's header so its title fits. Joins the previous undo step. */
+  growGroupHeader: (id: string, size: number) => void
+  /** A pool with three lanes centred on `center`; selects it and returns its id. */
+  addPool: (center: Position, orientation: Orientation) => string
+  addLane: (laneId: string, where: 'before' | 'after') => string | null
+  /** Removes a lane; its members stay, now in the pool. */
+  deleteLane: (laneId: string) => void
+  moveLane: (laneId: string, direction: -1 | 1) => void
+  setLaneThickness: (laneId: string, thickness: number) => void
+  /** Deletes groups with everything inside them (members, nested groups, their connectors). */
+  deleteGroupsWithContents: (ids: string[]) => void
 
   /* Deleting */
   /** What the most recent delete removed. `id` changes on every delete; `historySize` detects later edits. */
@@ -96,6 +128,11 @@ export interface DiagramState {
   /** Replaces the document with untrusted input (migrated and validated). Throws if invalid. Undoable by default. */
   load: (raw: unknown, options?: { undoable?: boolean }) => void
   reset: () => void
+}
+
+/** How many selected nodes an arrange action left alone because they are locked. */
+export interface ArrangeResult {
+  skipped: number
 }
 
 const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i])
@@ -144,17 +181,46 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
   const apply = (op: (d: Diagram) => Diagram, options?: CommitOptions) => void commit(op(get().diagram), options)
 
   const pruneSelection = (diagram: Diagram, selection: string[]) => {
-    const ids = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id)])
+    const ids = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id), ...diagram.groups.map((g) => g.id)])
     const kept = selection.filter((id) => ids.has(id))
     return kept.length === selection.length ? selection : kept
   }
 
   const clearedHistory = { past: [], future: [], canUndo: false, canRedo: false }
 
+  /** Selected nodes, split into those that may be arranged and those locked. */
   const selectedNodes = () => {
     const { diagram, selection } = get()
     const ids = new Set(selection)
-    return diagram.nodes.filter((n) => ids.has(n.id))
+    const nodes = diagram.nodes.filter((n) => ids.has(n.id))
+    const free = nodes.filter((n) => !groups.isNodeLocked(diagram, n))
+    return { free, skipped: nodes.length - free.length }
+  }
+
+  const arrange = (make: (free: ReturnType<typeof selectedNodes>['free']) => Diagram): ArrangeResult => {
+    const { free, skipped } = selectedNodes()
+    commit(make(free))
+    return { skipped }
+  }
+
+  const groupLocked = (id: string) => {
+    const d = get().diagram
+    return groups.isGroupLocked(d, groups.groupById(d, id))
+  }
+  const nodeLocked = (id: string) => {
+    const d = get().diagram
+    const node = d.nodes.find((n) => n.id === id)
+    return Boolean(node && groups.isNodeLocked(d, node))
+  }
+
+  /** Removes groups with everything inside; returns what went, for the undo toast. */
+  const removeWithContents = (d: Diagram, ids: Iterable<string>) => {
+    const groupIds = new Set<string>()
+    for (const id of ids) if (groups.groupById(d, id)) for (const g of groups.subtreeIds(d, id)) groupIds.add(g)
+    const members = groups.membersOf(d, groupIds).map((n) => n.id)
+    const { diagram, removed } = ops.removeElements(d, members)
+    const removedGroups = d.groups.filter((g) => groupIds.has(g.id))
+    return { diagram: { ...diagram, groups: diagram.groups.filter((g) => !groupIds.has(g.id)) }, removed: { ...removed, groups: removedGroups } }
   }
 
   const pasteAt = (fragment: Fragment, at: Position | undefined, step: number) => {
@@ -227,8 +293,11 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       return node.id
     },
 
-    moveNodes: (moves) => apply((d) => ops.moveNodes(d, moves)),
-    resizeNode: (id, size, position) => apply((d) => ops.resizeNode(d, id, size, position, MIN_NODE_SIZE)),
+    // Locked nodes (or nodes in locked groups) never move or resize.
+    moveNodes: (moves) => apply((d) => ops.moveNodes(d, new Map([...moves].filter(([id]) => !nodeLocked(id))))),
+    resizeNode: (id, size, position) => {
+      if (!nodeLocked(id)) apply((d) => ops.resizeNode(d, id, size, position, MIN_NODE_SIZE))
+    },
     growNodeToFit: (id, minHeight) => apply((d) => ops.growNodeHeight(d, id, minHeight), { merge: true }),
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label), { key: `label:${id}` }),
     setTitle: (title) => apply((d) => ops.setTitle(d, title), { key: 'title' }),
@@ -258,15 +327,75 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     linkNodes: (source, target) => get().connect({ source, target }),
 
-    alignSelection: (mode) => apply((d) => ops.arrangeNodes(d, align(selectedNodes(), mode))),
-    distributeSelection: (axis) => apply((d) => ops.arrangeNodes(d, distribute(selectedNodes(), axis))),
-    matchSizeSelection: (mode) => apply((d) => ops.arrangeNodes(d, new Map(), matchSize(selectedNodes(), mode))),
+    alignSelection: (mode) => arrange((free) => ops.arrangeNodes(get().diagram, align(free, mode))),
+    distributeSelection: (axis) => arrange((free) => ops.arrangeNodes(get().diagram, distribute(free, axis))),
+    matchSizeSelection: (mode) => arrange((free) => ops.arrangeNodes(get().diagram, new Map(), matchSize(free, mode))),
 
-    deleteElements(ids) {
+    groupSelection() {
+      const id = createId('g_')
+      const next = groups.groupItems(get().diagram, get().selection, id)
+      if (!next) return null
+      commit(next, { extra: { selection: [id] } })
+      return id
+    },
+    ungroup(id) {
+      if (!groupLocked(id)) apply((d) => groups.ungroupGroup(d, id))
+    },
+    moveGroup(id, to) {
+      if (!groupLocked(id)) apply((d) => groups.moveGroupTo(d, id, to))
+    },
+    resizeGroup(id, box) {
+      if (!groupLocked(id)) apply((d) => groups.resizeGroupTo(d, id, box))
+    },
+    adoptDropped: (ids) => apply((d) => groups.adoptByPosition(d, ids)),
+    removeFromGroup: (ids) => apply((d) => groups.removeFromGroup(d, ids)),
+    setCollapsed: (id, collapsed) => apply((d) => groups.setGroupCollapsed(d, id, collapsed)),
+    setLocked: (ids, locked) => apply((d) => groups.setItemsLocked(d, ids, locked)),
+    setGroupLabel: (id, label) => apply((d) => groups.setGroupLabel(d, id, label), { key: `group-label:${id}` }),
+    growGroupHeader: (id, size) => apply((d) => groups.growGroupHeader(d, id, size), { merge: true }),
+    addPool(center, orientation) {
+      const pool = createId('g_')
+      commit(groups.createPool(get().diagram, center, orientation, { pool, lanes: [createId('g_'), createId('g_'), createId('g_')] }), {
+        extra: { selection: [pool] },
+      })
+      return pool
+    },
+    addLane(laneId, where) {
+      const id = createId('g_')
+      return commit(groups.insertLane(get().diagram, laneId, where, id), { extra: { selection: [id] } }) ? id : null
+    },
+    deleteLane(laneId) {
+      if (!groupLocked(laneId)) apply((d) => groups.removeLane(d, laneId))
+    },
+    moveLane(laneId, direction) {
+      if (!groupLocked(laneId)) apply((d) => groups.reorderLane(d, laneId, direction))
+    },
+    setLaneThickness(laneId, thickness) {
+      if (!groupLocked(laneId)) apply((d) => groups.setLaneThickness(d, laneId, thickness), { key: `lane-thickness:${laneId}` })
+    },
+    deleteGroupsWithContents(ids) {
       const { diagram, selection, lastDeletion } = get()
-      const { diagram: next, removed } = ops.removeElements(diagram, ids)
+      const unlocked = ids.filter((id) => !groups.isGroupLocked(diagram, groups.groupById(diagram, id)))
+      const { diagram: next, removed } = removeWithContents(diagram, unlocked)
       if (!commit(next, { extra: { selection: pruneSelection(next, selection) } })) return
       set({ lastDeletion: { ...removed, id: (lastDeletion?.id ?? 0) + 1, historySize: get().past.length } })
+    },
+
+    // Deleting a group ungroups it (members survive); locked items are left alone.
+    deleteElements(ids) {
+      const { diagram, selection, lastDeletion } = get()
+      const wanted = [...ids]
+      const groupIds = new Set(diagram.groups.map((g) => g.id))
+      let next = diagram
+      for (const id of wanted) {
+        if (groupIds.has(id) && !groups.isGroupLocked(next, groups.groupById(next, id))) next = groups.ungroupGroup(next, id)
+      }
+      const removable = wanted.filter((id) => !groupIds.has(id) && !nodeLocked(id))
+      const { diagram: after, removed } = ops.removeElements(next, removable)
+      if (!commit(after, { extra: { selection: pruneSelection(after, selection) } })) return
+      if (removed.nodes.length + removed.edges.length > 0) {
+        set({ lastDeletion: { ...removed, id: (lastDeletion?.id ?? 0) + 1, historySize: get().past.length } })
+      }
     },
 
     deleteSelection: () => get().deleteElements(get().selection),
