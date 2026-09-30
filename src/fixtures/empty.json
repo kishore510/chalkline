@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "d_empty",
+  "title": "Empty diagram",
+  "createdAt": "2026-09-30T00:00:00.000Z",
+  "updatedAt": "2026-09-30T00:00:00.000Z",
+  "nodes": [],
+  "edges": [],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}
