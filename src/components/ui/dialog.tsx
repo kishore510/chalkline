@@ -1,10 +1,9 @@
 import { X } from 'lucide-react'
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
-
-const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+import { useFocusTrap } from './useFocusTrap'
 
 /**
  * Modal dialog: a bottom sheet on phones, a centred panel on wider screens.
@@ -26,37 +25,7 @@ export function Dialog({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const close = useRef(onClose)
-  close.current = onClose
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    const el = ref.current
-    const first = el?.querySelector<HTMLElement>('[data-autofocus]') ?? el?.querySelector<HTMLElement>(FOCUSABLE)
-    first?.focus()
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        close.current()
-        return
-      }
-      if (e.key !== 'Tab' || !el) return
-      const items = [...el.querySelectorAll<HTMLElement>(FOCUSABLE)]
-      const [head, tail] = [items[0], items.at(-1)]
-      if (e.shiftKey && document.activeElement === head) {
-        e.preventDefault()
-        tail?.focus()
-      } else if (!e.shiftKey && document.activeElement === tail) {
-        e.preventDefault()
-        head?.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown, true)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown, true)
-      previous?.focus?.()
-    }
-  }, [])
+  useFocusTrap(ref, onClose)
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay sm:items-center sm:p-4" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>

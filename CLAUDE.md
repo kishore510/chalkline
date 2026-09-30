@@ -33,6 +33,13 @@ Project: **Chalkline**, tagline "Ideas to diagrams." A modern, responsive diagra
 - Prefer lightweight tooling. Avoid anything with heavy native builds.
 - The developer tests visually on a phone and laptop via the deployed GitHub Pages URL.
 
+## Versioning, changelog and help
+
+- **Version** lives in `package.json` (semver 0.x): **minor bump per merged slice**, **patch bump per follow-up fix**. Set it with `npm version <x.y.z> --no-git-tag-version` so the lockfile matches.
+- The build injects the version, short commit SHA (falls back to "dev" without git) and build date (see `vite.config.ts`, `src/build/buildInfo.ts`); the app reads them from `src/version.ts`. Credits in Help > About are generated from package metadata at build time.
+- `CHANGELOG.md` (repo root, Keep a Changelog style: `## [x.y.z] - YYYY-MM-DD` with `### Added` / `### Changed` / `### Fixed`) is bundled and shown in Help > What's new. The newest entry must match `package.json` (a test checks). User-facing, plain language.
+- Help topics are Markdown files in `src/help/topics/`, one per topic, with front matter (`title`, `order`, `keywords`). The file name is the topic id for `help:<id>` links and "Learn more" entry points (`src/help/links.ts`). `shapes-reference.md` is generated from the shape registry. Only document features that exist.
+
 ## Hosting and build
 
 - Deploy target for now: **GitHub Pages** via GitHub Actions on push to `main`.
@@ -97,4 +104,5 @@ Each phase is shippable on its own.
 - [ ] Primary actions reachable by touch alone
 - [ ] No hard-coded colours or sizes outside the token file
 - [ ] Any schema change has a version bump and migration
+- [ ] Update CHANGELOG.md and the relevant help topics, and bump the version
 - [ ] Short summary of what was built and what was left out, then **stop for review**

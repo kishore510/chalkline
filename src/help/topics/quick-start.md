@@ -28,5 +28,6 @@ The mode switch sits in the toolbar.
 - **Palette**: shapes and stencils. On a phone it opens from **+**.
 - **Properties**: appear when something is selected. Style, notes, locking and more.
 - **Menu** (the three lines): new, open, save, export and example diagrams.
+- **More room**: on desktop, the chevron buttons collapse the palette and the right panel to slim rails.
 
 Next: [Adding and editing shapes](help:shapes), [Connectors](help:connectors), [Gestures and shortcuts](help:gestures-and-shortcuts).

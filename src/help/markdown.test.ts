@@ -51,12 +51,12 @@ continues here.
 
 ### Sub`)
     expect(blocks.map((b) => b.type)).toEqual(['heading', 'paragraph', 'list', 'list', 'tip', 'heading'])
-    expect(inlineText((blocks[1] as { children: never[] }).children)).toBe('First line continues here.')
+    expect(inlineText((blocks[1] as Extract<(typeof blocks)[number], { type: 'paragraph' }>).children)).toBe('First line continues here.')
     const bullets = blocks[2] as Extract<(typeof blocks)[number], { type: 'list' }>
     expect(bullets.ordered).toBe(false)
     expect(bullets.items.map(inlineText)).toEqual(['one', 'two wraps'])
     expect((blocks[3] as typeof bullets).ordered).toBe(true)
-    expect(inlineText((blocks[4] as { children: never[] }).children)).toBe('A tip over two lines.')
+    expect(inlineText((blocks[4] as Extract<(typeof blocks)[number], { type: 'tip' }>).children)).toBe('A tip over two lines.')
   })
 
   it('collects link targets', () => {

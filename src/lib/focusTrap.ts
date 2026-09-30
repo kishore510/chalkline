@@ -6,7 +6,7 @@
  */
 
 export const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  'a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export interface Focusable {
   focus: (options?: FocusOptions) => void
@@ -18,17 +18,10 @@ export interface FocusContainer<T extends Focusable> {
   contains: (node: never) => boolean
 }
 
-interface KeyEventLike {
-  key: string
-  shiftKey: boolean
-  preventDefault: () => void
-  stopPropagation: () => void
-}
-
-export interface FocusDocument<T extends Focusable> {
-  activeElement: T | null | unknown
-  addEventListener: (type: 'keydown', listener: (e: never) => void, capture: boolean) => void
-  removeEventListener: (type: 'keydown', listener: (e: never) => void, capture: boolean) => void
+export interface FocusDocument {
+  activeElement: unknown
+  addEventListener(type: 'keydown', listener: (e: KeyboardEvent) => void, capture: boolean): void
+  removeEventListener(type: 'keydown', listener: (e: KeyboardEvent) => void, capture: boolean): void
 }
 
 /** Where Tab (or Shift+Tab) should go, or null to let the browser move focus normally. */
@@ -44,12 +37,12 @@ export function tabTarget<T>(items: readonly T[], active: unknown, shift: boolea
 }
 
 /** Starts trapping focus in `container`. Returns a release function that restores focus. */
-export function trapFocus<T extends Focusable>(container: FocusContainer<T>, doc: FocusDocument<T>, onEscape: () => void): () => void {
+export function trapFocus<T extends Focusable>(container: FocusContainer<T>, doc: FocusDocument, onEscape: () => void): () => void {
   const previous = doc.activeElement as Partial<Focusable> | null
   const first = container.querySelector('[data-autofocus]') ?? container.querySelector(FOCUSABLE)
   first?.focus()
 
-  const onKeyDown = (e: KeyEventLike) => {
+  const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.stopPropagation()
       onEscape()
@@ -62,9 +55,9 @@ export function trapFocus<T extends Focusable>(container: FocusContainer<T>, doc
     target.focus()
   }
 
-  doc.addEventListener('keydown', onKeyDown as (e: never) => void, true)
+  doc.addEventListener('keydown', onKeyDown, true)
   return () => {
-    doc.removeEventListener('keydown', onKeyDown as (e: never) => void, true)
+    doc.removeEventListener('keydown', onKeyDown, true)
     previous?.focus?.()
   }
 }

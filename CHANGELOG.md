@@ -2,7 +2,7 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
-## [0.13.0] - 2026-09-30
+## [0.14.0] - 2026-09-30
 
 ### Added
 - Help, a searchable guide with a quick start, a topic for each feature, and gestures and shortcuts. Open it from the ? button (on a phone, from the menu).
@@ -10,6 +10,14 @@ All notable changes to Chalkline are listed here, newest first. The format follo
 - About, showing the app version, build, diagram format version, storage used and open-source credits, with a Copy details button for bug reports.
 - "Learn more" links from the Link mode hint and the connector properties.
 - Press ? to open help on a keyboard.
+
+### Changed
+- On desktops narrower than 1280px, the Tidy and Layers buttons show icons only, to make room for the help button.
+
+## [0.13.0] - 2026-09-30
+
+### Added
+- The desktop properties and layers panel can collapse to a slim rail, and is remembered.
 
 ## [0.12.1] - 2026-09-30
 

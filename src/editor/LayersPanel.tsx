@@ -276,7 +276,7 @@ export function LayersButton({ layout, className }: { layout: Layout; className?
       className={cn('relative', className)}
     >
       <Layers />
-      {layout === 'desktop' && 'Layers'}
+      {layout === 'desktop' && <span className="hidden xl:inline">Layers</span>}
       {(hidden > 0 || locked > 0) && (
         <span
           aria-hidden="true"

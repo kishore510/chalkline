@@ -1,6 +1,7 @@
 import { Logo, LogoMark } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Layout } from '@/hooks/useMediaQuery'
+import { HelpButton } from '@/help/HelpEntry'
 import { FileMenu } from './FileMenu'
 import { LayersButton } from './LayersPanel'
 import { TidyMenu } from './TidyMenu'
@@ -24,6 +25,8 @@ export function TopBar({ layout }: { layout: Layout }) {
         {layout === 'desktop' && <CanvasToolbar layout={layout} />}
         <div className="flex items-center gap-1">
           <FileMenu layout={layout} />
+          {/* Phone: no room at 360px, so help and About live in the file menu. */}
+          {layout !== 'phone' && <HelpButton />}
           <ThemeToggle />
         </div>
       </div>
