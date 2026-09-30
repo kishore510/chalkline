@@ -66,3 +66,35 @@ describe('buildRenderModel', () => {
     expect(route.kind).toBe('direct')
   })
 })
+
+describe('layers', () => {
+  const layered = () => parseDiagram(fixtures.layers)
+
+  it('leaves out items on hidden layers and connectors touching them', () => {
+    const model = buildRenderModel(layered())
+    expect(model.routingNodes.map((n) => n.id)).not.toContain('n_note')
+    expect(model.edges.map((e) => e.id)).not.toContain('e_note_db')
+    expect(model.edges).toHaveLength(3)
+  })
+
+  it('hiding a group’s layer hides only its frame', () => {
+    const d = layered()
+    const hidden = { ...d, layers: d.layers.map((l) => (l.id === 'l_security' ? { ...l, visible: false } : l)) }
+    const model = buildRenderModel(hidden)
+    expect(model.groups.map((v) => v.group.id)).toEqual([])
+    expect(model.routingNodes.map((n) => n.id)).toContain('n_api')
+    expect(model.routingNodes.map((n) => n.id)).not.toContain('n_firewall')
+    expect(model.edges.map((e) => e.id)).toEqual(['e_client_api', 'e_api_db'])
+  })
+
+  it('can include hidden layers (for export)', () => {
+    const model = buildRenderModel(layered(), { includeHidden: true })
+    expect(model.edges).toHaveLength(4)
+    expect(model.routingNodes.map((n) => n.id)).toContain('n_note')
+  })
+
+  it('reports each group’s layer position for stacking', () => {
+    const model = buildRenderModel(layered())
+    expect(model.groups[0]).toMatchObject({ layer: 1 })
+  })
+})

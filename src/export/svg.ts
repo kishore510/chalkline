@@ -10,6 +10,7 @@ import { buildRenderModel, type GroupView } from '@/canvas/renderModel'
 import type { Route, RoutableNode } from '@/canvas/routing'
 import { shiftAlongSide, spreadAttachments, type Spread } from '@/canvas/spread'
 import type { Diagram, DiagramEdge, DiagramNode } from '@/schema/diagram'
+import { layerIdOf, layerIndex } from '@/store/layers'
 import { wrapText, type Measure } from './text'
 
 /*
@@ -206,7 +207,8 @@ function edgeSvg(
   return out
 }
 
-export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: number; background?: boolean } = {}): SvgExport {
+/** `includeHidden`: also draw items on hidden layers (off by default: export what's visible). */
+export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: number; background?: boolean; includeHidden?: boolean } = {}): SvgExport {
   const padding = options.padding ?? 32
   const bounds = new Bounds()
   const markers = new Map<string, string>()
@@ -217,15 +219,27 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
   }
 
   // Draw what the canvas shows: collapsed groups hide their members and take their connectors.
-  const model = buildRenderModel(diagram)
-  const groups = model.groups.map((v) => groupSvg(v, env, bounds)).join('')
+  const model = buildRenderModel(diagram, { includeHidden: options.includeHidden })
   const routes = new Map(model.edges.map((e) => [e.id, routeEdge(model.routingNodes, e)]))
   const spreads = spreadAttachments(model.routingNodes, model.edges, routes)
-  const edges = model.edges.map((e) => edgeSvg(e, model.routingNodes, routes.get(e.id)!, spreads.get(e.id), env, bounds, marker)).join('')
-  const nodes = diagram.nodes
-    .filter((n) => !model.hiddenNodes.has(n.id))
-    .map((n) => nodeSvg(n, env, bounds))
-    .join('')
+  const shown = new Set(model.routingNodes.map((n) => n.id))
+  // Layer by layer, bottom to top; within a layer, groups behind connectors behind shapes.
+  const layerOf = (item: { layerId?: string }) => layerIndex(diagram, layerIdOf(item))
+  let content = ''
+  for (let layer = 0; layer < diagram.layers.length; layer++) {
+    content += model.groups
+      .filter((v) => v.layer === layer)
+      .map((v) => groupSvg(v, env, bounds))
+      .join('')
+    content += model.edges
+      .filter((e) => layerOf(e) === layer)
+      .map((e) => edgeSvg(e, model.routingNodes, routes.get(e.id)!, spreads.get(e.id), env, bounds, marker))
+      .join('')
+    content += diagram.nodes
+      .filter((n) => layerOf(n) === layer && shown.has(n.id))
+      .map((n) => nodeSvg(n, env, bounds))
+      .join('')
+  }
   if (bounds.empty) bounds.add({ x: 0, y: 0, width: 1, height: 1 })
 
   const x = Math.floor(bounds.x0 - padding)
@@ -250,9 +264,7 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
     `<title>${escapeXml(diagram.meta.title)}</title>` +
     `<defs><style>${style}</style>${defs.join('')}</defs>` +
     background +
-    groups +
-    edges +
-    nodes +
+    content +
     '</svg>'
   return { svg, width, height }
 }

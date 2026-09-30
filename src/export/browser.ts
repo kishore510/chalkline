@@ -104,15 +104,15 @@ export function downloadBlob(blob: Blob, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
-/** Exports the diagram in the current theme and downloads it. */
-export async function exportDiagram(diagram: Diagram, format: ExportFormat): Promise<void> {
+/** Exports the diagram in the current theme and downloads it. Hidden layers are left out unless `includeHidden`. */
+export async function exportDiagram(diagram: Diagram, format: ExportFormat, { includeHidden = false }: { includeHidden?: boolean } = {}): Promise<void> {
   const title = diagram.meta.title
   if (format === 'svg') {
-    const { svg } = buildSvg(diagram, await createEnv())
+    const { svg } = buildSvg(diagram, await createEnv(), { includeHidden })
     downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), fileNameFor(title, 'svg'))
     return
   }
-  const { svg, width, height } = buildSvg(diagram, await createEnv(await embeddedFontCss()))
+  const { svg, width, height } = buildSvg(diagram, await createEnv(await embeddedFontCss()), { includeHidden })
   const canvas = await rasterise(svg, width, height)
   if (format === 'png') {
     downloadBlob(await toBlob(canvas, 'image/png'), fileNameFor(title, 'png'))

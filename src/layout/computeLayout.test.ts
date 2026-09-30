@@ -177,4 +177,25 @@ describe('computeLayout', () => {
     const boxes = d.nodes.map((n) => boxAt(r, n)).sort((a, b) => a.x - b.x || a.y - b.y)
     for (let i = 1; i < boxes.length; i++) expect(overlap(boxes[i - 1]!, boxes[i]!)).toBe(false)
   })
+
+  it('leaves hidden shapes alone, does not avoid them, and says so', async () => {
+    const d = parseDiagram(fixtures.layers)
+    const r = ok(await computeLayout(d, base, elk))
+    expect(r.nodes.has('n_note')).toBe(false)
+    expect(r.skipped.hidden).toBe(1)
+    expect(r.message).toMatch(/hidden/i)
+  })
+
+  it('treats shapes on a locked layer as fixed obstacles', async () => {
+    const d = parseDiagram(fixtures.layers)
+    const locked = { ...d, layers: d.layers.map((l) => (l.id === 'l_security' ? { ...l, locked: true } : l)) }
+    const r = ok(await computeLayout(locked, base, elk))
+    expect(r.nodes.has('n_firewall')).toBe(false)
+    const fw = locked.nodes.find((n) => n.id === 'n_firewall')!
+    for (const id of r.nodes.keys()) {
+      const n = locked.nodes.find((x) => x.id === id)!
+      expect(overlap(boxAt(r, n), { ...fw.position, ...fw.size })).toBe(false)
+    }
+  })
 })
+

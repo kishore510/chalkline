@@ -48,7 +48,7 @@ export const EDGE_DEFAULTS = {
  * node nor its selection changed, so React Flow can skip re-rendering it.
  */
 export function createNodeMapper() {
-  const cache = new Map<string, { source: DiagramNode; selected: boolean; locked: boolean; flow: ShapeFlowNode }>()
+  const cache = new Map<string, { source: DiagramNode; selected: boolean; locked: boolean; z: number; flow: ShapeFlowNode }>()
 
   /**
    * `nodes`: the visible nodes. `locked`: ids of nodes that are locked, directly
@@ -59,6 +59,8 @@ export function createNodeMapper() {
     selected: ReadonlySet<string>,
     draggable = true,
     locked: ReadonlySet<string> = new Set(),
+    /** z-index for a node (from its layer). */
+    zOf: (node: DiagramNode) => number = () => 0,
   ): ShapeFlowNode[] {
     const seen = new Set<string>()
     const out = nodes.map((node) => {
@@ -66,8 +68,9 @@ export function createNodeMapper() {
       const isSelected = selected.has(node.id)
       const isLocked = locked.has(node.id)
       const canDrag = draggable && !isLocked
+      const z = zOf(node)
       const hit = cache.get(node.id)
-      if (hit && hit.source === node && hit.selected === isSelected && hit.locked === isLocked && hit.flow.draggable === canDrag) return hit.flow
+      if (hit && hit.source === node && hit.selected === isSelected && hit.locked === isLocked && hit.z === z && hit.flow.draggable === canDrag) return hit.flow
       const flow: ShapeFlowNode = {
         id: node.id,
         type: 'shape',
@@ -79,9 +82,10 @@ export function createNodeMapper() {
         measured: { width: node.size.width, height: node.size.height },
         selected: isSelected,
         draggable: canDrag,
+        zIndex: z,
         data: { type: node.type, label: node.label, style: node.style, hasNotes: node.notes.trim().length > 0, locked: isLocked },
       }
-      cache.set(node.id, { source: node, selected: isSelected, locked: isLocked, flow })
+      cache.set(node.id, { source: node, selected: isSelected, locked: isLocked, z, flow })
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)
@@ -94,10 +98,19 @@ function marker(arrow: Arrowhead, colour: string): EdgeMarker | undefined {
   return { type: arrow === 'closed' ? MarkerType.ArrowClosed : MarkerType.Arrow, color: colour, width: 18, height: 18 }
 }
 
+/**
+ * Drawing order: each layer is a band of z-indexes, higher layers above lower
+ * ones; within a layer, group frames sit behind connectors, which sit behind nodes.
+ */
+export const LAYER_Z = 100
+export const zForNode = (layer: number) => layer * LAYER_Z
+export const zForEdge = (layer: number) => layer * LAYER_Z - 50
+export const zForGroup = (layer: number, depth: number) => layer * LAYER_Z - 90 + Math.min(depth, 30)
+
 /** Default edge width in px; the canvas passes the --cl-edge-width token. */
 export const DEFAULT_EDGE_WIDTH = 1.5
 
-export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread): Edge {
+export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread, zIndex = zForEdge(0)): Edge {
   const style = edge.style
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
@@ -111,6 +124,7 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
     sourceHandle: null,
     targetHandle: null,
     type: 'floating',
+    zIndex,
     data: (route
       ? {
           lineType,
@@ -146,7 +160,7 @@ export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, def
  * edge, its selection and its route are unchanged, so React Flow skips it.
  */
 export function createEdgeMapper() {
-  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; spread: Spread | undefined; width: number; flow: Edge }>()
+  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; spread: Spread | undefined; width: number; z: number; flow: Edge }>()
   /** `edges`: the visible edges (ends already moved onto collapsed groups). */
   return function toFlowEdgesCached(
     edges: readonly DiagramEdge[],
@@ -154,6 +168,7 @@ export function createEdgeMapper() {
     routes: ReadonlyMap<string, Route>,
     defaultWidth = DEFAULT_EDGE_WIDTH,
     spreads: ReadonlyMap<string, Spread> = new Map(),
+    zOf: (edge: DiagramEdge) => number = () => zForEdge(0),
   ): Edge[] {
     const seen = new Set<string>()
     const out = edges.map((edge) => {
@@ -161,10 +176,11 @@ export function createEdgeMapper() {
       const isSelected = selected.has(edge.id)
       const route = routes.get(edge.id)
       const spread = spreads.get(edge.id)
+      const z = zOf(edge)
       const hit = cache.get(edge.id)
-      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.spread === spread && hit.width === defaultWidth) return hit.flow
-      const flow = toFlowEdge(edge, isSelected, defaultWidth, route, spread)
-      cache.set(edge.id, { source: edge, selected: isSelected, route, spread, width: defaultWidth, flow })
+      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.spread === spread && hit.width === defaultWidth && hit.z === z) return hit.flow
+      const flow = toFlowEdge(edge, isSelected, defaultWidth, route, spread, z)
+      cache.set(edge.id, { source: edge, selected: isSelected, route, spread, width: defaultWidth, z, flow })
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)

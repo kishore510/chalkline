@@ -19,6 +19,7 @@ import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { innermostGroupAt, isNodeLocked, subtreeIds } from '@/store/groups'
+import { layerIdOf, layerIndex } from '@/store/layers'
 import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
@@ -26,6 +27,9 @@ import {
   createNodeMapper,
   summariseEdgeChanges,
   summariseNodeChanges,
+  zForEdge,
+  zForGroup,
+  zForNode,
   type ShapeFlowNode,
 } from './flow'
 import { EdgeGrips } from './EdgeGrips'
@@ -40,8 +44,6 @@ import { useLongPress, type PressTarget } from './useLongPress'
 const nodeTypes = { shape: ShapeNode, 'group-box': GroupNode }
 type CanvasNode = ShapeFlowNode | GroupFlowNode
 
-// Groups sit behind edges and nodes; deeper groups above their parents.
-const GROUP_Z = -1000
 const edgeTypes = { floating: FloatingEdge }
 const isValidConnection: IsValidConnection = (c) => c.source !== c.target
 
@@ -121,7 +123,8 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const shapeNodes = useMemo(() => {
     const visible = diagram.nodes.filter((n) => !model.hiddenNodes.has(n.id))
     const locked = new Set(visible.filter((n) => isNodeLocked(diagram, n)).map((n) => n.id))
-    return mapNodes(visible, selected, selectTool, locked)
+    // Draw by layer: higher layers above lower ones.
+    return mapNodes(visible, selected, selectTool, locked, (n) => zForNode(layerIndex(diagram, layerIdOf(n))))
   }, [mapNodes, diagram, model, selected, selectTool])
   const groupNodes = useMemo(
     () =>
@@ -133,7 +136,8 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
           width: view.box.width,
           height: view.box.height,
           measured: { width: view.box.width, height: view.box.height },
-          zIndex: GROUP_Z + view.depth,
+          // Within its layer, behind connectors and nodes; nested groups above their parents.
+          zIndex: zForGroup(view.layer, view.depth),
           // Selected through the header (see GroupNode), never by box-select or body clicks.
           selectable: false,
           connectable: false,
@@ -160,7 +164,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
     lastSpread.current = next
     return next
   }, [model, routes])
-  const edges = useMemo(() => mapEdges(model.edges, selected, routes, sizes.edgeWidth, spreads), [mapEdges, model, selected, routes, sizes.edgeWidth, spreads])
+  const edges = useMemo(
+    () => mapEdges(model.edges, selected, routes, sizes.edgeWidth, spreads, (e) => zForEdge(layerIndex(diagram, layerIdOf(e)))),
+    [mapEdges, model, selected, routes, sizes.edgeWidth, spreads, diagram],
+  )
 
   const onNodesChange = useCallback((changes: NodeChange<CanvasNode>[]) => {
     const { moves, resizes, removed, selection: flags } = summariseNodeChanges(changes)

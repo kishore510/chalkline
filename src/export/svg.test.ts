@@ -106,3 +106,25 @@ describe('buildSvg with groups', () => {
     expect((svg.match(/marker-end=/g) ?? []).length).toBe(1)
   })
 })
+
+describe('buildSvg with layers', () => {
+  const layered = () => parseDiagram(fixtures.layers)
+
+  it('uses current visibility by default', () => {
+    const { svg } = buildSvg(layered(), env)
+    expect(svg).not.toContain('Review access')
+    expect((svg.match(/marker-end=/g) ?? []).length).toBe(3)
+  })
+
+  it('can include hidden layers', () => {
+    const { svg } = buildSvg(layered(), env, { includeHidden: true })
+    expect(svg).toContain('Review access')
+    expect((svg.match(/marker-end=/g) ?? []).length).toBe(4)
+  })
+
+  it('draws layers bottom to top', () => {
+    const { svg } = buildSvg(layered(), env, { includeHidden: true })
+    // The note (top layer) is drawn after the client (Base).
+    expect(svg.indexOf('Review access')).toBeGreaterThan(svg.indexOf('>Client<'))
+  })
+})

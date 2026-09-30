@@ -1,6 +1,7 @@
 import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api'
 import type { Diagram, DiagramGroup, DiagramNode, Position } from '@/schema/diagram'
-import { GROUP_PADDING, headerSize, isGroupLocked, isNodeLocked, isPool, subtreeIds, type Box } from '@/store/groups'
+import { GROUP_PADDING, headerSize, isGroupFixed, isNodeLocked, isPool, subtreeIds, type Box } from '@/store/groups'
+import { isGroupFrameHidden, isNodeHidden } from '@/store/layers'
 
 /*
  * Auto-arrange. Pure and async: builds an ELK layered graph (hierarchical, so
@@ -41,8 +42,16 @@ export interface LayoutChanges {
 }
 
 export type LayoutResult =
-  | (LayoutChanges & { ok: true; arranged: number; skipped: { locked: number; pools: number; grouped: number }; message: string })
+  | (LayoutChanges & { ok: true; arranged: number; skipped: Skipped; message: string })
   | { ok: false; message: string }
+
+/** What was left alone, and why. */
+export interface Skipped {
+  locked: number
+  pools: number
+  grouped: number
+  hidden: number
+}
 
 export const SPACING: Record<LayoutSpacing, number> = { compact: 24, normal: 48, roomy: 88 }
 const DEFAULT_SEARCH_LIMIT = 40
@@ -61,7 +70,7 @@ function union(boxes: Box[]): Box | null {
 
 export async function computeLayout(diagram: Diagram, options: LayoutOptions, elk: ElkLike): Promise<LayoutResult> {
   const groupsById = new Map(diagram.groups.map((g) => [g.id, g]))
-  const skipped = { locked: 0, pools: 0, grouped: 0 }
+  const skipped: Skipped = { locked: 0, pools: 0, grouped: 0, hidden: 0 }
 
   // --- Which groups can't move: pools (and their lanes), locked groups, containers holding locked shapes.
   const frozen = new Set<string>()
@@ -70,7 +79,9 @@ export async function computeLayout(diagram: Diagram, options: LayoutOptions, el
     const tree = subtreeIds(diagram, g.id)
     const holdsLocked = diagram.nodes.some((n) => n.groupId && tree.has(n.groupId) && n.locked)
     if (isPool(diagram, g)) skipped.pools++
-    else if (isGroupLocked(diagram, g) || holdsLocked) skipped.locked++
+    else if (isGroupFixed(diagram, g) || holdsLocked) skipped.locked++
+    // A group whose frame is on a hidden layer stays put (with its contents).
+    else if (isGroupFrameHidden(diagram, g)) skipped.hidden++
     else continue
     for (const id of tree) frozen.add(id)
   }
@@ -98,6 +109,10 @@ export async function computeLayout(diagram: Diagram, options: LayoutOptions, el
     const group = n.groupId ? groupsById.get(n.groupId) : undefined
     const wanted = whole || selection.has(n.id) || (group !== undefined && scopedGroupIds.has(group.id))
     if (!wanted) continue
+    if (isNodeHidden(diagram, n)) {
+      skipped.hidden++
+      continue
+    }
     if (isNodeLocked(diagram, n)) {
       if (!group || !frozen.has(group.id)) skipped.locked++
       continue
@@ -254,10 +269,13 @@ export async function computeLayout(diagram: Diagram, options: LayoutOptions, el
   const moving = new Set<string>([...nodes.keys(), ...groups.keys(), ...groupMoves.keys()])
   const movingTree = new Set<string>()
   for (const id of [...groups.keys(), ...groupMoves.keys()]) for (const s of subtreeIds(diagram, id)) movingTree.add(s)
+  // Hidden shapes and frames aren't obstacles: they're neither drawn nor moved.
   const fixed: Box[] = [
-    ...diagram.nodes.filter((n) => !moving.has(n.id) && !(n.groupId && movingTree.has(n.groupId))).map(boxOf),
+    ...diagram.nodes.filter((n) => !moving.has(n.id) && !(n.groupId && movingTree.has(n.groupId)) && !isNodeHidden(diagram, n)).map(boxOf),
     // Only outermost fixed groups matter; their contents are inside them.
-    ...diagram.groups.filter((g) => !movingTree.has(g.id) && !(g.parentId && !movingTree.has(g.parentId) && groupsById.has(g.parentId))).map((g) =>
+    ...diagram.groups
+      .filter((g) => !movingTree.has(g.id) && !isGroupFrameHidden(diagram, g) && !(g.parentId && !movingTree.has(g.parentId) && groupsById.has(g.parentId)))
+      .map((g) =>
       g.collapsed ? { ...g.position, width: g.size.width, height: headerSize(g) } : boxOf(g),
     ),
   ]
@@ -277,10 +295,11 @@ export async function computeLayout(diagram: Diagram, options: LayoutOptions, el
   return { ok: true, nodes, groups, groupMoves, arranged, skipped, message: messageFor(arranged, skipped) }
 }
 
-function messageFor(arranged: number, skipped: { locked: number; pools: number; grouped: number }): string {
+function messageFor(arranged: number, skipped: Skipped): string {
   const parts = arranged > 0 ? [`Arranged ${arranged} ${arranged === 1 ? 'shape' : 'shapes'}.`] : []
   if (skipped.pools) parts.push(skipped.pools === 1 ? 'The swimlane pool was left as it is.' : `${skipped.pools} swimlane pools were left as they are.`)
   if (skipped.locked) parts.push('Locked items stayed put.')
   if (skipped.grouped) parts.push('Shapes inside a group move with it: select the group to arrange them.')
+  if (skipped.hidden) parts.push(`${skipped.hidden} hidden ${skipped.hidden === 1 ? 'item was' : 'items were'} left as they are.`)
   return parts.join(' ')
 }

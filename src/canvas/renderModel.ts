@@ -1,5 +1,6 @@
 import type { Diagram, DiagramEdge, DiagramGroup, DiagramNode } from '@/schema/diagram'
-import { ancestors, depth, headerSide, headerSize, isGroupLocked, isPool, parentsFirst, type Box } from '@/store/groups'
+import { ancestors, depth, headerSide, headerSize, isGroupFixed, isPool, parentsFirst, type Box } from '@/store/groups'
+import { isEdgeHidden, isGroupFrameHidden, isNodeHidden, layerIdOf, layerIndex } from '@/store/layers'
 import type { RoutableNode } from './routing'
 
 /*
@@ -17,6 +18,8 @@ export interface GroupView {
   header: number
   locked: boolean
   pool: boolean
+  /** Position of the group's layer in the stack (0 = bottom), for drawing order. */
+  layer: number
 }
 
 export interface RenderModel {
@@ -66,7 +69,12 @@ function withEnds(edge: DiagramEdge, source: string, target: string): DiagramEdg
   return next
 }
 
-export function buildRenderModel(diagram: Diagram): RenderModel {
+/**
+ * `includeHidden`: draw items on hidden layers too (export option). By
+ * default items on hidden layers, and connectors touching them, are left out;
+ * a hidden group layer hides only the frame.
+ */
+export function buildRenderModel(diagram: Diagram, { includeHidden = false }: { includeHidden?: boolean } = {}): RenderModel {
   const groupsById = new Map(diagram.groups.map((g) => [g.id, g]))
 
   // The outermost collapsed group around a group, if any (itself included).
@@ -84,14 +92,16 @@ export function buildRenderModel(diagram: Diagram): RenderModel {
     const around = outermostCollapsed(group)
     // Hidden if an ancestor (not the group itself) is collapsed.
     if (around !== undefined && around !== group.id) continue
+    if (!includeHidden && isGroupFrameHidden(diagram, group)) continue
     groups.push({
       group,
       box: group.collapsed ? collapsedBox(group) : { ...group.position, ...group.size },
       depth: depth(diagram, group),
       side: group.collapsed ? 'top' : headerSide(diagram, group),
       header: headerSize(group),
-      locked: isGroupLocked(diagram, group),
+      locked: isGroupFixed(diagram, group),
       pool: isPool(diagram, group),
+      layer: layerIndex(diagram, layerIdOf(group)),
     })
   }
 
@@ -99,6 +109,8 @@ export function buildRenderModel(diagram: Diagram): RenderModel {
   const endpoint = new Map<string, string>()
   const visibleNodes: DiagramNode[] = []
   for (const node of diagram.nodes) {
+    // On a hidden layer: not drawn, and its connectors are left out above.
+    if (!includeHidden && isNodeHidden(diagram, node)) continue
     const group = node.groupId ? groupsById.get(node.groupId) : undefined
     const around = group ? outermostCollapsed(group) : undefined
     if (around) {
@@ -111,6 +123,7 @@ export function buildRenderModel(diagram: Diagram): RenderModel {
 
   const edges: DiagramEdge[] = []
   for (const edge of diagram.edges) {
+    if (!includeHidden && isEdgeHidden(diagram, edge)) continue
     const source = endpoint.get(edge.source) ?? edge.source
     const target = endpoint.get(edge.target) ?? edge.target
     // Both ends inside the same collapsed group: nothing to draw.
