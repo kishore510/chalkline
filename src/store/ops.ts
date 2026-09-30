@@ -1,4 +1,5 @@
 import { EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
+import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
 import { createEdge } from '@/schema/factories'
 
 /*
@@ -224,4 +225,42 @@ export function setEdgeLabel(diagram: Diagram, id: string, label: string): Diagr
 
 export function setEdgeNotes(diagram: Diagram, id: string, notes: string): Diagram {
   return mapEdges(diagram, (edge) => (edge.id === id && edge.notes !== notes ? { ...edge, notes } : edge))
+}
+
+/**
+ * Which side of each node an edge attaches to. A side pins that end; null
+ * returns it to auto (the handle is removed and the end floats to the
+ * nearest side); a missing key leaves that end unchanged.
+ */
+export interface SidesPatch {
+  source?: HandleSide | null
+  target?: HandleSide | null
+}
+
+export function setEdgeSides(diagram: Diagram, ids: Iterable<string>, patch: SidesPatch): Diagram {
+  const valid = (side: HandleSide | null | undefined) => side === undefined || side === null || HANDLE_SIDES.includes(side)
+  if (!valid(patch.source) || !valid(patch.target)) return diagram
+  const targets = new Set(ids)
+  return mapEdges(diagram, (edge) => {
+    if (!targets.has(edge.id)) return edge
+    let next = edge
+    for (const [end, key] of [
+      ['source', 'sourceHandle'],
+      ['target', 'targetHandle'],
+    ] as const) {
+      const side = patch[end]
+      if (side === undefined) continue
+      if (side === null && key in next) {
+        const { [key]: _removed, ...rest } = next
+        next = rest
+      } else if (side !== null && next[key] !== side) {
+        next = { ...next, [key]: side }
+      }
+    }
+    return next
+  })
+}
+
+export function resetEdgeSides(diagram: Diagram, ids: Iterable<string>): Diagram {
+  return setEdgeSides(diagram, ids, { source: null, target: null })
 }

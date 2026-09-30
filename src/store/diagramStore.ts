@@ -32,6 +32,9 @@ export interface DiagramState {
   resetEdgeStyles: (ids: string[]) => void
   setEdgeLabel: (id: string, label: string) => void
   setEdgeNotes: (id: string, notes: string) => void
+  /** Pins an edge end to a side, or returns it to auto with null. */
+  setEdgeSides: (ids: string[], patch: ops.SidesPatch) => void
+  resetEdgeSides: (ids: string[]) => void
   connect: (connection: ops.Connection) => string | null
   /** Connects two nodes with a floating edge (no stored handles; it attaches to the nearest sides). */
   linkNodes: (source: string, target: string) => string | null
@@ -88,6 +91,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     resetEdgeStyles: (ids) => apply((d) => ops.resetEdgeStyles(d, ids)),
     setEdgeLabel: (id, label) => apply((d) => ops.setEdgeLabel(d, id, label)),
     setEdgeNotes: (id, notes) => apply((d) => ops.setEdgeNotes(d, id, notes)),
+    setEdgeSides: (ids, patch) => apply((d) => ops.setEdgeSides(d, ids, patch)),
+    resetEdgeSides: (ids) => apply((d) => ops.resetEdgeSides(d, ids)),
 
     connect(connection) {
       const { diagram, edgeId } = ops.connect(get().diagram, connection)

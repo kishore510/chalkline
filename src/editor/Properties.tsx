@@ -3,6 +3,7 @@ import { ArrowRight, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
+import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
@@ -46,6 +47,7 @@ const EDGE_WIDTHS: Option<number>[] = [
   { value: 3, label: 'Thick' },
   { value: 5, label: 'Heavy' },
 ]
+const SIDES: Option<HandleSide>[] = HANDLE_SIDES.map((side) => ({ value: side, label: side[0]!.toUpperCase() + side.slice(1) }))
 const labelOf = <T,>(options: Option<T>[], value: T) => options.find((o) => o.value === value)?.label ?? String(value)
 
 /* ---------- Small pieces ---------- */
@@ -155,6 +157,41 @@ function EdgeStyleSection({ edges }: { edges: DiagramEdge[] }) {
   )
 }
 
+/** Stored handle ids that aren't a side (e.g. from a hand-edited file) show as Auto. */
+const sideOf = (handle: string | undefined): HandleSide | undefined => (HANDLE_SIDES.includes(handle as HandleSide) ? (handle as HandleSide) : undefined)
+
+function ConnectionSection({ edges }: { edges: DiagramEdge[] }) {
+  const ids = edges.map((e) => e.id)
+  const pinned = edges.some((e) => e.sourceHandle !== undefined || e.targetHandle !== undefined)
+  return (
+    <Section title="Connection">
+      <div className="flex gap-3">
+        <SelectField<HandleSide>
+          label="Start side"
+          value={shared(edges, (e) => sideOf(e.sourceHandle))}
+          options={SIDES}
+          defaultLabel="Auto"
+          onChange={(side) => store().setEdgeSides(ids, { source: side ?? null })}
+        />
+        <SelectField<HandleSide>
+          label="End side"
+          value={shared(edges, (e) => sideOf(e.targetHandle))}
+          options={SIDES}
+          defaultLabel="Auto"
+          onChange={(side) => store().setEdgeSides(ids, { target: side ?? null })}
+        />
+      </div>
+      <p className="text-xs text-text-muted">Auto attaches to the nearest side as shapes move. A chosen side stays put.</p>
+      {pinned && (
+        <Button variant="ghost" onClick={() => store().resetEdgeSides(ids)} className="self-start px-3 text-text-muted">
+          <RotateCcw />
+          Reset to auto
+        </Button>
+      )}
+    </Section>
+  )
+}
+
 /* ---------- Bodies ---------- */
 
 const NODE_NOTES_HINT = 'Notes show as a small note badge on the shape, not as text on the canvas.'
@@ -214,6 +251,7 @@ function EdgeProperties({ edge }: { edge: DiagramEdge }) {
         hint={EDGE_NOTES_HINT}
         onChange={(notes) => store().setEdgeNotes(edge.id, notes)}
       />
+      <ConnectionSection edges={[edge]} />
       <EdgeStyleSection edges={[edge]} />
     </>
   )
@@ -263,7 +301,12 @@ function PropertiesBody({ summary }: { summary: Summary }) {
       {summary.kind === 'node' && <NodeProperties node={summary.node} />}
       {summary.kind === 'edge' && <EdgeProperties edge={summary.edge} />}
       {summary.kind === 'nodes' && <NodeStyleSection nodes={summary.nodes} />}
-      {summary.kind === 'edges' && <EdgeStyleSection edges={summary.edges} />}
+      {summary.kind === 'edges' && (
+        <>
+          <ConnectionSection edges={summary.edges} />
+          <EdgeStyleSection edges={summary.edges} />
+        </>
+      )}
       {summary.kind === 'mixed' && <p className="text-sm text-text-muted">Select only shapes or only connectors to style them together.</p>}
     </div>
   )
