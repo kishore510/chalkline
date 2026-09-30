@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import './styles/tokens.css';
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100dvh;
+  }
+
+  body {
+    background-color: var(--cl-bg);
+    color: var(--cl-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: var(--cl-focus-ring-width) solid var(--cl-focus);
+    outline-offset: var(--cl-focus-ring-offset);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0s !important;
+      animation-duration: 0s !important;
+    }
+  }
+}
+
+@layer components {
+  /* Side padding that respects notches and rounded corners. */
+  .cl-safe-x {
+    padding-left: max(var(--cl-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--cl-gutter), env(safe-area-inset-right));
+  }
+
+  .cl-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .cl-safe-bottom {
+    padding-bottom: max(var(--cl-gutter), env(safe-area-inset-bottom));
+  }
+
+  /* Dotted canvas grid. */
+  .cl-canvas-grid {
+    background-color: var(--cl-canvas);
+    background-image: radial-gradient(circle, var(--cl-grid) var(--cl-grid-dot), transparent var(--cl-grid-dot-fade));
+    background-size: var(--cl-grid-gap) var(--cl-grid-gap);
+  }
+
+  .cl-node-stroke {
+    stroke-width: var(--cl-node-stroke-width);
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .cl-edge-stroke {
+    stroke-width: var(--cl-edge-width);
+    stroke-linecap: round;
+    fill: none;
+  }
+}

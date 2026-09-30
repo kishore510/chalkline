@@ -84,9 +84,12 @@
   --cl-node-padding: 8px;
   --cl-grid-gap: 20px;
   --cl-grid-dot: 1px;
+  --cl-grid-dot-fade: 1.5px;
 
-  /* Touch */
+  /* Touch and focus */
   --cl-touch-target: 44px;
+  --cl-focus-ring-width: 2px;
+  --cl-focus-ring-offset: 2px;
 
   /* Motion */
   --cl-duration-fast: 120ms;
@@ -95,6 +98,7 @@
 
   /* Layout */
   --cl-header-height: 56px;
+  --cl-gutter: 16px;
   --cl-content-max: 1200px;
 }
 
