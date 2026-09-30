@@ -3,6 +3,8 @@ import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType,
 import { edgeAppearance } from './appearance'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
+const isSide = (value: string | undefined): value is HandleSide => HANDLE_SIDES.includes(value as HandleSide)
+
 /*
  * Pure translation between the diagram document and React Flow. The store is
  * the source of truth; React Flow renders these objects and reports changes,
@@ -13,6 +15,11 @@ type Arrowhead = NonNullable<EdgeStyle['endArrow']>
 
 export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; hasNotes: boolean }
 export type ShapeFlowNode = Node<ShapeNodeData, 'shape'>
+
+export type LineType = NonNullable<EdgeStyle['lineType']>
+/** Data for edges that float: a missing side is chosen at render time from node positions. */
+export type FloatingEdgeData = { lineType: LineType; sourceSide?: HandleSide; targetSide?: HandleSide }
+export type FloatingFlowEdge = Edge<FloatingEdgeData, 'floating'>
 
 /** Rendering defaults for optional edge style fields. */
 export const EDGE_DEFAULTS = {
@@ -69,13 +76,25 @@ export const DEFAULT_EDGE_WIDTH = 1.5
 export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH): Edge {
   const style = edge.style
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
+  const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
+  // Edges with both ends pinned to a side use React Flow's built-in edges; the rest float.
+  const pinned = isSide(edge.sourceHandle) && isSide(edge.targetHandle)
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    sourceHandle: edge.sourceHandle ?? null,
-    targetHandle: edge.targetHandle ?? null,
-    type: FLOW_EDGE_TYPE[style.lineType ?? EDGE_DEFAULTS.lineType],
+    sourceHandle: pinned ? edge.sourceHandle : null,
+    targetHandle: pinned ? edge.targetHandle : null,
+    ...(pinned
+      ? { type: FLOW_EDGE_TYPE[lineType] }
+      : {
+          type: 'floating',
+          data: {
+            lineType,
+            ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
+            ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
+          } satisfies FloatingEdgeData,
+        }),
     selected,
     markerStart: marker(style.startArrow ?? EDGE_DEFAULTS.startArrow, colour),
     markerEnd: marker(style.endArrow ?? EDGE_DEFAULTS.endArrow, colour),
@@ -148,15 +167,4 @@ export function applySelection(current: string[], flags: ReadonlyMap<string, boo
   const next = current.filter((id) => flags.get(id) !== false)
   for (const [id, selected] of flags) if (selected && !next.includes(id)) next.push(id)
   return next
-}
-
-/** The side of a box closest to a point, used when a connector is dropped on a node body. */
-export function nearestSide(box: { x: number; y: number; width: number; height: number }, point: Position): HandleSide {
-  const distances: Record<HandleSide, number> = {
-    top: Math.abs(point.y - box.y),
-    bottom: Math.abs(box.y + box.height - point.y),
-    left: Math.abs(point.x - box.x),
-    right: Math.abs(box.x + box.width - point.x),
-  }
-  return HANDLE_SIDES.reduce((best, side) => (distances[side] < distances[best] ? side : best))
 }

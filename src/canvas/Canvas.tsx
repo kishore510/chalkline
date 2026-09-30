@@ -5,7 +5,6 @@ import {
   MiniMap,
   ReactFlow,
   SelectionMode,
-  useReactFlow,
   type Connection,
   type EdgeChange,
   type IsValidConnection,
@@ -13,6 +12,8 @@ import {
   type OnConnectEnd,
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { MEDIA } from '@/styles/breakpoints'
 import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
@@ -21,16 +22,17 @@ import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
   createNodeMapper,
-  nearestSide,
   summariseEdgeChanges,
   summariseNodeChanges,
   toFlowEdges,
   type ShapeFlowNode,
 } from './flow'
+import { FloatingEdge } from './FloatingEdge'
 import { ShapeNode } from './ShapeNode'
 import { useLongPress, type PressTarget } from './useLongPress'
 
 const nodeTypes = { shape: ShapeNode }
+const edgeTypes = { floating: FloatingEdge }
 const isValidConnection: IsValidConnection = (c) => c.source !== c.target
 
 const minimapColour = (node: ShapeFlowNode) => resolveColour(node.data.style.fill, 'var(--cl-border-strong)')
@@ -53,7 +55,7 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
   const tool = useUiStore((s) => s.tool)
   const snapToGrid = useUiStore((s) => s.snapToGrid)
   const connecting = useUiStore((s) => s.connecting)
-  const { screenToFlowPosition } = useReactFlow()
+  const finePointer = useMediaQuery(MEDIA.finePointer)
 
   // Grid and minimap sizes come from tokens; read once on mount.
   const sizes = useMemo(
@@ -69,7 +71,11 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
 
   const mapNodes = useMemo(() => createNodeMapper(), [])
   const selected = useMemo(() => new Set(selection), [selection])
-  const nodes = useMemo(() => mapNodes(diagram, selected, tool === 'select'), [mapNodes, diagram, selected, tool])
+  const selectTool = tool === 'select'
+  const linkTool = tool === 'link'
+  // Dragging from handles needs a precise pointer; touch uses Link mode instead.
+  const connectable = selectTool && finePointer
+  const nodes = useMemo(() => mapNodes(diagram, selected, selectTool), [mapNodes, diagram, selected, selectTool])
   const edges = useMemo(() => toFlowEdges(diagram, selected, sizes.edgeWidth), [diagram, selected, sizes.edgeWidth])
 
   const onNodesChange = useCallback((changes: NodeChange<ShapeFlowNode>[]) => {
@@ -86,13 +92,13 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
     if (flags.size) diagramStore().setSelection(applySelection(diagramStore().selection, flags))
   }, [])
 
+  // New connections float: they attach to the nearest sides, whichever handle was dragged.
   const onConnect = useCallback((c: Connection) => {
-    const id = diagramStore().connect(c)
+    const id = diagramStore().linkNodes(c.source, c.target)
     if (id) diagramStore().setSelection([id])
   }, [])
 
-  // Dropping a connector on a node's body (not just a handle) connects to its nearest side.
-  // Much easier to hit with a finger than a handle.
+  // Dropping a connector on a node's body (not just a handle) connects it too.
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, state) => {
       uiStore().setConnecting(false)
@@ -101,12 +107,9 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
       if (!point) return
       const el = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node')
       const targetId = el?.dataset.id
-      const target = diagramStore().diagram.nodes.find((n) => n.id === targetId)
-      if (!target || target.id === state.fromNode.id) return
-      const side = nearestSide({ ...target.position, ...target.size }, screenToFlowPosition({ x: point.clientX, y: point.clientY }))
-      onConnect({ source: state.fromNode.id, sourceHandle: state.fromHandle?.id ?? null, target: target.id, targetHandle: side })
+      if (targetId && targetId !== state.fromNode.id) onConnect({ source: state.fromNode.id, target: targetId, sourceHandle: null, targetHandle: null })
     },
-    [onConnect, screenToFlowPosition],
+    [onConnect],
   )
 
   const longPress = useLongPress(openMenu)
@@ -118,14 +121,13 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
     return () => document.removeEventListener('gesturestart', block)
   }, [])
 
-  const selectTool = tool === 'select'
-
   return (
     <div className="absolute inset-0" {...longPress}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -134,7 +136,8 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={32}
-        onNodeDoubleClick={(_, node) => uiStore().setEditing(node.id)}
+        onNodeClick={(_, node) => void uiStore().linkTap(node.id)}
+        onNodeDoubleClick={(_, node) => selectTool && uiStore().setEditing(node.id)}
         onEdgeDoubleClick={(_, edge) => {
           diagramStore().setSelection([edge.id])
           uiStore().requestLabelFocus()
@@ -149,16 +152,21 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
           openMenu({ id: edge.id, kind: 'edge' }, e.clientX, e.clientY)
         }}
         onPaneContextMenu={(e) => e.preventDefault()}
-        onPaneClick={() => uiStore().closeContextMenu()}
+        onPaneClick={() => {
+          uiStore().closeContextMenu()
+          uiStore().clearLinkSource()
+        }}
         onMoveStart={() => uiStore().closeContextMenu()}
-        // Select tool: drag on empty canvas draws a selection box; middle/right mouse still pans.
-        // Pan tool: any drag pans and shapes can't be moved or connected.
+        // Select: drag on empty canvas draws a selection box; middle/right mouse still pans.
+        // Pan: any drag pans. Link: drag pans, taps on shapes connect them.
         panOnDrag={selectTool ? [1, 2] : true}
         selectionOnDrag={selectTool}
         selectionMode={SelectionMode.Partial}
         nodesDraggable={selectTool}
-        nodesConnectable={selectTool}
-        elementsSelectable
+        nodesConnectable={connectable}
+        elementsSelectable={!linkTool}
+        // Tapping selects; starting a drag doesn't, so the phone sheet never pops up mid-drag.
+        selectNodesOnDrag={false}
         panOnScroll
         zoomOnPinch
         zoomOnDoubleClick={false}
@@ -166,9 +174,11 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
         maxZoom={4}
         snapToGrid={snapToGrid}
         snapGrid={[sizes.grid, sizes.grid]}
-        deleteKeyCode={['Delete', 'Backspace']}
+        // Deleting goes through the store's deleteSelection (see useShortcuts), so one delete
+        // is one undoable action; React Flow's own key handling splits nodes and edges.
+        deleteKeyCode={null}
         attributionPosition="top-left"
-        className={cn(connecting && 'cl-connecting', !selectTool && 'cl-tool-pan')}
+        className={cn(connecting && 'cl-connecting', !connectable && 'cl-no-handles', tool === 'pan' && 'cl-tool-pan', linkTool && 'cl-tool-link')}
       >
         <Background variant={BackgroundVariant.Dots} gap={sizes.grid} size={sizes.dot} />
         {showMinimap && (

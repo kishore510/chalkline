@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
 import { setNodeLabel } from '@/store/ops'
-import { applySelection, createNodeMapper, nearestSide, summariseEdgeChanges, summariseNodeChanges, toFlowEdge, toFlowEdges } from './flow'
+import { applySelection, createNodeMapper, summariseEdgeChanges, summariseNodeChanges, toFlowEdge, toFlowEdges } from './flow'
 
 const diagram = () => parseDiagram(fixtures['all-shapes'])
 
@@ -35,18 +35,31 @@ describe('createNodeMapper', () => {
 })
 
 describe('edges', () => {
-  it('applies rendering defaults', () => {
+  it('uses built-in edges when both sides are pinned', () => {
     const [edge] = toFlowEdges(diagram(), new Set())
     expect(edge).toMatchObject({ type: 'smoothstep', sourceHandle: 'right', targetHandle: 'left', markerStart: undefined })
     expect(edge!.markerEnd).toMatchObject({ type: MarkerType.Arrow, color: 'var(--cl-edge)' })
+    const pinnedCurve = toFlowEdge(
+      { id: 'e', source: 'a', target: 'b', sourceHandle: 'top', targetHandle: 'left', label: '', notes: '', style: { lineType: 'bezier' } },
+      false,
+    )
+    expect(pinnedCurve.type).toBe('default')
   })
 
-  it('maps line types, arrowheads and selection colour', () => {
+  it('floats edges without handles, keeping any single pinned side', () => {
+    const floating = toFlowEdge({ id: 'e', source: 'a', target: 'b', label: '', notes: '', style: {} }, false)
+    expect(floating).toMatchObject({ type: 'floating', sourceHandle: null, targetHandle: null, data: { lineType: 'smoothstep' } })
+    const half = toFlowEdge({ id: 'e', source: 'a', target: 'b', sourceHandle: 'bottom', label: '', notes: '', style: { lineType: 'step' } }, false)
+    expect(half.data).toEqual({ lineType: 'step', sourceSide: 'bottom' })
+    const junk = toFlowEdge({ id: 'e', source: 'a', target: 'b', sourceHandle: 'weird', targetHandle: 'left', label: '', notes: '', style: {} }, false)
+    expect(junk.data).toEqual({ lineType: 'smoothstep', targetSide: 'left' })
+  })
+
+  it('maps arrowheads and selection colour', () => {
     const edge = toFlowEdge(
       { id: 'e', source: 'a', target: 'b', label: '', notes: '', style: { lineType: 'bezier', startArrow: 'closed', endArrow: 'none' } },
       true,
     )
-    expect(edge.type).toBe('default')
     expect(edge.markerStart).toMatchObject({ type: MarkerType.ArrowClosed, color: 'var(--cl-accent)' })
     expect(edge.markerEnd).toBeUndefined()
     expect(edge.sourceHandle).toBeNull()
@@ -110,17 +123,5 @@ describe('applySelection', () => {
     expect(applySelection(['a', 'b'], new Map([['a', false], ['c', true], ['b', true]]))).toEqual(['b', 'c'])
     const same = ['a']
     expect(applySelection(same, new Map())).toBe(same)
-  })
-})
-
-describe('nearestSide', () => {
-  const box = { x: 0, y: 0, width: 100, height: 50 }
-  it.each([
-    [{ x: 50, y: 2 }, 'top'],
-    [{ x: 50, y: 48 }, 'bottom'],
-    [{ x: 3, y: 25 }, 'left'],
-    [{ x: 97, y: 25 }, 'right'],
-  ] as const)('%o is nearest %s', (point, side) => {
-    expect(nearestSide(box, point)).toBe(side)
   })
 })

@@ -10,6 +10,7 @@ import { LabelEditor } from './LabelEditor'
 
 export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeFlowNode>) {
   const editing = useUiStore((s) => s.editingId === id)
+  const linkSource = useUiStore((s) => s.linkSourceId === id)
   const appearance = useMemo(() => nodeAppearance(data.style), [data.style])
   return (
     <>
@@ -29,6 +30,9 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         hasNotes={data.hasNotes}
         editor={editing ? <LabelEditor id={id} initial={data.label} /> : undefined}
       />
+      {linkSource && (
+        <div aria-hidden="true" className="pointer-events-none absolute -inset-2 rounded-md border-2 border-dashed border-accent bg-accent-subtle" />
+      )}
       {/* Every handle is a source; ConnectionMode.Loose lets any handle also be a target. */}
       {HANDLE_SIDES.map((side) => (
         <Handle key={side} id={side} type="source" position={HANDLE_POSITION[side]} className="cl-handle" />

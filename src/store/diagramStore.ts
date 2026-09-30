@@ -33,7 +33,14 @@ export interface DiagramState {
   setEdgeLabel: (id: string, label: string) => void
   setEdgeNotes: (id: string, notes: string) => void
   connect: (connection: ops.Connection) => string | null
+  /** Connects two nodes with a floating edge (no stored handles; it attaches to the nearest sides). */
+  linkNodes: (source: string, target: string) => string | null
+  /** What the most recent delete removed, so it can be undone. `id` changes on every delete. */
+  lastDeletion: (ops.Removed & { id: number }) | null
   deleteElements: (ids: Iterable<string>) => void
+  /** Puts back what the last delete removed and selects it. */
+  restoreDeleted: () => void
+  dismissDeletion: () => void
   deleteSelection: () => void
   setSelection: (ids: string[]) => void
   /** Replaces the document with untrusted input (migrated and validated). Throws if invalid. */
@@ -60,6 +67,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
   return {
     diagram: createEmptyDiagram(),
     selection: [],
+    lastDeletion: null,
 
     addNode(type, center, grid = 0) {
       const { diagram } = get()
@@ -87,12 +95,27 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       return edgeId
     },
 
+    linkNodes: (source, target) => get().connect({ source, target }),
+
     deleteElements(ids) {
-      const { diagram, selection } = get()
-      const next = ops.deleteElements(diagram, ids)
+      const { diagram, selection, lastDeletion } = get()
+      const { diagram: next, removed } = ops.removeElements(diagram, ids)
       if (next === diagram) return
-      set({ diagram: ops.touch(next), selection: pruneSelection(next, selection) })
+      set({
+        diagram: ops.touch(next),
+        selection: pruneSelection(next, selection),
+        lastDeletion: { ...removed, id: (lastDeletion?.id ?? 0) + 1 },
+      })
     },
+
+    restoreDeleted() {
+      const { diagram, lastDeletion } = get()
+      if (!lastDeletion) return
+      const { diagram: next, restored } = ops.restoreElements(diagram, lastDeletion)
+      set({ ...(next !== diagram && { diagram: ops.touch(next) }), selection: restored, lastDeletion: null })
+    },
+
+    dismissDeletion: () => set({ lastDeletion: null }),
 
     deleteSelection: () => get().deleteElements(get().selection),
 
@@ -102,10 +125,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
 
     load(raw) {
-      set({ diagram: parseDiagram(raw), selection: [] })
+      set({ diagram: parseDiagram(raw), selection: [], lastDeletion: null })
     },
 
-    reset: () => set({ diagram: createEmptyDiagram(), selection: [] }),
+    reset: () => set({ diagram: createEmptyDiagram(), selection: [], lastDeletion: null }),
   }
 })
 

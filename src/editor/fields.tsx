@@ -52,7 +52,8 @@ export function TextAreaField({
         rows={rows}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={cn(control, 'h-auto min-h-touch resize-y py-2.5 placeholder:text-text-muted')}
+        // No resize grip on touch screens, where it is too small to use.
+        className={cn(control, 'h-auto min-h-touch resize-none py-2.5 placeholder:text-text-muted pointer-fine:resize-y')}
       />
       {hint && <span className="text-xs font-normal text-text-muted">{hint}</span>}
     </label>
@@ -67,21 +68,28 @@ export interface Option<T> {
 const DEFAULT_KEY = '__default'
 const MIXED_KEY = '__mixed'
 
-/** Native select (best on touch). `undefined` is the theme default. */
+/**
+ * Native select (best on touch). `undefined` is the theme default, offered as a
+ * "Default" option. With `fallback`, there is no Default option: the fallback
+ * option shows when unset, and choosing it stores undefined.
+ */
 export function SelectField<T extends string | number>({
   label,
   value,
   options,
   onChange,
   defaultLabel = 'Default',
+  fallback,
 }: {
   label: string
   value: Shared<T>
   options: Option<T>[]
   onChange: (value: T | undefined) => void
   defaultLabel?: string
+  fallback?: T
 }) {
-  const key = value === MIXED ? MIXED_KEY : value === undefined ? DEFAULT_KEY : String(value)
+  const shown = value === undefined ? fallback : value
+  const key = shown === MIXED ? MIXED_KEY : shown === undefined ? DEFAULT_KEY : String(shown)
   return (
     <label className={cn(fieldLabel, 'min-w-0 flex-1')}>
       {label}
@@ -90,7 +98,7 @@ export function SelectField<T extends string | number>({
         onChange={(e) => {
           if (e.target.value === DEFAULT_KEY) return onChange(undefined)
           const option = options.find((o) => String(o.value) === e.target.value)
-          if (option) onChange(option.value)
+          if (option) onChange(option.value === fallback ? undefined : option.value)
         }}
         className={control}
       >
@@ -99,7 +107,7 @@ export function SelectField<T extends string | number>({
             Mixed
           </option>
         )}
-        <option value={DEFAULT_KEY}>{defaultLabel}</option>
+        {fallback === undefined && <option value={DEFAULT_KEY}>{defaultLabel}</option>}
         {options.map((o) => (
           <option key={String(o.value)} value={String(o.value)}>
             {o.label}

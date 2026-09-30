@@ -88,14 +88,42 @@ export function connect(diagram: Diagram, connection: Connection, id?: string): 
   return { diagram: { ...diagram, edges: [...diagram.edges, edge] }, edgeId: edge.id }
 }
 
-/** Removes nodes and edges by id. Edges attached to a removed node go too. */
-export function deleteElements(diagram: Diagram, ids: Iterable<string>): Diagram {
+export interface Removed {
+  nodes: DiagramNode[]
+  edges: DiagramEdge[]
+}
+
+/** Removes nodes and edges by id, returning what went. Edges attached to a removed node go too. */
+export function removeElements(diagram: Diagram, ids: Iterable<string>): { diagram: Diagram; removed: Removed } {
   const remove = new Set(ids)
-  if (remove.size === 0) return diagram
-  const nodes = diagram.nodes.filter((n) => !remove.has(n.id))
-  const edges = diagram.edges.filter((e) => !remove.has(e.id) && !remove.has(e.source) && !remove.has(e.target))
-  if (nodes.length === diagram.nodes.length && edges.length === diagram.edges.length) return diagram
-  return { ...diagram, nodes, edges }
+  const removed: Removed = { nodes: [], edges: [] }
+  if (remove.size === 0) return { diagram, removed }
+  const nodes = diagram.nodes.filter((n) => !remove.has(n.id) || (removed.nodes.push(n), false))
+  const edges = diagram.edges.filter(
+    (e) => !(remove.has(e.id) || remove.has(e.source) || remove.has(e.target)) || (removed.edges.push(e), false),
+  )
+  if (removed.nodes.length === 0 && removed.edges.length === 0) return { diagram, removed }
+  return { diagram: { ...diagram, nodes, edges }, removed }
+}
+
+export function deleteElements(diagram: Diagram, ids: Iterable<string>): Diagram {
+  return removeElements(diagram, ids).diagram
+}
+
+/**
+ * Puts removed elements back. Items whose id is taken again are skipped, as
+ * are edges whose other end no longer exists, so the result is always valid.
+ */
+export function restoreElements(diagram: Diagram, removed: Removed): { diagram: Diagram; restored: string[] } {
+  const taken = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id)])
+  const nodes = removed.nodes.filter((n) => !taken.has(n.id))
+  const nodeIds = new Set([...diagram.nodes.map((n) => n.id), ...nodes.map((n) => n.id)])
+  const edges = removed.edges.filter((e) => !taken.has(e.id) && nodeIds.has(e.source) && nodeIds.has(e.target))
+  if (nodes.length === 0 && edges.length === 0) return { diagram, restored: [] }
+  return {
+    diagram: { ...diagram, nodes: [...diagram.nodes, ...nodes], edges: [...diagram.edges, ...edges] },
+    restored: [...nodes.map((n) => n.id), ...edges.map((e) => e.id)],
+  }
 }
 
 export function snap(value: number, grid: number): number {

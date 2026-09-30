@@ -1,6 +1,9 @@
 import { create } from 'zustand'
+import { useDiagramStore } from './diagramStore'
 
-export type Tool = 'select' | 'pan'
+export type Tool = 'select' | 'pan' | 'link'
+
+export type LinkTapResult = 'source' | 'linked' | 'cleared' | 'refused' | 'ignored'
 
 export interface ContextMenuState {
   /** Viewport coordinates of the pointer that opened the menu. */
@@ -14,6 +17,8 @@ export interface ContextMenuState {
 /** Editor state that is not part of the saved document. */
 interface UiState {
   tool: Tool
+  /** Link mode: the node tapped first, waiting for a target. */
+  linkSourceId: string | null
   snapToGrid: boolean
   /** Node whose label is being edited inline, if any. */
   editingId: string | null
@@ -25,6 +30,9 @@ interface UiState {
   focusLabelRequest: number
   requestLabelFocus: () => void
   setTool: (tool: Tool) => void
+  /** Link mode: first tap picks the source, second tap on another node creates the edge. */
+  linkTap: (nodeId: string) => LinkTapResult
+  clearLinkSource: () => void
   toggleSnap: () => void
   setEditing: (id: string | null) => void
   setConnecting: (connecting: boolean) => void
@@ -33,8 +41,9 @@ interface UiState {
   closeContextMenu: () => void
 }
 
-export const useUiStore = create<UiState>()((set) => ({
+export const useUiStore = create<UiState>()((set, get) => ({
   tool: 'select',
+  linkSourceId: null,
   snapToGrid: true,
   editingId: null,
   connecting: false,
@@ -42,7 +51,29 @@ export const useUiStore = create<UiState>()((set) => ({
   contextMenu: null,
   focusLabelRequest: 0,
   requestLabelFocus: () => set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null })),
-  setTool: (tool) => set({ tool }),
+  setTool(tool) {
+    // Link mode taps nodes to connect them, so an existing selection would only get in the way.
+    if (tool === 'link') useDiagramStore.getState().setSelection([])
+    set({ tool, linkSourceId: null, contextMenu: null })
+  },
+  linkTap(nodeId) {
+    const { tool, linkSourceId } = get()
+    if (tool !== 'link') return 'ignored'
+    const diagram = useDiagramStore.getState()
+    const sourceExists = linkSourceId !== null && diagram.diagram.nodes.some((n) => n.id === linkSourceId)
+    if (!sourceExists) {
+      set({ linkSourceId: nodeId })
+      return 'source'
+    }
+    if (linkSourceId === nodeId) {
+      set({ linkSourceId: null })
+      return 'cleared'
+    }
+    const id = diagram.linkNodes(linkSourceId, nodeId)
+    set({ linkSourceId: null })
+    return id ? 'linked' : 'refused'
+  },
+  clearLinkSource: () => set({ linkSourceId: null }),
   toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
   setEditing: (editingId) => set({ editingId, contextMenu: null }),
   setConnecting: (connecting) => set({ connecting }),

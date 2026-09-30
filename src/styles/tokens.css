@@ -126,6 +126,7 @@
   --cl-handle-dot: 10px;
   --cl-handle-hit-fine: 24px;
   --cl-long-press: 500ms;
+  --cl-toast-duration: 5000ms;
   --cl-focus-ring-width: 2px;
   --cl-focus-ring-offset: 2px;
 

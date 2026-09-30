@@ -5,10 +5,12 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ContextMenu } from './ContextMenu'
 import { EmptyCanvas } from './EmptyCanvas'
+import { LinkHint } from './LinkHint'
 import { PaletteDrawer, PalettePanel, PaletteRail } from './palette'
 import { PropertiesPanel, PropertiesSheet, PropertiesSlideOver } from './Properties'
 import { CanvasToolbar } from './Toolbar'
 import { TopBar } from './TopBar'
+import { UndoToast } from './UndoToast'
 import { useShortcuts } from './useShortcuts'
 
 /**
@@ -32,14 +34,17 @@ function EditorLayout() {
         <main className="relative min-w-0 flex-1 overflow-hidden">
           <Canvas showMinimap={layout !== 'phone'} />
           <EmptyCanvas layout={layout} />
-          {layout !== 'desktop' && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
-              <div className={layout === 'phone' ? 'px-4' : 'cl-safe-bottom px-4'}>
+          <LinkHint />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
+            <UndoToast />
+            {layout === 'phone' && <PhoneBottom />}
+            {layout === 'tablet' && (
+              <div className="cl-safe-bottom px-4">
                 <CanvasToolbar layout={layout} />
               </div>
-              {layout === 'phone' && <PhoneBottom />}
-            </div>
-          )}
+            )}
+            {layout === 'desktop' && <div className="cl-safe-bottom" />}
+          </div>
           {layout === 'tablet' && <PropertiesSlideOver />}
         </main>
         {layout === 'desktop' && <PropertiesPanel />}
@@ -50,10 +55,15 @@ function EditorLayout() {
   )
 }
 
-/** Phone: the properties sheet when something is selected, otherwise safe-area spacing under the toolbar. */
+/** Phone: the properties sheet replaces the toolbar while something is selected. */
 function PhoneBottom() {
   const open = useDiagramStore((s) => s.selection.length > 0)
-  return open ? <PropertiesSheet /> : <div className="cl-safe-bottom" />
+  if (open) return <PropertiesSheet />
+  return (
+    <div className="cl-safe-bottom px-4">
+      <CanvasToolbar layout="phone" />
+    </div>
+  )
 }
 
 export function Editor() {

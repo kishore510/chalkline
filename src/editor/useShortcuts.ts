@@ -9,7 +9,6 @@ function isTyping(target: EventTarget | null) {
 
 /**
  * Keyboard shortcuts. A bonus only: every action also has a button.
- * Delete/Backspace are handled by React Flow itself.
  */
 export function useShortcuts() {
   const actions = useCanvasActions()
@@ -27,6 +26,10 @@ export function useShortcuts() {
         case 'H':
           ui.setTool('pan')
           break
+        case 'l':
+        case 'L':
+          ui.setTool('link')
+          break
         case 'g':
         case 'G':
           ui.toggleSnap()
@@ -42,6 +45,12 @@ export function useShortcuts() {
         case '-':
           actions.zoomOut()
           break
+        case 'Delete':
+        case 'Backspace':
+          if (diagram.selection.length === 0) return
+          e.preventDefault()
+          diagram.deleteSelection()
+          break
         case 'Enter': {
           const [only, ...rest] = diagram.selection
           if (only && rest.length === 0 && diagram.diagram.nodes.some((n) => n.id === only)) {
@@ -51,6 +60,7 @@ export function useShortcuts() {
           break
         }
         case 'Escape':
+          ui.clearLinkSource()
           ui.closeContextMenu()
           ui.setPaletteOpen(false)
           diagram.setSelection([])

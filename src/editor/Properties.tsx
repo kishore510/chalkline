@@ -1,15 +1,19 @@
+import { useReactFlow, useStoreApi } from '@xyflow/react'
 import { ArrowRight, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import type { DiagramEdge, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
 import { useDiagramStore } from '@/store/diagramStore'
 import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
+import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { SHAPE_NAMES } from './palette'
 
@@ -140,20 +144,8 @@ function EdgeStyleSection({ edges }: { edges: DiagramEdge[] }) {
         onChange={(lineType) => set({ lineType })}
       />
       <div className="flex gap-3">
-        <SelectField
-          label="Start"
-          value={get('startArrow')}
-          options={ARROWS}
-          defaultLabel={`Default (${labelOf(ARROWS, EDGE_DEFAULTS.startArrow).toLowerCase()})`}
-          onChange={(startArrow) => set({ startArrow })}
-        />
-        <SelectField
-          label="End"
-          value={get('endArrow')}
-          options={ARROWS}
-          defaultLabel={`Default (${labelOf(ARROWS, EDGE_DEFAULTS.endArrow).toLowerCase()})`}
-          onChange={(endArrow) => set({ endArrow })}
-        />
+        <SelectField label="Start" value={get('startArrow')} options={ARROWS} fallback={EDGE_DEFAULTS.startArrow} onChange={(startArrow) => set({ startArrow })} />
+        <SelectField label="End" value={get('endArrow')} options={ARROWS} fallback={EDGE_DEFAULTS.endArrow} onChange={(endArrow) => set({ endArrow })} />
       </div>
       <ToggleField label="Dashed" pressed={get('dashed')} onChange={(dashed) => set({ dashed: dashed || undefined })} />
       <ColourField label="Colour" variant="strong" defaultColour="var(--cl-edge)" value={get('colour')} onChange={(colour) => set({ colour })} />
@@ -165,7 +157,8 @@ function EdgeStyleSection({ edges }: { edges: DiagramEdge[] }) {
 
 /* ---------- Bodies ---------- */
 
-const NOTES_HINT = 'Notes are saved with the diagram but not drawn on the canvas.'
+const NODE_NOTES_HINT = 'Notes show as a small note badge on the shape, not as text on the canvas.'
+const EDGE_NOTES_HINT = 'Notes are saved with the diagram but not drawn on the canvas.'
 
 function NodeProperties({ node }: { node: DiagramNode }) {
   return (
@@ -180,7 +173,7 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         value={node.notes}
         rows={3}
         placeholder="Add a note…"
-        hint={NOTES_HINT}
+        hint={NODE_NOTES_HINT}
         onChange={(notes) => store().setNodeNotes(node.id, notes)}
       />
       <NodeStyleSection nodes={[node]} />
@@ -218,7 +211,7 @@ function EdgeProperties({ edge }: { edge: DiagramEdge }) {
         value={edge.notes}
         rows={3}
         placeholder="Add a note…"
-        hint={NOTES_HINT}
+        hint={EDGE_NOTES_HINT}
         onChange={(notes) => store().setEdgeNotes(edge.id, notes)}
       />
       <EdgeStyleSection edges={[edge]} />
@@ -329,11 +322,40 @@ export function PropertiesSlideOver() {
   )
 }
 
+/** Pans the canvas so the selection sits in the visible area above the sheet, whenever either changes. */
+function useRevealAboveSheet(sheet: React.RefObject<HTMLElement | null>) {
+  const flow = useReactFlow()
+  const rfStore = useStoreApi()
+  const selectionKey = useDiagramStore((s) => s.selection.join(' '))
+
+  useEffect(() => {
+    const el = sheet.current
+    if (!el) return
+    const reveal = () => {
+      const canvas = rfStore.getState().domNode?.getBoundingClientRect()
+      const { diagram, selection } = useDiagramStore.getState()
+      const bounds = selectionBounds(diagram, selection)
+      if (!canvas || !bounds) return
+      const visible = { width: canvas.width, height: Math.max(0, el.getBoundingClientRect().top - canvas.top) }
+      const next = revealViewport(bounds, flow.getViewport(), visible, readToken('--cl-gutter', 16))
+      const duration = window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200)
+      if (next) void flow.setViewport(next, { duration })
+    }
+    reveal()
+    const observer = new ResizeObserver(reveal)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [sheet, flow, rfStore, selectionKey])
+}
+
 /** Phone: scrollable bottom sheet, shown while something is selected. */
 export function PropertiesSheet() {
   const summary = useSelectionSummary()
+  const ref = useRef<HTMLElement>(null)
+  useRevealAboveSheet(ref)
   return (
     <section
+      ref={ref}
       aria-label="Properties"
       className="cl-safe-bottom pointer-events-auto max-h-(--cl-sheet-max-height) w-full overflow-y-auto overscroll-contain rounded-t-lg border-t border-border bg-surface px-4 shadow-lg"
     >

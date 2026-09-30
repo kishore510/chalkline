@@ -10,4 +10,6 @@ export const MEDIA = {
   /** Desktop: persistent palette and properties panel, top bar toolbar. */
   desktop: `(min-width: ${BREAKPOINTS.lg})`,
   reducedMotion: '(prefers-reduced-motion: reduce)',
+  /** A mouse or trackpad: precise enough for dragging from small connection handles. */
+  finePointer: '(hover: hover) and (pointer: fine)',
 } as const

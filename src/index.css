@@ -195,9 +195,19 @@
   transform: scale(1.4);
 }
 
-.cl-tool-pan .cl-handle,
-.cl-tool-pan .react-flow__resize-control {
+/* Touch, pan and link modes have no handle-drag connections. Hidden, not removed, so edges keep their anchors. */
+.cl-no-handles .react-flow__handle.cl-handle {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cl-tool-pan .react-flow__resize-control,
+.cl-tool-link .react-flow__resize-control {
   display: none;
+}
+
+.cl-tool-link .react-flow__node {
+  cursor: pointer;
 }
 
 /* Resize handles: small visible square, touch-sized hit area around it. */
