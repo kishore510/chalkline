@@ -15,6 +15,11 @@
   --cl-bg: #f4f3ef;
   --cl-canvas: #fbfaf7;
   --cl-grid: #d6d2c6;
+  /* Line grid: fainter than dots, since lines cover far more of the canvas. */
+  --cl-grid-line: #ebe8e1;
+  /* Smart guides while dragging or resizing, and the outline on aligned shapes. */
+  --cl-guide: #c2185b;
+  --cl-guide-subtle: #c2185b66;
   --cl-surface: #ffffff;
   --cl-surface-muted: #efeee9;
   --cl-border: #dcd9d0;
@@ -69,6 +74,9 @@
   --cl-bg: #12181b;
   --cl-canvas: #1b2327;
   --cl-grid: #2f3b41;
+  --cl-grid-line: #252f34;
+  --cl-guide: #f48fbe;
+  --cl-guide-subtle: #f48fbe66;
   --cl-surface: #1f282d;
   --cl-surface-muted: #28333a;
   --cl-border: #334047;
@@ -125,6 +133,12 @@
   --cl-grid-gap: 20px;
   --cl-grid-dot: 1px;
   --cl-grid-dot-fade: 1.5px;
+  --cl-grid-line-width: 1px;
+  /* Smart guides (screen px): line width, marker end ticks, how far size markers sit off the edge, label halo. */
+  --cl-guide-width: 1px;
+  --cl-guide-tick: 6px;
+  --cl-guide-offset: 10px;
+  --cl-guide-halo: 3px;
 
   /* Touch and focus */
   --cl-touch-target: 44px;

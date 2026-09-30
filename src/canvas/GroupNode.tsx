@@ -5,6 +5,7 @@ import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
+import { endResize, startResize } from './guideSession'
 import type { GroupView } from './renderModel'
 
 export type GroupNodeData = { view: GroupView; selected: boolean; dropTarget: boolean }
@@ -67,8 +68,8 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
         minHeight={header + 60}
         handleClassName="cl-resize-handle"
         lineClassName="cl-resize-line"
-        onResizeStart={() => useDiagramStore.getState().beginBatch()}
-        onResizeEnd={() => useDiagramStore.getState().endBatch()}
+        onResizeStart={startResize}
+        onResizeEnd={endResize}
         // A pool grows from its far edges only, so its lanes (and their members) never shift.
         shouldResize={view.pool ? (_, p) => p.x === view.box.x && p.y === view.box.y : undefined}
       />

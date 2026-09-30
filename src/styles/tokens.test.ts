@@ -67,6 +67,10 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['border-strong', 'bg', UI],
   ['text', 'group-header', TEXT],
   ['text-muted', 'group-header', TEXT],
+  // Guides and their labels are drawn over the canvas and over shapes.
+  ['guide', 'canvas', TEXT],
+  ['guide', 'node-fill', TEXT],
+  ['guide', 'group-header', UI],
 ]
 
 // Diagram presets are used as text and borders on any fill, so hold them to text contrast.
