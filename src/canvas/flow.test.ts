@@ -1,0 +1,108 @@
+import { MarkerType, type NodeChange } from '@xyflow/react'
+import { describe, expect, it } from 'vitest'
+import { fixtures } from '@/fixtures'
+import { parseDiagram } from '@/schema/diagram'
+import { setNodeLabel } from '@/store/ops'
+import { applySelection, createNodeMapper, nearestSide, summariseEdgeChanges, summariseNodeChanges, toFlowEdge, toFlowEdges } from './flow'
+
+const diagram = () => parseDiagram(fixtures['all-shapes'])
+
+describe('createNodeMapper', () => {
+  it('maps every node with size, measured size and data', () => {
+    const nodes = createNodeMapper()(diagram(), new Set(['n_db']))
+    expect(nodes).toHaveLength(6)
+    expect(nodes.find((n) => n.id === 'n_db')).toMatchObject({
+      type: 'shape',
+      width: 120,
+      height: 100,
+      measured: { width: 120, height: 100 },
+      selected: true,
+      data: { type: 'database', label: 'Database' },
+    })
+  })
+
+  it('reuses unchanged nodes and rebuilds changed ones', () => {
+    const map = createNodeMapper()
+    const d = diagram()
+    const first = map(d, new Set())
+    const changed = setNodeLabel(d, 'n_rect', 'New')
+    const second = map(changed, new Set(['n_db']))
+    expect(second[0]).not.toBe(first[0])
+    expect(second[1]).toBe(first[1])
+    expect(second.find((n) => n.id === 'n_db')).not.toBe(first.find((n) => n.id === 'n_db'))
+    expect(map(changed, new Set(['n_db']), false)[1]).not.toBe(second[1])
+  })
+})
+
+describe('edges', () => {
+  it('applies rendering defaults', () => {
+    const [edge] = toFlowEdges(diagram(), new Set())
+    expect(edge).toMatchObject({ type: 'smoothstep', sourceHandle: 'right', targetHandle: 'left', markerStart: undefined })
+    expect(edge!.markerEnd).toMatchObject({ type: MarkerType.Arrow, color: 'var(--cl-edge)' })
+  })
+
+  it('maps line types, arrowheads and selection colour', () => {
+    const edge = toFlowEdge(
+      { id: 'e', source: 'a', target: 'b', label: '', notes: '', style: { lineType: 'bezier', startArrow: 'closed', endArrow: 'none' } },
+      true,
+    )
+    expect(edge.type).toBe('default')
+    expect(edge.markerStart).toMatchObject({ type: MarkerType.ArrowClosed, color: 'var(--cl-accent)' })
+    expect(edge.markerEnd).toBeUndefined()
+    expect(edge.sourceHandle).toBeNull()
+  })
+})
+
+describe('summariseNodeChanges', () => {
+  it('collects moves, removals and selection', () => {
+    const changes: NodeChange[] = [
+      { type: 'position', id: 'a', position: { x: 1, y: 2 }, dragging: true },
+      { type: 'position', id: 'b', dragging: false },
+      { type: 'remove', id: 'c' },
+      { type: 'select', id: 'd', selected: true },
+    ]
+    const s = summariseNodeChanges(changes)
+    expect([...s.moves]).toEqual([['a', { x: 1, y: 2 }]])
+    expect(s.removed).toEqual(['c'])
+    expect([...s.selection]).toEqual([['d', true]])
+  })
+
+  it('ignores plain measurements but keeps resizer changes with their position', () => {
+    const s = summariseNodeChanges([
+      { type: 'dimensions', id: 'a', dimensions: { width: 10, height: 10 } },
+      { type: 'dimensions', id: 'b', dimensions: { width: 200, height: 90 }, resizing: true, setAttributes: true },
+      { type: 'position', id: 'b', position: { x: -5, y: -6 } },
+    ])
+    expect(s.resizes).toEqual([{ id: 'b', size: { width: 200, height: 90 }, position: { x: -5, y: -6 } }])
+    expect(s.moves.size).toBe(0)
+  })
+
+  it('summarises edge changes', () => {
+    expect(
+      summariseEdgeChanges([
+        { type: 'remove', id: 'e1' },
+        { type: 'select', id: 'e2', selected: true },
+      ]),
+    ).toEqual({ removed: ['e1'], selection: new Map([['e2', true]]) })
+  })
+})
+
+describe('applySelection', () => {
+  it('adds and removes ids keeping order', () => {
+    expect(applySelection(['a', 'b'], new Map([['a', false], ['c', true], ['b', true]]))).toEqual(['b', 'c'])
+    const same = ['a']
+    expect(applySelection(same, new Map())).toBe(same)
+  })
+})
+
+describe('nearestSide', () => {
+  const box = { x: 0, y: 0, width: 100, height: 50 }
+  it.each([
+    [{ x: 50, y: 2 }, 'top'],
+    [{ x: 50, y: 48 }, 'bottom'],
+    [{ x: 3, y: 25 }, 'left'],
+    [{ x: 97, y: 25 }, 'right'],
+  ] as const)('%o is nearest %s', (point, side) => {
+    expect(nearestSide(box, point)).toBe(side)
+  })
+})

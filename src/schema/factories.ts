@@ -52,3 +52,6 @@ export function createEdge(
     ...overrides,
   }
 }
+
+/** Smallest size the resize handles allow, so a node never becomes unclickable. */
+export const MIN_NODE_SIZE = 24
