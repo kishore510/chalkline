@@ -49,6 +49,8 @@ const minimapColour = (node: CanvasNode) =>
   node.type === 'group-box' ? 'var(--cl-group-border)' : resolveColour(node.data.style.fill, 'var(--cl-border-strong)')
 
 const diagramStore = () => useDiagramStore.getState()
+/** Shift, Cmd or Ctrl adds to the selection instead of replacing it. */
+const isAdditive = (e: React.MouseEvent) => e.shiftKey || e.metaKey || e.ctrlKey
 const uiStore = () => useUiStore.getState()
 
 function select(id: string) {
@@ -235,7 +237,16 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         connectionMode={ConnectionMode.Loose}
         connectionRadius={32}
         // In Link mode shapes (including ones inside groups) can be linked; groups ignore taps.
-        onNodeClick={(_, node) => node.type === 'shape' && void uiStore().linkTap(node.id)}
+        // In Select mode a plain click selects just that shape: React Flow doesn't know about
+        // group selection (made through the header), so without this a group stayed selected.
+        onNodeClick={(e, node) => {
+          if (node.type !== 'shape') return
+          if (uiStore().tool === 'link') return void uiStore().linkTap(node.id)
+          if (uiStore().tool === 'select' && !isAdditive(e)) diagramStore().setSelection([node.id])
+        }}
+        onEdgeClick={(e, edge) => {
+          if (uiStore().tool === 'select' && !isAdditive(e)) diagramStore().setSelection([edge.id])
+        }}
         onNodeDoubleClick={(_, node) => selectTool && node.type === 'shape' && uiStore().setEditing(node.id)}
         onEdgeDoubleClick={(_, edge) => {
           diagramStore().setSelection([edge.id])
@@ -259,9 +270,12 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
           e.preventDefault()
           openMenu({ id: '', kind: 'pane' }, e.clientX, e.clientY)
         }}
+        // Clicking empty canvas clears everything, groups included, and drops keyboard focus.
         onPaneClick={() => {
           uiStore().closeContextMenu()
           uiStore().clearLinkSource()
+          diagramStore().setSelection([])
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
         }}
         onMoveStart={() => uiStore().closeContextMenu()}
         // Select: drag on empty canvas draws a selection box; middle/right mouse still pans.
