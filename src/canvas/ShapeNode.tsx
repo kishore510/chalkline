@@ -1,14 +1,16 @@
 import { Handle, NodeResizer, type NodeProps } from '@xyflow/react'
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { ShapeView } from '@/components/shapes/ShapeView'
 import { MIN_NODE_SIZE } from '@/schema/factories'
 import { useUiStore } from '@/store/uiStore'
+import { nodeAppearance } from './appearance'
 import type { ShapeFlowNode } from './flow'
 import { HANDLE_POSITION, HANDLE_SIDES } from './handles'
 import { LabelEditor } from './LabelEditor'
 
 export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeFlowNode>) {
   const editing = useUiStore((s) => s.editingId === id)
+  const appearance = useMemo(() => nodeAppearance(data.style), [data.style])
   return (
     <>
       <NodeResizer
@@ -23,6 +25,8 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         size={{ width, height }}
         label={data.label}
         selected={selected}
+        appearance={appearance}
+        hasNotes={data.hasNotes}
         editor={editing ? <LabelEditor id={id} initial={data.label} /> : undefined}
       />
       {/* Every handle is a source; ConnectionMode.Loose lets any handle also be a target. */}

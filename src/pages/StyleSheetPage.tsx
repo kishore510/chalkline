@@ -22,7 +22,9 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { Panel, PanelBody, PanelHeader, PanelTitle } from '@/components/ui/panel'
 import { Segmented } from '@/components/ui/segmented'
+import { COLOUR_PRESETS, PRESET_NAMES, presetToken } from '@/lib/colour'
 import { cn } from '@/lib/utils'
+import { nodeAppearance } from '@/canvas/appearance'
 import { NODE_TYPES } from '@/schema/diagram'
 import { DEFAULT_NODE_LABEL, DEFAULT_NODE_SIZE } from '@/schema/factories'
 
@@ -286,6 +288,27 @@ export function StyleSheetPage() {
               <EdgePreview />
               <ShapeView type="rectangle" size={DEFAULT_NODE_SIZE.rectangle} label="A longer label that wraps onto more lines" />
             </div>
+          </div>
+        </Section>
+
+        <Section id="presets" title="Colour presets" description="Soft fills with strong borders and text. Stored as theme tokens, so they adapt to light and dark.">
+          <div className="cl-canvas-grid flex flex-wrap items-center justify-center gap-6 rounded-lg border border-border p-6">
+            {COLOUR_PRESETS.map((preset) => (
+              <ShapeView
+                key={preset}
+                type="rounded"
+                size={{ width: 128, height: 64 }}
+                label={PRESET_NAMES[preset]}
+                appearance={nodeAppearance({ fill: presetToken(preset, 'soft'), stroke: presetToken(preset, 'strong') })}
+              />
+            ))}
+            <ShapeView
+              type="rectangle"
+              size={{ width: 128, height: 64 }}
+              label="Strong text"
+              hasNotes
+              appearance={nodeAppearance({ textColour: presetToken('red', 'strong'), strokeWidth: 3, fontSize: 18 })}
+            />
           </div>
         </Section>
 

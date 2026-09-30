@@ -92,6 +92,8 @@
   --xy-minimap-node-background-color: var(--cl-border-strong);
   --xy-resize-background-color: var(--cl-accent);
   --xy-attribution-background-color: transparent;
+  --xy-edge-label-background-color: var(--cl-surface);
+  --xy-edge-label-color: var(--cl-text);
 
   /* Canvas owns all touch gestures: no page pinch-zoom, scrolling or callouts. */
   touch-action: none;
@@ -109,6 +111,19 @@
   color: inherit;
 }
 
+.react-flow__edge-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.react-flow__edge-textbg {
+  rx: var(--radius-sm);
+  ry: var(--radius-sm);
+  stroke: var(--cl-border);
+  stroke-width: var(--cl-edge-width);
+}
+
 .react-flow__minimap {
   border: var(--cl-node-stroke-width) solid var(--cl-border);
   border-radius: var(--radius-md);
@@ -118,11 +133,6 @@
 
 .react-flow__minimap svg {
   display: block;
-}
-
-.react-flow__edge.selected .react-flow__edge-path,
-.react-flow__edge:focus-visible .react-flow__edge-path {
-  stroke-width: calc(var(--cl-edge-width) * 1.5);
 }
 
 .react-flow__node:focus-visible {

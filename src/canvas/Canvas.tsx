@@ -13,6 +13,7 @@ import {
   type OnConnectEnd,
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo } from 'react'
+import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
@@ -31,6 +32,8 @@ import { useLongPress, type PressTarget } from './useLongPress'
 
 const nodeTypes = { shape: ShapeNode }
 const isValidConnection: IsValidConnection = (c) => c.source !== c.target
+
+const minimapColour = (node: ShapeFlowNode) => resolveColour(node.data.style.fill, 'var(--cl-border-strong)')
 
 const diagramStore = () => useDiagramStore.getState()
 const uiStore = () => useUiStore.getState()
@@ -56,6 +59,7 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
   const sizes = useMemo(
     () => ({
       grid: readToken('--cl-grid-gap', 20),
+      edgeWidth: readToken('--cl-edge-width', 1.5),
       dot: readToken('--cl-grid-dot', 1),
       minimapWidth: readToken('--cl-minimap-width', 160),
       minimapHeight: readToken('--cl-minimap-height', 112),
@@ -66,7 +70,7 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
   const mapNodes = useMemo(() => createNodeMapper(), [])
   const selected = useMemo(() => new Set(selection), [selection])
   const nodes = useMemo(() => mapNodes(diagram, selected, tool === 'select'), [mapNodes, diagram, selected, tool])
-  const edges = useMemo(() => toFlowEdges(diagram, selected), [diagram, selected])
+  const edges = useMemo(() => toFlowEdges(diagram, selected, sizes.edgeWidth), [diagram, selected, sizes.edgeWidth])
 
   const onNodesChange = useCallback((changes: NodeChange<ShapeFlowNode>[]) => {
     const { moves, resizes, removed, selection: flags } = summariseNodeChanges(changes)
@@ -131,6 +135,10 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
         connectionMode={ConnectionMode.Loose}
         connectionRadius={32}
         onNodeDoubleClick={(_, node) => uiStore().setEditing(node.id)}
+        onEdgeDoubleClick={(_, edge) => {
+          diagramStore().setSelection([edge.id])
+          uiStore().requestLabelFocus()
+        }}
         onNodeDragStart={() => uiStore().closeContextMenu()}
         onNodeContextMenu={(e, node) => {
           e.preventDefault()
@@ -169,6 +177,7 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
             pannable
             zoomable
             ariaLabel="Overview"
+            nodeColor={minimapColour}
             style={{ width: sizes.minimapWidth, height: sizes.minimapHeight }}
           />
         )}

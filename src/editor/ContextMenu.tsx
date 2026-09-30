@@ -57,12 +57,15 @@ export function ContextMenu() {
       className="fixed z-40 flex min-w-40 flex-col p-1 shadow-lg"
       style={position ?? { left: menu.x, top: menu.y, visibility: 'hidden' }}
     >
-      {menu.kind === 'node' && (
-        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => useUiStore.getState().setEditing(menu.id))}>
-          <Pencil />
-          Edit label
-        </Button>
-      )}
+      <Button
+        role="menuitem"
+        variant="ghost"
+        className="justify-start"
+        onClick={run(() => (menu.kind === 'node' ? useUiStore.getState().setEditing(menu.id) : useUiStore.getState().requestLabelFocus()))}
+      >
+        <Pencil />
+        Edit label
+      </Button>
       <Button role="menuitem" variant="ghost" className="justify-start text-danger" onClick={run(() => useDiagramStore.getState().deleteElements([menu.id]))}>
         <Trash2 />
         Delete
