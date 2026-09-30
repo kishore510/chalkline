@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { COLOUR_PRESETS } from '@/lib/colour'
 
 const SRC = join(import.meta.dirname, '..')
 const TOKENS_FILE = join(import.meta.dirname, 'tokens.css')
@@ -65,6 +66,16 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['border-strong', 'surface', UI],
   ['border-strong', 'bg', UI],
 ]
+
+// Diagram presets are used as text and borders on any fill, so hold them to text contrast.
+for (const name of COLOUR_PRESETS) {
+  PAIRS.push(
+    [`swatch-${name}`, 'canvas', TEXT],
+    [`swatch-${name}`, 'node-fill', TEXT],
+    [`swatch-${name}`, `swatch-${name}-soft`, TEXT],
+    ['node-text', `swatch-${name}-soft`, TEXT],
+  )
+}
 
 describe.each<Theme>(['light', 'dark'])('%s theme', (theme) => {
   const colours = readColours(theme)

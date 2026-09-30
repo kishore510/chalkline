@@ -1,5 +1,6 @@
 import { MarkerType, type Edge, type EdgeChange, type EdgeMarker, type Node, type NodeChange } from '@xyflow/react'
-import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeType, Position, Size } from '@/schema/diagram'
+import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType, Position, Size } from '@/schema/diagram'
+import { edgeAppearance } from './appearance'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
 /*
@@ -10,7 +11,7 @@ import { HANDLE_SIDES, type HandleSide } from './handles'
 
 type Arrowhead = NonNullable<EdgeStyle['endArrow']>
 
-export type ShapeNodeData = { type: NodeType; label: string }
+export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; hasNotes: boolean }
 export type ShapeFlowNode = Node<ShapeNodeData, 'shape'>
 
 /** Rendering defaults for optional edge style fields. */
@@ -47,7 +48,7 @@ export function createNodeMapper() {
         measured: { width: node.size.width, height: node.size.height },
         selected: isSelected,
         draggable,
-        data: { type: node.type, label: node.label },
+        data: { type: node.type, label: node.label, style: node.style, hasNotes: node.notes.trim().length > 0 },
       }
       cache.set(node.id, { source: node, selected: isSelected, flow })
       return flow
@@ -62,9 +63,12 @@ function marker(arrow: Arrowhead, colour: string): EdgeMarker | undefined {
   return { type: arrow === 'closed' ? MarkerType.ArrowClosed : MarkerType.Arrow, color: colour, width: 18, height: 18 }
 }
 
-export function toFlowEdge(edge: DiagramEdge, selected: boolean): Edge {
+/** Default edge width in px; the canvas passes the --cl-edge-width token. */
+export const DEFAULT_EDGE_WIDTH = 1.5
+
+export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH): Edge {
   const style = edge.style
-  const colour = selected ? 'var(--cl-accent)' : 'var(--cl-edge)'
+  const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   return {
     id: edge.id,
     source: edge.source,
@@ -75,13 +79,17 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean): Edge {
     selected,
     markerStart: marker(style.startArrow ?? EDGE_DEFAULTS.startArrow, colour),
     markerEnd: marker(style.endArrow ?? EDGE_DEFAULTS.endArrow, colour),
+    style: { stroke: colour, strokeWidth: selected ? width * 1.5 : width, strokeDasharray: dashArray },
+    label: edge.label.trim() ? edge.label : undefined,
+    labelShowBg: true,
+    labelBgPadding: [6, 3],
     // Wide invisible hit area so thin lines are easy to tap.
     interactionWidth: 24,
   }
 }
 
-export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>): Edge[] {
-  return diagram.edges.map((edge) => toFlowEdge(edge, selected.has(edge.id)))
+export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, defaultWidth = DEFAULT_EDGE_WIDTH): Edge[] {
+  return diagram.edges.map((edge) => toFlowEdge(edge, selected.has(edge.id), defaultWidth))
 }
 
 export interface NodeChangeSummary {

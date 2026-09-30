@@ -73,6 +73,24 @@ describe('diagram store', () => {
     expect(store().diagram).toBe(before)
   })
 
+  it('styles, labels and annotates while staying valid', () => {
+    store().load(fixtures['web-architecture'])
+    store().updateNodeStyles(['web', 'api'], { fill: 'token:swatch-teal-soft', stroke: '#35701a', strokeWidth: 0 })
+    store().updateNodeStyles(['web'], { fill: 'not a colour' })
+    store().setNodeNotes('web', 'Front end')
+    store().updateEdgeStyles(['e_web_api'], { dashed: true, startArrow: 'closed' })
+    store().setEdgeLabel('e_web_api', 'HTTPS')
+    store().setEdgeNotes('e_web_api', 'Behind the load balancer')
+    store().resetNodeStyles(['api'])
+    store().resetEdgeStyles(['e_api_db'])
+    expectValid()
+    const { nodes, edges } = store().diagram
+    expect(nodes.find((n) => n.id === 'web')).toMatchObject({ notes: 'Front end', style: { fill: 'token:swatch-teal-soft', strokeWidth: 0 } })
+    expect(nodes.find((n) => n.id === 'api')!.style).toEqual({})
+    expect(edges.find((e) => e.id === 'e_web_api')).toMatchObject({ label: 'HTTPS', style: { dashed: true, startArrow: 'closed' } })
+    expect(edges.find((e) => e.id === 'e_api_db')!.style).toEqual({})
+  })
+
   it('returns null for a refused connection', () => {
     store().load(fixtures['all-shapes'])
     expect(store().connect({ source: 'n_db', target: 'n_db' })).toBeNull()

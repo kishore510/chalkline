@@ -17,7 +17,7 @@ describe('createNodeMapper', () => {
       height: 100,
       measured: { width: 120, height: 100 },
       selected: true,
-      data: { type: 'database', label: 'Database' },
+      data: { type: 'database', label: 'Database', style: {}, hasNotes: false },
     })
   })
 
@@ -50,6 +50,24 @@ describe('edges', () => {
     expect(edge.markerStart).toMatchObject({ type: MarkerType.ArrowClosed, color: 'var(--cl-accent)' })
     expect(edge.markerEnd).toBeUndefined()
     expect(edge.sourceHandle).toBeNull()
+  })
+})
+
+describe('edge appearance', () => {
+  it('applies colour, width, dash and label', () => {
+    const edge = toFlowEdge(
+      { id: 'e', source: 'a', target: 'b', label: 'SQL', notes: '', style: { colour: 'token:swatch-red', width: 2, dashed: true } },
+      false,
+    )
+    expect(edge.style).toEqual({ stroke: 'var(--cl-swatch-red, var(--cl-edge))', strokeWidth: 2, strokeDasharray: '8 6' })
+    expect(edge.markerEnd).toMatchObject({ color: 'var(--cl-swatch-red, var(--cl-edge))' })
+    expect(edge.label).toBe('SQL')
+  })
+
+  it('uses the accent and a heavier line when selected, and hides blank labels', () => {
+    const edge = toFlowEdge({ id: 'e', source: 'a', target: 'b', label: '  ', notes: '', style: { colour: '#123456' } }, true, 2)
+    expect(edge.style).toMatchObject({ stroke: 'var(--cl-accent)', strokeWidth: 3, strokeDasharray: undefined })
+    expect(edge.label).toBeUndefined()
   })
 })
 

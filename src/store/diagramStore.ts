@@ -1,5 +1,15 @@
 import { create } from 'zustand'
-import { createEmptyDiagram, DiagramSchema, parseDiagram, type Diagram, type NodeType, type Position, type Size } from '@/schema/diagram'
+import {
+  createEmptyDiagram,
+  DiagramSchema,
+  parseDiagram,
+  type Diagram,
+  type EdgeStyle,
+  type NodeStyle,
+  type NodeType,
+  type Position,
+  type Size,
+} from '@/schema/diagram'
 import { createNode, DEFAULT_NODE_SIZE, MIN_NODE_SIZE } from '@/schema/factories'
 import * as ops from './ops'
 
@@ -15,6 +25,13 @@ export interface DiagramState {
   resizeNode: (id: string, size: Size, position?: Position) => void
   setNodeLabel: (id: string, label: string) => void
   setTitle: (title: string) => void
+  updateNodeStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
+  resetNodeStyles: (ids: string[]) => void
+  setNodeNotes: (id: string, notes: string) => void
+  updateEdgeStyles: (ids: string[], patch: ops.StylePatch<EdgeStyle>) => void
+  resetEdgeStyles: (ids: string[]) => void
+  setEdgeLabel: (id: string, label: string) => void
+  setEdgeNotes: (id: string, notes: string) => void
   connect: (connection: ops.Connection) => string | null
   deleteElements: (ids: Iterable<string>) => void
   deleteSelection: () => void
@@ -56,6 +73,13 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     resizeNode: (id, size, position) => apply((d) => ops.resizeNode(d, id, size, position, MIN_NODE_SIZE)),
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label)),
     setTitle: (title) => apply((d) => ops.setTitle(d, title)),
+    updateNodeStyles: (ids, patch) => apply((d) => ops.updateNodeStyles(d, ids, patch)),
+    resetNodeStyles: (ids) => apply((d) => ops.resetNodeStyles(d, ids)),
+    setNodeNotes: (id, notes) => apply((d) => ops.setNodeNotes(d, id, notes)),
+    updateEdgeStyles: (ids, patch) => apply((d) => ops.updateEdgeStyles(d, ids, patch)),
+    resetEdgeStyles: (ids) => apply((d) => ops.resetEdgeStyles(d, ids)),
+    setEdgeLabel: (id, label) => apply((d) => ops.setEdgeLabel(d, id, label)),
+    setEdgeNotes: (id, notes) => apply((d) => ops.setEdgeNotes(d, id, notes)),
 
     connect(connection) {
       const { diagram, edgeId } = ops.connect(get().diagram, connection)

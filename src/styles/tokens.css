@@ -41,6 +41,22 @@
   --cl-shadow-color-strong: #1d232729;
   --cl-overlay: #1d232766;
   --cl-minimap-mask: #1d23271f;
+
+  /* Diagram colour presets: strong for lines and text, soft for fills. */
+  --cl-swatch-slate: #4f5a60;
+  --cl-swatch-slate-soft: #e6e8e9;
+  --cl-swatch-blue: #1f6aa5;
+  --cl-swatch-blue-soft: #dbe9f5;
+  --cl-swatch-teal: #0f766e;
+  --cl-swatch-teal-soft: #d5efec;
+  --cl-swatch-green: #35701a;
+  --cl-swatch-green-soft: #e1efd8;
+  --cl-swatch-amber: #955406;
+  --cl-swatch-amber-soft: #fbeccf;
+  --cl-swatch-red: #b3261e;
+  --cl-swatch-red-soft: #f8dcda;
+  --cl-swatch-purple: #6b46c1;
+  --cl-swatch-purple-soft: #e9e1f8;
 }
 
 /* ── Dark: slate blackboard with chalk lines ────────────────────────── */
@@ -76,6 +92,22 @@
   --cl-shadow-color-strong: #00000080;
   --cl-overlay: #00000099;
   --cl-minimap-mask: #0000004d;
+
+  /* Diagram colour presets: strong for lines and text, soft for fills. */
+  --cl-swatch-slate: #b4bec3;
+  --cl-swatch-slate-soft: #2c363b;
+  --cl-swatch-blue: #7cc0e6;
+  --cl-swatch-blue-soft: #1d3a4d;
+  --cl-swatch-teal: #5fd0c2;
+  --cl-swatch-teal-soft: #16403c;
+  --cl-swatch-green: #9bd27a;
+  --cl-swatch-green-soft: #26402a;
+  --cl-swatch-amber: #f0b45c;
+  --cl-swatch-amber-soft: #4a3718;
+  --cl-swatch-red: #f2877d;
+  --cl-swatch-red-soft: #4d2522;
+  --cl-swatch-purple: #b9a1f0;
+  --cl-swatch-purple-soft: #362c52;
 }
 
 /* ── Theme-independent tokens ───────────────────────────────────────── */

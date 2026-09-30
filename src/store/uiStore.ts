@@ -21,6 +21,9 @@ interface UiState {
   connecting: boolean
   paletteOpen: boolean
   contextMenu: ContextMenuState | null
+  /** Bumped to ask the properties panel to focus its label field (e.g. double-click on an edge). */
+  focusLabelRequest: number
+  requestLabelFocus: () => void
   setTool: (tool: Tool) => void
   toggleSnap: () => void
   setEditing: (id: string | null) => void
@@ -37,6 +40,8 @@ export const useUiStore = create<UiState>()((set) => ({
   connecting: false,
   paletteOpen: false,
   contextMenu: null,
+  focusLabelRequest: 0,
+  requestLabelFocus: () => set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null })),
   setTool: (tool) => set({ tool }),
   toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
   setEditing: (editingId) => set({ editingId, contextMenu: null }),
