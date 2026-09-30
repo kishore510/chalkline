@@ -1,0 +1,176 @@
+/*
+ * Chalkline design tokens: the ONLY place colours, radii, spacing, type sizes,
+ * shadows and motion values are defined. Everything else references these,
+ * usually through the Tailwind utilities mapped in the @theme blocks below.
+ *
+ * Colours are plain 6-digit hex so src/styles/tokens.test.ts can parse them
+ * and check contrast. Translucent colours use 8-digit hex.
+ */
+
+/* ── Light: clean paper ─────────────────────────────────────────────── */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --cl-bg: #f4f3ef;
+  --cl-canvas: #fbfaf7;
+  --cl-grid: #d6d2c6;
+  --cl-surface: #ffffff;
+  --cl-surface-muted: #efeee9;
+  --cl-border: #dcd9d0;
+  --cl-border-strong: #858c91;
+
+  --cl-text: #1d2327;
+  --cl-text-muted: #5a6368;
+
+  --cl-accent: #1f6aa5;
+  --cl-accent-hover: #185686;
+  --cl-accent-subtle: #1f6aa51f;
+  --cl-on-accent: #ffffff;
+  --cl-focus: #1f6aa5;
+
+  --cl-danger: #b3261e;
+  --cl-on-danger: #ffffff;
+
+  --cl-node-fill: #ffffff;
+  --cl-node-stroke: #3b454b;
+  --cl-node-text: #1d2327;
+  --cl-edge: #4f5a60;
+
+  --cl-shadow-color: #1d23271a;
+  --cl-shadow-color-strong: #1d232729;
+  --cl-overlay: #1d232766;
+}
+
+/* ── Dark: slate blackboard with chalk lines ────────────────────────── */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --cl-bg: #12181b;
+  --cl-canvas: #1b2327;
+  --cl-grid: #2f3b41;
+  --cl-surface: #1f282d;
+  --cl-surface-muted: #28333a;
+  --cl-border: #334047;
+  --cl-border-strong: #6f7e86;
+
+  --cl-text: #ebede6;
+  --cl-text-muted: #a5afb3;
+
+  --cl-accent: #7cc0e6;
+  --cl-accent-hover: #9dd0ee;
+  --cl-accent-subtle: #7cc0e626;
+  --cl-on-accent: #0d1a22;
+  --cl-focus: #7cc0e6;
+
+  --cl-danger: #f2877d;
+  --cl-on-danger: #1a0b09;
+
+  --cl-node-fill: #232d33;
+  --cl-node-stroke: #dfe3dc;
+  --cl-node-text: #ebede6;
+  --cl-edge: #c9cfc9;
+
+  --cl-shadow-color: #00000059;
+  --cl-shadow-color-strong: #00000080;
+  --cl-overlay: #00000099;
+}
+
+/* ── Theme-independent tokens ───────────────────────────────────────── */
+:root {
+  /* Diagram rendering */
+  --cl-node-stroke-width: 1.5px;
+  --cl-edge-width: 1.5px;
+  --cl-node-padding: 8px;
+  --cl-grid-gap: 20px;
+  --cl-grid-dot: 1px;
+
+  /* Touch */
+  --cl-touch-target: 44px;
+
+  /* Motion */
+  --cl-duration-fast: 120ms;
+  --cl-duration-base: 200ms;
+  --cl-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --cl-header-height: 56px;
+  --cl-content-max: 1200px;
+}
+
+/* ── Tailwind mapping: only token-backed utilities exist ────────────── */
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--cl-bg);
+  --color-canvas: var(--cl-canvas);
+  --color-grid: var(--cl-grid);
+  --color-surface: var(--cl-surface);
+  --color-surface-muted: var(--cl-surface-muted);
+  --color-border: var(--cl-border);
+  --color-border-strong: var(--cl-border-strong);
+  --color-text: var(--cl-text);
+  --color-text-muted: var(--cl-text-muted);
+  --color-accent: var(--cl-accent);
+  --color-accent-hover: var(--cl-accent-hover);
+  --color-accent-subtle: var(--cl-accent-subtle);
+  --color-on-accent: var(--cl-on-accent);
+  --color-focus: var(--cl-focus);
+  --color-danger: var(--cl-danger);
+  --color-on-danger: var(--cl-on-danger);
+  --color-node-fill: var(--cl-node-fill);
+  --color-node-stroke: var(--cl-node-stroke);
+  --color-node-text: var(--cl-node-text);
+  --color-edge: var(--cl-edge);
+  --color-overlay: var(--cl-overlay);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px var(--cl-shadow-color);
+  --shadow-md: 0 2px 8px var(--cl-shadow-color), 0 1px 2px var(--cl-shadow-color);
+  --shadow-lg: 0 12px 32px var(--cl-shadow-color-strong), 0 2px 6px var(--cl-shadow-color);
+
+  --spacing-touch: var(--cl-touch-target);
+  --spacing-header: var(--cl-header-height);
+  --container-content: var(--cl-content-max);
+
+  --ease-standard: var(--cl-ease);
+  --default-transition-duration: var(--cl-duration-fast);
+  --default-transition-timing-function: var(--cl-ease);
+}
+
+@theme {
+  --font-*: initial;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-node: 0.875rem;
+  --text-node--line-height: 1.25rem;
+
+  --radius-*: initial;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --spacing: 0.25rem;
+
+  --breakpoint-*: initial;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+}
