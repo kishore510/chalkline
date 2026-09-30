@@ -24,22 +24,50 @@ interface Ghost {
  * onto the canvas to drop it at a point. Built on pointer events so mouse,
  * touch and pen all behave the same.
  */
-function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; onDragStart?: () => void }) {
+function usePaletteGestures({
+  onAdded,
+  onDragStart,
+  onDragEnd,
+}: {
+  onAdded?: () => void
+  onDragStart?: () => void
+  onDragEnd?: () => void
+}) {
   const noteShapeUsed = useUiStore((s) => s.noteShapeUsed)
   const actions = useCanvasActions()
   const [ghost, setGhost] = useState<Ghost | null>(null)
-  const hooks = useRef({ onAdded, onDragStart })
-  hooks.current = { onAdded, onDragStart }
+  const hooks = useRef({ onAdded, onDragStart, onDragEnd })
+  hooks.current = { onAdded, onDragStart, onDragEnd }
 
-  const itemProps = (type: string) => ({
+  /**
+   * `scroll` is the axis the surrounding list scrolls along. On touch and pen a
+   * move along that axis is left to the browser as a scroll; only a move across
+   * it pulls the shape out. A mouse drags in any direction.
+   */
+  const itemProps = (type: string, scroll: 'x' | 'y' = 'y') => ({
     onPointerDown(e: React.PointerEvent) {
       if (e.pointerType === 'mouse' && e.button !== 0) return
       const start = { x: e.clientX, y: e.clientY }
       let dragging = false
 
+      const stop = () => {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', end)
+        window.removeEventListener('pointercancel', end)
+        setGhost(null)
+        if (dragging) hooks.current.onDragEnd?.()
+      }
       const move = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return
-        if (!dragging && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > DRAG_THRESHOLD) {
+        const dx = Math.abs(ev.clientX - start.x)
+        const dy = Math.abs(ev.clientY - start.y)
+        if (!dragging && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+          const alongScroll = scroll === 'x' ? dx >= dy : dy >= dx
+          if (e.pointerType !== 'mouse' && alongScroll) {
+            // The user is scrolling the list: neither a drag nor a tap.
+            stop()
+            return
+          }
           dragging = true
           hooks.current.onDragStart?.()
         }
@@ -47,10 +75,7 @@ function usePaletteGestures({ onAdded, onDragStart }: { onAdded?: () => void; on
       }
       const end = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', end)
-        window.removeEventListener('pointercancel', end)
-        setGhost(null)
+        stop()
         if (ev.type === 'pointercancel') return
         const added = dragging ? actions.addAtScreenPoint(type, ev.clientX, ev.clientY) : (actions.addAtCenter(type), true)
         if (!added) return
@@ -289,13 +314,23 @@ export function PaletteRail() {
 }
 
 /** A horizontally scrolling row of shapes (phone drawer). Dragging upwards pulls a shape onto the canvas. */
-function ShapeRow({ label, shapes, itemProps, tabIndex }: { label: string; shapes: ShapeDefinition[]; itemProps: (type: string) => object; tabIndex?: number }) {
+function ShapeRow({
+  label,
+  shapes,
+  itemProps,
+  tabIndex,
+}: {
+  label: string
+  shapes: ShapeDefinition[]
+  itemProps: (type: string, scroll: 'x' | 'y') => object
+  tabIndex?: number
+}) {
   return (
     <section aria-label={label} className="flex flex-col gap-1.5">
       <h3 className="px-4 text-xs font-semibold tracking-wide text-text-muted uppercase">{label}</h3>
       <div className="flex gap-2 overflow-x-auto px-4 pb-1">
         {shapes.map((s) => (
-          <PaletteItem key={s.id} shape={s.id} scroll="x" tabIndex={tabIndex} className="w-20 shrink-0" {...itemProps(s.id)} />
+          <PaletteItem key={s.id} shape={s.id} scroll="x" tabIndex={tabIndex} className="w-20 shrink-0" {...itemProps(s.id, 'x')} />
         ))}
       </div>
     </section>
@@ -311,10 +346,9 @@ export function PaletteDrawer() {
   const [dragging, setDragging] = useState(false)
   const { itemProps, ghostElement } = usePaletteGestures({
     onDragStart: () => setDragging(true),
-    onAdded: () => {
-      setDragging(false)
-      setOpen(false)
-    },
+    // Fires on release and on pointercancel, so the drawer can never stay hidden.
+    onDragEnd: () => setDragging(false),
+    onAdded: () => setOpen(false),
   })
   const shown = open && !dragging
   const tab = open ? 0 : -1
@@ -325,7 +359,6 @@ export function PaletteDrawer() {
       role="dialog"
       aria-label="Add a shape"
       aria-hidden={!open}
-      onPointerUp={() => setDragging(false)}
       className={cn(
         'cl-safe-bottom fixed inset-x-0 bottom-0 z-30 flex max-h-(--cl-drawer-max-height) flex-col rounded-t-lg border-t border-border bg-surface shadow-lg transition-transform duration-(--cl-duration-base) ease-standard',
         shown ? 'translate-y-0' : 'translate-y-full',
