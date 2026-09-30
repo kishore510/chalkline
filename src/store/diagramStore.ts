@@ -10,6 +10,7 @@ import {
   type Position,
   type Size,
 } from '@/schema/diagram'
+import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode } from '@/canvas/arrange'
 import { createNode, DEFAULT_NODE_SIZE, MIN_NODE_SIZE } from '@/schema/factories'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import * as ops from './ops'
@@ -62,6 +63,12 @@ export interface DiagramState {
   connect: (connection: ops.Connection) => string | null
   /** Connects two nodes with a floating edge (no stored handles; it attaches to the nearest sides). */
   linkNodes: (source: string, target: string) => string | null
+
+  /* Arranging (selected nodes only; selected edges are ignored). Each is one undo step. */
+  alignSelection: (mode: AlignMode) => void
+  /** Needs 3+ selected nodes. */
+  distributeSelection: (axis: Axis) => void
+  matchSizeSelection: (mode: MatchMode) => void
 
   /* Deleting */
   /** What the most recent delete removed. `id` changes on every delete; `historySize` detects later edits. */
@@ -143,6 +150,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
   }
 
   const clearedHistory = { past: [], future: [], canUndo: false, canRedo: false }
+
+  const selectedNodes = () => {
+    const { diagram, selection } = get()
+    const ids = new Set(selection)
+    return diagram.nodes.filter((n) => ids.has(n.id))
+  }
 
   const pasteAt = (fragment: Fragment, at: Position | undefined, step: number) => {
     const bounds = fragmentBounds(fragment)
@@ -244,6 +257,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
 
     linkNodes: (source, target) => get().connect({ source, target }),
+
+    alignSelection: (mode) => apply((d) => ops.arrangeNodes(d, align(selectedNodes(), mode))),
+    distributeSelection: (axis) => apply((d) => ops.arrangeNodes(d, distribute(selectedNodes(), axis))),
+    matchSizeSelection: (mode) => apply((d) => ops.arrangeNodes(d, new Map(), matchSize(selectedNodes(), mode))),
 
     deleteElements(ids) {
       const { diagram, selection, lastDeletion } = get()

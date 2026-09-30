@@ -6,6 +6,7 @@ import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
 import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
+import { ArrangeBar } from './ArrangeControls'
 import { ContextMenu } from './ContextMenu'
 import { EmptyCanvas } from './EmptyCanvas'
 import { LinkHint } from './LinkHint'
@@ -37,9 +38,10 @@ function EditorLayout() {
         {layout === 'desktop' && <PalettePanel />}
         {layout === 'tablet' && <PaletteRail />}
         <main className="relative min-w-0 flex-1 overflow-hidden">
-          <Canvas showMinimap={layout !== 'phone'} />
+          <Canvas minimap={layout === 'phone' ? 'none' : layout === 'desktop' ? 'bottom-right' : 'top-right'} />
           <EmptyCanvas layout={layout} />
           <LinkHint />
+          {layout === 'desktop' && <ArrangeBar />}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
             <Notice />
             <UndoToast />

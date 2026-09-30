@@ -16,6 +16,7 @@ import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
+import { ArrangeSection } from './ArrangeControls'
 import { SHAPE_NAMES } from './palette'
 
 const store = () => useDiagramStore.getState()
@@ -294,9 +295,11 @@ function useSelectionSummary(): Summary {
   return { kind: 'mixed', title: `${nodes.length + edges.length} selected` }
 }
 
-function PropertiesBody({ summary }: { summary: Summary }) {
+/** `arrange`: show align/distribute buttons for multi-selections (phone and tablet; desktop has its bar). */
+function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrange?: boolean }) {
   return (
     <div className="flex flex-col gap-4 pb-4">
+      {arrange && (summary.kind === 'nodes' || summary.kind === 'mixed') && <ArrangeSection />}
       {summary.kind === 'none' && <DiagramProperties />}
       {summary.kind === 'node' && <NodeProperties node={summary.node} />}
       {summary.kind === 'edge' && <EdgeProperties edge={summary.edge} />}
@@ -307,7 +310,7 @@ function PropertiesBody({ summary }: { summary: Summary }) {
           <EdgeStyleSection edges={summary.edges} />
         </>
       )}
-      {summary.kind === 'mixed' && <p className="text-sm text-text-muted">Select only shapes or only connectors to style them together.</p>}
+      {summary.kind === 'mixed' && <p className="text-sm text-text-muted">Select only shapes or only connectors to style them together. Arranging ignores connectors.</p>}
     </div>
   )
 }
@@ -365,7 +368,7 @@ export function PropertiesSlideOver() {
       )}
     >
       <Header summary={summary} onClose={clearSelection} />
-      <PropertiesBody summary={summary} />
+      <PropertiesBody summary={summary} arrange />
     </aside>
   )
 }
@@ -413,7 +416,7 @@ export function PropertiesSheet() {
         </div>
         <Header summary={summary} onClose={clearSelection} />
       </div>
-      <PropertiesBody summary={summary} />
+      <PropertiesBody summary={summary} arrange />
     </section>
   )
 }

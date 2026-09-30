@@ -58,7 +58,8 @@ const beginBatch = () => {
 }
 const endBatch = () => diagramStore().endBatch()
 
-export function Canvas({ showMinimap }: { showMinimap: boolean }) {
+/** `minimap`: where the overview sits, or 'none' (phone). Desktop keeps the top clear for the arrange bar. */
+export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-right' }) {
   const diagram = useDiagramStore((s) => s.diagram)
   const selection = useDiagramStore((s) => s.selection)
   const tool = useUiStore((s) => s.tool)
@@ -204,9 +205,9 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
       >
         <Background variant={BackgroundVariant.Dots} gap={sizes.grid} size={sizes.dot} />
         <EdgeGrips />
-        {showMinimap && (
+        {minimap !== 'none' && (
           <MiniMap
-            position="top-right"
+            position={minimap}
             pannable
             zoomable
             ariaLabel="Overview"

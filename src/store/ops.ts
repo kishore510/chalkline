@@ -315,3 +315,17 @@ export function reconnectEdge(diagram: Diagram, id: string, r: Reconnection): { 
   const result = { ...diagram, edges: diagram.edges.map((e) => (e.id === id ? next : e)) }
   return DiagramSchema.safeParse(result).success ? { diagram: result, ok: true } : reject
 }
+
+/** Sets new positions and/or sizes for several nodes at once (for align, distribute, match size). */
+export function arrangeNodes(diagram: Diagram, moves: ReadonlyMap<string, Position>, sizes: ReadonlyMap<string, Size> = new Map()): Diagram {
+  return mapNodes(diagram, (node) => {
+    const to = moves.get(node.id)
+    const size = sizes.get(node.id)
+    const position = to && isFinitePoint(to) && (to.x !== node.position.x || to.y !== node.position.y) ? { x: to.x, y: to.y } : node.position
+    const nextSize =
+      size && Number.isFinite(size.width) && Number.isFinite(size.height) && size.width > 0 && size.height > 0 && (size.width !== node.size.width || size.height !== node.size.height)
+        ? { width: size.width, height: size.height }
+        : node.size
+    return position === node.position && nextSize === node.size ? node : { ...node, position, size: nextSize }
+  })
+}

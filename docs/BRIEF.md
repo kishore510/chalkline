@@ -48,8 +48,8 @@ Last updated: 30 Sep 2026
 | 0. Foundations | Scaffold, `VITE_BASE`, Pages workflow, zod schema, fixtures and tests, design tokens, light/dark, static style-sheet page | Done, merged to `main` and deployed |
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
-| 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Built on `phase-3-persistence`, awaiting review |
-| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | Not started |
+| 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Done, merged to `main` and deployed |
+| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a (align, distribute, match size) built on `phase-4a-align`; rest not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
 | 6. AI | Text-to-diagram, summary, annotation suggestions, review assistant | Not started |
 
@@ -109,3 +109,4 @@ Add one line per thread: date, phase, what was decided or built, what's next.
 - 30 Sep 2026: Connector docking-point editing: end grips on a selected connector (Select mode), drag to a docking point to pin or move to another node, tap for Reset to auto, pin indicator; reconnectEdge store action. All connectors now render via FloatingEdge (fixes a gap where pinned ends stopped short of the shape). No schema change.
 - 30 Sep 2026: Obstacle-aware routing for Auto connector ends (pure routeEdge + incremental route cache; other side pairs, then detours; pinned ends untouched). No schema change.
 - 30 Sep 2026: Phase 3 built (autosave with restore, canonical JSON open/save, in-house SVG/PNG/PDF export, 100-step undo/redo with typing/drag grouping, copy/cut/paste incl. across tabs, duplicate, file menu, pane long-press paste). No schema change. Next: review, then Phase 4.
+- 30 Sep 2026: Phase 4a built (align six ways, distribute with equal gaps by size, match width/height/both; one undo step each; desktop arrange bar, phone/tablet panel section). Alignment guides while dragging left out. No schema change.
