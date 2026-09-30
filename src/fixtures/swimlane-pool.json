@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "meta": {"title": "Three-lane pool", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_mobile", "type": "rectangle", "position": {"x": 120, "y": 40}, "size": {"width": 160, "height": 80}, "label": "Mobile app", "groupId": "g_lane_channels"},
+    {"id": "n_web", "type": "rectangle", "position": {"x": 360, "y": 40}, "size": {"width": 160, "height": 80}, "label": "Web portal", "groupId": "g_lane_channels"},
+    {"id": "n_gateway", "type": "rounded", "position": {"x": 240, "y": 200}, "size": {"width": 160, "height": 80}, "label": "API gateway", "groupId": "g_lane_integration"},
+    {"id": "n_bus", "type": "rounded", "position": {"x": 560, "y": 200}, "size": {"width": 160, "height": 80}, "label": "Event bus", "groupId": "g_lane_integration"},
+    {"id": "n_accounts", "type": "database", "position": {"x": 260, "y": 350}, "size": {"width": 120, "height": 100}, "label": "Accounts", "groupId": "g_lane_data"},
+    {"id": "n_ledger", "type": "database", "position": {"x": 580, "y": 350}, "size": {"width": 120, "height": 100}, "label": "Ledger", "groupId": "g_lane_data"}
+  ],
+  "edges": [
+    {"id": "e_mobile_gateway", "source": "n_mobile", "target": "n_gateway"},
+    {"id": "e_web_gateway", "source": "n_web", "target": "n_gateway"},
+    {"id": "e_gateway_bus", "source": "n_gateway", "target": "n_bus", "label": "publishes"},
+    {"id": "e_gateway_accounts", "source": "n_gateway", "target": "n_accounts"},
+    {"id": "e_bus_ledger", "source": "n_bus", "target": "n_ledger"}
+  ],
+  "groups": [
+    {"id": "g_pool", "label": "Payments platform", "kind": "container", "orientation": "horizontal", "position": {"x": 0, "y": 0}, "size": {"width": 900, "height": 480}},
+    {"id": "g_lane_channels", "label": "Channels", "kind": "lane", "parentId": "g_pool", "orientation": "horizontal", "position": {"x": 40, "y": 0}, "size": {"width": 860, "height": 160}},
+    {"id": "g_lane_integration", "label": "Integration", "kind": "lane", "parentId": "g_pool", "orientation": "horizontal", "position": {"x": 40, "y": 160}, "size": {"width": 860, "height": 160}},
+    {"id": "g_lane_data", "label": "Data", "kind": "lane", "parentId": "g_pool", "orientation": "horizontal", "position": {"x": 40, "y": 320}, "size": {"width": 860, "height": 160}}
+  ]
+}

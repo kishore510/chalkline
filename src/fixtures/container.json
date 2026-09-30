@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "meta": {"title": "Container with three nodes", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_orders", "type": "rounded", "position": {"x": 24, "y": 80}, "size": {"width": 160, "height": 80}, "label": "Orders", "groupId": "g_backend"},
+    {"id": "n_payments", "type": "rounded", "position": {"x": 220, "y": 80}, "size": {"width": 160, "height": 80}, "label": "Payments", "groupId": "g_backend"},
+    {"id": "n_store", "type": "database", "position": {"x": 440, "y": 70}, "size": {"width": 120, "height": 100}, "label": "Store", "groupId": "g_backend"},
+    {"id": "n_client", "type": "actor", "position": {"x": -200, "y": 60}, "size": {"width": 96, "height": 128}, "label": "Client"}
+  ],
+  "edges": [
+    {"id": "e_client_orders", "source": "n_client", "target": "n_orders"},
+    {"id": "e_orders_payments", "source": "n_orders", "target": "n_payments"},
+    {"id": "e_payments_store", "source": "n_payments", "target": "n_store"}
+  ],
+  "groups": [
+    {"id": "g_backend", "label": "Backend services", "kind": "container", "position": {"x": 0, "y": 0}, "size": {"width": 600, "height": 220}}
+  ]
+}

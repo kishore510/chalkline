@@ -33,6 +33,7 @@ export function createNode(
     label: DEFAULT_NODE_LABEL[type],
     notes: '',
     style: {},
+    locked: false,
     ...overrides,
   }
 }

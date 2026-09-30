@@ -17,9 +17,9 @@ function ordered(obj: object, order: readonly string[]): { [key: string]: Json }
   return out
 }
 
-const NODE_KEYS = ['id', 'type', 'position', 'size', 'label', 'notes', 'style', 'groupId'] as const
+const NODE_KEYS = ['id', 'type', 'position', 'size', 'label', 'notes', 'style', 'groupId', 'locked'] as const
 const EDGE_KEYS = ['id', 'source', 'target', 'sourceHandle', 'targetHandle', 'label', 'notes', 'style'] as const
-const GROUP_KEYS = ['id', 'label', 'position', 'size', 'style', 'collapsed'] as const
+const GROUP_KEYS = ['id', 'label', 'kind', 'parentId', 'orientation', 'headerSize', 'locked', 'position', 'size', 'style', 'collapsed'] as const
 const NODE_STYLE_KEYS = ['fill', 'stroke', 'strokeWidth', 'textColour', 'fontSize'] as const
 const EDGE_STYLE_KEYS = ['lineType', 'dashed', 'startArrow', 'endArrow', 'colour', 'width'] as const
 

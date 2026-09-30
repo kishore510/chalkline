@@ -110,7 +110,7 @@ describe('DiagramSchema rejects bad documents', () => {
   })
 
   it('rejects the wrong schemaVersion and bad timestamps', () => {
-    expect(issuesOf({ ...clone(), schemaVersion: 2 })).toHaveLength(1)
+    expect(issuesOf({ ...clone(), schemaVersion: 3 })).toHaveLength(1)
     expect(issuesOf({ ...clone(), meta: { ...clone().meta, updated: 'yesterday' } })).toHaveLength(1)
   })
 })
