@@ -1,5 +1,5 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, CopyPlus, Group, LogOut, Pencil, RotateCcw, Trash2, Ungroup, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, ChevronsLeft, ChevronsRight, CopyPlus, Group, Layers, LogOut, Pencil, RotateCcw, SlidersHorizontal, Trash2, Ungroup, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
@@ -610,11 +610,38 @@ function Header({ summary, onClose }: { summary: Summary; onClose?: () => void }
 
 const clearSelection = () => store().setSelection([])
 
-/** Desktop: persistent right panel with Properties and Layers tabs. */
+/**
+ * Desktop: persistent right panel with Properties and Layers tabs. It can
+ * collapse to a rail (remembered) to give the canvas more room.
+ */
 export function PropertiesPanel() {
   const summary = useSelectionSummary()
   const layersOpen = useUiStore((s) => s.layersOpen)
   const setLayersOpen = useUiStore((s) => s.setLayersOpen)
+  const collapsed = useUiStore((s) => s.rightPanelCollapsed)
+  const setCollapsed = useUiStore((s) => s.setRightPanelCollapsed)
+  const expandTo = (layers: boolean) => {
+    setLayersOpen(layers)
+    setCollapsed(false)
+  }
+
+  if (collapsed) {
+    return (
+      <aside aria-label="Properties and layers" className="flex w-rail shrink-0 flex-col items-center gap-2 overflow-y-auto border-l border-border bg-surface py-2">
+        <Button variant="ghost" size="icon" aria-label="Expand panel" title="Expand panel" aria-expanded={false} onClick={() => setCollapsed(false)}>
+          <ChevronsLeft />
+        </Button>
+        <div aria-hidden="true" className="h-px w-6 shrink-0 bg-border" />
+        <Button variant="ghost" size="icon" aria-label="Properties" title="Properties" onClick={() => expandTo(false)}>
+          <SlidersHorizontal />
+        </Button>
+        <Button variant="ghost" size="icon" aria-label="Layers" title="Layers" onClick={() => expandTo(true)}>
+          <Layers />
+        </Button>
+      </aside>
+    )
+  }
+
   const tab = (label: string, selected: boolean, onClick: () => void) => (
     <button
       type="button"
@@ -631,9 +658,14 @@ export function PropertiesPanel() {
   )
   return (
     <aside aria-label={layersOpen ? 'Layers' : 'Properties'} className="flex w-properties shrink-0 flex-col overflow-y-auto border-l border-border bg-surface px-4">
-      <div role="tablist" aria-label="Right panel" className="sticky top-0 z-10 -mx-4 flex bg-surface px-4">
-        {tab('Properties', !layersOpen, () => setLayersOpen(false))}
-        {tab('Layers', layersOpen, () => setLayersOpen(true))}
+      <div className="sticky top-0 z-10 -mx-4 flex items-center bg-surface pr-4">
+        <Button variant="ghost" size="icon" aria-label="Collapse panel" title="Collapse panel" aria-expanded={true} onClick={() => setCollapsed(true)}>
+          <ChevronsRight />
+        </Button>
+        <div role="tablist" aria-label="Right panel" className="flex min-w-0 flex-1">
+          {tab('Properties', !layersOpen, () => setLayersOpen(false))}
+          {tab('Layers', layersOpen, () => setLayersOpen(true))}
+        </div>
       </div>
       {layersOpen ? (
         <div className="pt-3">

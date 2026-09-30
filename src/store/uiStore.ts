@@ -3,6 +3,7 @@ import type { DockingTarget } from '@/canvas/docking'
 import type { Position } from '@/schema/diagram'
 import { cleanRecents, pushRecent } from '@/editor/paletteModel'
 import { useDiagramStore } from './diagramStore'
+import { loadRightPanelCollapsed, saveRightPanelCollapsed } from './panelPrefs'
 import { loadViewPrefs, saveViewPrefs, type GridDisplay, type ViewPrefs } from './viewPrefs'
 
 export type Tool = 'select' | 'pan' | 'link'
@@ -96,6 +97,9 @@ interface UiState {
   /** Layers panel: a tab of the right panel on desktop, a sheet on phone and tablet. */
   layersOpen: boolean
   setLayersOpen: (open: boolean) => void
+  /** Desktop: the right panel is collapsed to a rail (remembered). */
+  rightPanelCollapsed: boolean
+  setRightPanelCollapsed: (collapsed: boolean) => void
   contextMenu: ContextMenuState | null
   saveStatus: SaveStatus
   setSaveStatus: (status: SaveStatus) => void
@@ -158,6 +162,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   paletteOpen: false,
   layersOpen: false,
   setLayersOpen: (layersOpen) => set({ layersOpen }),
+  rightPanelCollapsed: loadRightPanelCollapsed(),
+  setRightPanelCollapsed(rightPanelCollapsed) {
+    saveRightPanelCollapsed(rightPanelCollapsed)
+    set({ rightPanelCollapsed })
+  },
   contextMenu: null,
   saveStatus: 'off',
   setSaveStatus: (saveStatus) => set({ saveStatus }),
@@ -191,7 +200,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   setDropTarget: (dropTargetId) => set((s) => (s.dropTargetId === dropTargetId ? s : { dropTargetId })),
   setEdgeDrag: (edgeDrag) => set({ edgeDrag }),
   focusLabelRequest: 0,
-  requestLabelFocus: () => set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null })),
+  requestLabelFocus() {
+    // The label field lives in the right panel on desktop, so bring it back if collapsed.
+    if (get().rightPanelCollapsed) get().setRightPanelCollapsed(false)
+    set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null, layersOpen: false }))
+  },
   setTool(tool) {
     // Link mode taps nodes to connect them, so an existing selection would only get in the way.
     if (tool === 'link') useDiagramStore.getState().setSelection([])
