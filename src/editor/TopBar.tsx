@@ -2,6 +2,7 @@ import { Logo, LogoMark } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { FileMenu } from './FileMenu'
+import { LayersButton } from './LayersPanel'
 import { TidyMenu } from './TidyMenu'
 import { CanvasToolbar, HistoryButtons } from './Toolbar'
 
@@ -15,6 +16,7 @@ export function TopBar({ layout }: { layout: Layout }) {
             <LogoMark className="mr-1" />
             <HistoryButtons />
             <TidyMenu layout={layout} />
+            <LayersButton layout={layout} />
           </div>
         ) : (
           <Logo />

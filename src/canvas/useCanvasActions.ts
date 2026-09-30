@@ -4,6 +4,7 @@ import { readToken } from '@/lib/cssVar'
 import type { NodeType, Orientation } from '@/schema/diagram'
 import { MEDIA } from '@/styles/breakpoints'
 import { useDiagramStore } from '@/store/diagramStore'
+import { explainBlockedAdd } from '@/editor/layerNotices'
 import { useUiStore } from '@/store/uiStore'
 
 const duration = () => (window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200))
@@ -19,7 +20,7 @@ export function useCanvasActions() {
       const rect = rfStore.getState().domNode?.getBoundingClientRect()
       if (!rect) return
       const center = flow.screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
-      useDiagramStore.getState().addNode(type, center, gridSize())
+      if (!useDiagramStore.getState().addNode(type, center, gridSize())) explainBlockedAdd()
     },
     [flow, rfStore],
   )
@@ -30,7 +31,7 @@ export function useCanvasActions() {
       const rect = rfStore.getState().domNode?.getBoundingClientRect()
       if (!rect) return
       const center = flow.screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
-      useDiagramStore.getState().addPool(center, orientation)
+      if (!useDiagramStore.getState().addPool(center, orientation)) explainBlockedAdd()
     },
     [flow, rfStore],
   )
@@ -40,8 +41,9 @@ export function useCanvasActions() {
     (type: NodeType, x: number, y: number) => {
       const hit = document.elementFromPoint(x, y)
       if (!hit?.closest('.react-flow')) return false
-      useDiagramStore.getState().addNode(type, flow.screenToFlowPosition({ x, y }), gridSize())
-      return true
+      if (useDiagramStore.getState().addNode(type, flow.screenToFlowPosition({ x, y }), gridSize())) return true
+      explainBlockedAdd()
+      return false
     },
     [flow],
   )

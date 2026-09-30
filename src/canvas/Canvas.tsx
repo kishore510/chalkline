@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { innermostGroupAt, isNodeLocked, subtreeIds } from '@/store/groups'
 import { layerIdOf, layerIndex } from '@/store/layers'
+import { explainBlockedAdd } from '@/editor/layerNotices'
 import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
@@ -203,6 +204,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const onConnect = useCallback((c: Connection) => {
     const id = diagramStore().linkNodes(c.source, c.target)
     if (id) diagramStore().setSelection([id])
+    else explainBlockedAdd()
   }, [])
 
   // Dropping a connector on a node's body (not just a handle) connects it too.
@@ -248,7 +250,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         // group selection (made through the header), so without this a group stayed selected.
         onNodeClick={(e, node) => {
           if (node.type !== 'shape') return
-          if (uiStore().tool === 'link') return void uiStore().linkTap(node.id)
+          if (uiStore().tool === 'link') {
+            if (uiStore().linkTap(node.id) === 'refused') explainBlockedAdd()
+            return
+          }
           if (uiStore().tool === 'select' && !isAdditive(e)) diagramStore().setSelection([node.id])
         }}
         onEdgeClick={(e, edge) => {

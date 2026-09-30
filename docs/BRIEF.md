@@ -36,7 +36,7 @@ Last updated: 30 Sep 2026
 | Hosting | GitHub Pages via GitHub Actions for now (public repo, https://kishore510.github.io/chalkline/), with `VITE_BASE` env var for the base path. Portal hosting (e.g. Cloudflare Pages) is a later decision. No host-specific code |
 | Dev environment | Raspberry Pi 5 (64-bit arm64 Linux), VS Code, Claude Code extension. No local browser testing |
 | Testing | `tsc --noEmit`, Vitest, `vite build` locally. Visual testing on phone and laptop via the deployed URL |
-| Schema | Zod schema is the single source of truth, versioned with migrations (v2: groups and locking; v3: node type is a shape-registry id, unknown ids survive). Colours are hex or `token:name` so diagrams follow themes |
+| Schema | Zod schema is the single source of truth, versioned with migrations (v2: groups and locking; v3: node type is a shape-registry id, unknown ids survive; v4: layers). Colours are hex or `token:name` so diagrams follow themes |
 | Design | Chalk-on-slate theme direction (slate dark mode, paper light mode). Design tokens (CSS variables), light and dark from day one, mobile-first, pointer events, 44px touch targets, quiet chrome so the canvas is the focus |
 | Export | Built in-house, no new dependencies: SVG generated from diagram data, PNG rasterised from it, PDF via a small hand-written writer (decided 30 Sep 2026) |
 | AI (Phase 6) | Bring-your-own-key or a thin Cloudflare Worker proxy, decided when hosting is decided. Explicit buttons only, compact JSON payloads, size estimate before sending |
@@ -49,7 +49,7 @@ Last updated: 30 Sep 2026
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
 | 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Done, merged to `main` and deployed |
-| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a, 4b done; 4c (auto-arrange with ELK, tidy connectors) built on `phase-4c-arrange`; layers and stencils not started |
+| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a, 4b, 4c, shapes pack done; 4d (layers, schema v4) built on `phase-4d-layers`; stencils and icon packs not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
 | 6. AI | Text-to-diagram, summary, annotation suggestions, review assistant | Not started |
 
@@ -113,3 +113,4 @@ Add one line per thread: date, phase, what was decided or built, what's next.
 - 30 Sep 2026: Phase 4b built: schema v2 with migration (groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked), containers with header-only selection, nesting, adopt/release by drop, collapse, swimlane pools with lane operations that keep tiling, locking, copy/paste and export of groups. Next: review, then 4c.
 - 30 Sep 2026: Phase 4c built: Tidy menu with Auto-arrange (ELK layered, hierarchical, lazy-loaded in a Web Worker; direction and spacing remembered; pools and locked items left alone) and Tidy connectors (draw-time spreading of shared sides; optional clear pinned sides). No schema change.
 - 30 Sep 2026: Shapes pack built on `phase-shapes-pack`: shape registry (single definition per shape), schema v3 (node type any registry id; unknown shapes load, draw as rectangles and save unchanged), ten new shapes (decision, ellipse, hexagon, input/output, document, server, queue, user group, sticky note, callout), outline attachment for all shapes, Change shape control, palette with categories, search and recently used. Next: icon packs.
+- 30 Sep 2026: Phase 4d built: layers (schema v4 with migration), derived hidden/locked state, active layer with blocked-add message, layers panel (desktop tab, phone/tablet sheet), toolbar indicator, move to layer, delete layer (move items or delete contents), layer-aware rendering/arrange/tidy/export. Also fixed groups and swimlanes staying selected after clicking elsewhere or box-selecting.

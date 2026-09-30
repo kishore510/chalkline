@@ -160,8 +160,8 @@ export interface DiagramState {
   setLayerVisible: (id: string, visible: boolean) => { switchedTo?: string | null }
   setLayerLocked: (id: string, locked: boolean) => { switchedTo?: string | null }
   showAllLayers: () => void
-  /** Shows only this layer. */
-  soloLayer: (id: string) => void
+  /** Shows only this layer (switching the active layer if it gets hidden). */
+  soloLayer: (id: string) => { switchedTo?: string | null }
   /** Moves the selected items to a layer, one step. Locked items stay. */
   moveSelectionToLayer: (layerId: string) => { moved: number; skipped: number }
 
@@ -648,7 +648,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     soloLayer(id) {
       let d = get().diagram
       for (const l of d.layers) d = layers.setLayerViewOp(d, l.id, { visible: l.id === id })
-      commitView(d)
+      return commitView(d)
     },
     moveSelectionToLayer(layerId) {
       const d = get().diagram

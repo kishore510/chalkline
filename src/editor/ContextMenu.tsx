@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { explainBlockedAdd } from './layerNotices'
 
 /** Right-click (mouse) or long-press (touch) menu for a node, an edge, a connector grip or empty canvas. */
 export function ContextMenu() {
@@ -99,7 +100,9 @@ export function ContextMenu() {
           variant="ghost"
           className="justify-start"
           disabled={!hasClipboard}
-          onClick={run(() => store().paste(screenToFlowPosition({ x: menu.x, y: menu.y })))}
+          onClick={run(() => {
+            if (store().paste(screenToFlowPosition({ x: menu.x, y: menu.y })).length === 0) explainBlockedAdd()
+          })}
         >
           <ClipboardPaste />
           Paste here

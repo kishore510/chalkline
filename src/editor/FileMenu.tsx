@@ -1,4 +1,4 @@
-import { Download, FileImage, FilePlus, FileText, FolderOpen, Grid3x3, Menu, PenTool, Sparkles } from 'lucide-react'
+import { Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Grid3x3, Menu, PenTool, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
@@ -20,11 +20,12 @@ export async function saveJson() {
   downloadBlob(new Blob([serializeDiagram(diagram)], { type: 'application/json' }), fileNameFor(diagram.meta.title, 'json'))
 }
 
-export async function exportAs(format: 'svg' | 'png' | 'pdf') {
+/** Exports what's visible, unless `includeHidden` asks for hidden layers too. */
+export async function exportAs(format: 'svg' | 'png' | 'pdf', includeHidden = false) {
   try {
     // Loaded on demand: export code isn't needed until someone exports.
     const { exportDiagram } = await import('@/export/browser')
-    await exportDiagram(useDiagramStore.getState().diagram, format)
+    await exportDiagram(useDiagramStore.getState().diagram, format, { includeHidden })
   } catch {
     notify(`Couldn't export as ${format.toUpperCase()}. Try SVG, or a different browser.`)
   }
@@ -63,6 +64,8 @@ export function FileMenu({ layout }: { layout: Layout }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const actions = useCanvasActions()
   const snap = useUiStore((s) => s.snapToGrid)
+  const anyHidden = useDiagramStore((s) => s.diagram.layers.some((l) => !l.visible))
+  const [includeHidden, setIncludeHidden] = useState(false)
   const toggleSnap = useUiStore((s) => s.toggleSnap)
 
   useEffect(() => {
@@ -140,15 +143,20 @@ export function FileMenu({ layout }: { layout: Layout }) {
             Save as JSON
           </Item>
           <Divider />
-          <Item icon={<FileImage />} onClick={run(() => void exportAs('png'))}>
+          <Item icon={<FileImage />} onClick={run(() => void exportAs('png', includeHidden))}>
             Export PNG
           </Item>
-          <Item icon={<PenTool />} onClick={run(() => void exportAs('svg'))}>
+          <Item icon={<PenTool />} onClick={run(() => void exportAs('svg', includeHidden))}>
             Export SVG
           </Item>
-          <Item icon={<FileText />} onClick={run(() => void exportAs('pdf'))}>
+          <Item icon={<FileText />} onClick={run(() => void exportAs('pdf', includeHidden))}>
             Export PDF
           </Item>
+          {anyHidden && (
+            <Item icon={<EyeOff />} pressed={includeHidden} onClick={() => setIncludeHidden((v) => !v)}>
+              Include hidden layers
+            </Item>
+          )}
           <Divider />
           {layout === 'phone' && (
             <Item icon={<Grid3x3 />} pressed={snap} onClick={toggleSnap}>

@@ -8,6 +8,7 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ArrangeBar } from './ArrangeControls'
 import { ContextMenu } from './ContextMenu'
+import { LayersSheet } from './LayersPanel'
 import { EmptyCanvas } from './EmptyCanvas'
 import { LinkHint } from './LinkHint'
 import { Notice } from './Notice'
@@ -60,6 +61,7 @@ function EditorLayout() {
         {layout === 'desktop' && <PropertiesPanel />}
       </div>
       {layout === 'phone' && <PaletteDrawer />}
+      {layout !== 'desktop' && <LayersSheet />}
       <ContextMenu />
     </div>
   )

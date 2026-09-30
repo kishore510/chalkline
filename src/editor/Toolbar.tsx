@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore, type Tool } from '@/store/uiStore'
 import { deleteSelectionWithNotice } from './deleteSelection'
+import { LayersButton } from './LayersPanel'
 import { TidyMenu } from './TidyMenu'
 
 const TOOL_OPTIONS: { value: Tool; label: string; icon: React.ReactNode }[] = [
@@ -87,6 +88,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
         <Maximize />
       </Button>
       {layout !== 'phone' && <TidyMenu layout={layout} className={round} />}
+      {layout !== 'phone' && <LayersButton layout={layout} className={round} />}
       <div aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border" />
       <Button
         variant="ghost"

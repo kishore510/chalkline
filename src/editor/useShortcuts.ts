@@ -3,6 +3,7 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { parseFragment, serializeFragment } from '@/store/clipboard'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { explainBlockedAdd } from './layerNotices'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { saveJson } from './FileMenu'
 
@@ -47,7 +48,7 @@ export function useShortcuts() {
             diagram.deleteSelection()
             break
           case 'd':
-            diagram.duplicateSelection()
+            if (diagram.selection.length > 0 && diagram.duplicateSelection().length === 0) explainBlockedAdd()
             break
           case 's':
             void saveJson()
@@ -56,7 +57,7 @@ export function useShortcuts() {
             if (e.shiftKey) {
               const groups = new Set(diagram.diagram.groups.map((g) => g.id))
               for (const id of diagram.selection) if (groups.has(id)) diagram.ungroup(id)
-            } else if (diagram.selection.length > 0 && !diagram.groupSelection()) {
+            } else if (diagram.selection.length > 0 && !diagram.groupSelection() && !explainBlockedAdd()) {
               ui.notify('Can’t group here: containers can’t go inside a lane.')
             }
             break
@@ -132,6 +133,7 @@ export function useShortcuts() {
       const store = useDiagramStore.getState()
       const pasted = fragment ? store.pasteFrom(fragment) : store.paste()
       if (pasted.length > 0) e.preventDefault()
+      else if (fragment || store.clipboard) explainBlockedAdd()
     }
 
     window.addEventListener('keydown', onKeyDown)

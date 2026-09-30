@@ -13,11 +13,14 @@ import type { DiagramEdge, DiagramGroup, DiagramNode, EdgeStyle, NodeStyle } fro
 import { MIN_NODE_SIZE } from '@/schema/factories'
 import { useDiagramStore } from '@/store/diagramStore'
 import { groupById, isGroupLocked, isNodeLocked, isPool, laneOrder, minLaneThickness } from '@/store/groups'
+import { layerIdOf } from '@/store/layers'
 import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
+import { explainBlockedAdd } from './layerNotices'
 import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
+import { LayersContent } from './LayersPanel'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { CATEGORIES, getShape, isKnownShape, SHAPES } from '@/shapes/registry'
 
@@ -229,6 +232,45 @@ function NodeProperties({ node }: { node: DiagramNode }) {
   )
 }
 
+/* ---------- Layer ---------- */
+
+/** Which layer the selection is on ("Mixed" if several), and a way to move it. One undo step. */
+function LayerField() {
+  const diagram = useDiagramStore((s) => s.diagram)
+  const selection = useDiagramStore((s) => s.selection)
+  const ids = new Set(selection)
+  const items = [...diagram.nodes, ...diagram.edges, ...diagram.groups].filter((i) => ids.has(i.id))
+  if (items.length === 0) return null
+  const current = shared(items, (i) => layerIdOf(i))
+  return (
+    <Label>
+      Layer
+      <select
+        value={typeof current === 'string' ? current : ''}
+        onChange={(e) => {
+          if (!e.target.value) return
+          const { skipped } = store().moveSelectionToLayer(e.target.value)
+          if (skipped > 0) useUiStore.getState().notify(`${skipped} locked ${skipped === 1 ? 'item stayed' : 'items stayed'} on ${skipped === 1 ? 'its' : 'their'} layer.`)
+        }}
+        className="h-touch w-full min-w-0 rounded-md border border-border-strong bg-surface px-3 text-base text-text"
+      >
+        {typeof current !== 'string' && (
+          <option value="" disabled>
+            Mixed
+          </option>
+        )}
+        {[...diagram.layers].reverse().map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name || 'Untitled layer'}
+            {!l.visible ? ' (hidden)' : ''}
+            {l.locked ? ' (locked)' : ''}
+          </option>
+        ))}
+      </select>
+    </Label>
+  )
+}
+
 /* ---------- Shape type ---------- */
 
 /** Pick another shape; label, notes, style, size, connectors and group are kept. */
@@ -316,7 +358,7 @@ function GroupButton() {
       variant="secondary"
       className="self-start"
       onClick={() => {
-        if (!store().groupSelection()) useUiStore.getState().notify('Can’t group here: containers can’t go inside a lane.')
+        if (!store().groupSelection() && !explainBlockedAdd()) useUiStore.getState().notify('Can’t group here: containers can’t go inside a lane.')
       }}
     >
       <Group />
@@ -508,6 +550,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
   return (
     <div className="flex flex-col gap-4 pb-4">
       {arrange && (summary.kind === 'nodes' || summary.kind === 'mixed') && <ArrangeSection />}
+      {summary.kind !== 'none' && <LayerField />}
       {summary.kind === 'none' && <DiagramProperties />}
       {summary.kind === 'node' && <NodeProperties node={summary.node} />}
       {summary.kind === 'edge' && <EdgeProperties edge={summary.edge} />}
@@ -565,13 +608,41 @@ function Header({ summary, onClose }: { summary: Summary; onClose?: () => void }
 
 const clearSelection = () => store().setSelection([])
 
-/** Desktop: persistent right panel. */
+/** Desktop: persistent right panel with Properties and Layers tabs. */
 export function PropertiesPanel() {
   const summary = useSelectionSummary()
+  const layersOpen = useUiStore((s) => s.layersOpen)
+  const setLayersOpen = useUiStore((s) => s.setLayersOpen)
+  const tab = (label: string, selected: boolean, onClick: () => void) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={cn(
+        'min-h-touch flex-1 border-b-2 text-sm font-medium transition-colors',
+        selected ? 'border-accent text-text' : 'border-transparent text-text-muted hover:text-text',
+      )}
+    >
+      {label}
+    </button>
+  )
   return (
-    <aside aria-label="Properties" className="flex w-properties shrink-0 flex-col overflow-y-auto border-l border-border bg-surface px-4">
-      <Header summary={summary} />
-      <PropertiesBody summary={summary} />
+    <aside aria-label={layersOpen ? 'Layers' : 'Properties'} className="flex w-properties shrink-0 flex-col overflow-y-auto border-l border-border bg-surface px-4">
+      <div role="tablist" aria-label="Right panel" className="sticky top-0 z-10 -mx-4 flex bg-surface px-4">
+        {tab('Properties', !layersOpen, () => setLayersOpen(false))}
+        {tab('Layers', layersOpen, () => setLayersOpen(true))}
+      </div>
+      {layersOpen ? (
+        <div className="pt-3">
+          <LayersContent />
+        </div>
+      ) : (
+        <>
+          <Header summary={summary} />
+          <PropertiesBody summary={summary} />
+        </>
+      )}
     </aside>
   )
 }

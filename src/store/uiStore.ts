@@ -87,6 +87,9 @@ interface UiState {
   /** True while a connector is being dragged, so every handle shows as a target. */
   connecting: boolean
   paletteOpen: boolean
+  /** Layers panel: a tab of the right panel on desktop, a sheet on phone and tablet. */
+  layersOpen: boolean
+  setLayersOpen: (open: boolean) => void
   contextMenu: ContextMenuState | null
   saveStatus: SaveStatus
   setSaveStatus: (status: SaveStatus) => void
@@ -132,6 +135,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   editingId: null,
   connecting: false,
   paletteOpen: false,
+  layersOpen: false,
+  setLayersOpen: (layersOpen) => set({ layersOpen }),
   contextMenu: null,
   saveStatus: 'off',
   setSaveStatus: (saveStatus) => set({ saveStatus }),
