@@ -7,7 +7,7 @@ export const DEFAULT_NODE_SIZE: Record<NodeType, Size> = {
   rounded: { width: 160, height: 80 },
   database: { width: 120, height: 100 },
   cloud: { width: 180, height: 110 },
-  actor: { width: 64, height: 112 },
+  actor: { width: 96, height: 128 },
   text: { width: 160, height: 40 },
 }
 

@@ -264,3 +264,11 @@ export function setEdgeSides(diagram: Diagram, ids: Iterable<string>, patch: Sid
 export function resetEdgeSides(diagram: Diagram, ids: Iterable<string>): Diagram {
   return setEdgeSides(diagram, ids, { source: null, target: null })
 }
+
+/** Makes a node at least `minHeight` tall (never shrinks it), e.g. so its label fits. */
+export function growNodeHeight(diagram: Diagram, id: string, minHeight: number): Diagram {
+  if (!Number.isFinite(minHeight)) return diagram
+  return mapNodes(diagram, (node) =>
+    node.id === id && node.size.height < minHeight ? { ...node, size: { ...node.size, height: Math.ceil(minHeight) } } : node,
+  )
+}

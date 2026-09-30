@@ -135,6 +135,11 @@
   --cl-duration-base: 200ms;
   --cl-ease: cubic-bezier(0.2, 0, 0, 1);
 
+  /* Node labels */
+  --cl-node-font-min: 0px;
+  /* Actor and free-text labels may spread up to this wide, even past the node. */
+  --cl-label-free-max: 200px;
+
   /* Layout */
   --cl-header-height: 56px;
   --cl-gutter: 16px;
@@ -145,6 +150,13 @@
   --cl-minimap-height: 112px;
   --cl-sheet-max-height: 45dvh;
   --cl-content-max: 1200px;
+}
+
+/* Touch screens: never render node labels below a readable size. */
+@media (pointer: coarse) {
+  :root {
+    --cl-node-font-min: 14px;
+  }
 }
 
 /* ── Tailwind mapping: only token-backed utilities exist ────────────── */
@@ -209,8 +221,8 @@
   --text-xl--line-height: 1.75rem;
   --text-2xl: 1.5rem;
   --text-2xl--line-height: 2rem;
-  --text-node: 0.875rem;
-  --text-node--line-height: 1.25rem;
+  --text-node: 0.9375rem;
+  --text-node--line-height: 1.35;
 
   --radius-*: initial;
   --radius-sm: 8px;

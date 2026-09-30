@@ -1,4 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
+import { useEffect } from 'react'
+import { useCanvasActions } from '@/canvas/useCanvasActions'
+import { fixtures } from '@/fixtures'
 import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
 import { useDiagramStore } from '@/store/diagramStore'
@@ -24,6 +27,7 @@ function EditorLayout() {
   const desktop = useMediaQuery(MEDIA.desktop)
   const layout: Layout = desktop ? 'desktop' : tablet ? 'tablet' : 'phone'
   useShortcuts()
+  useFixtureFromHash()
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-text">
@@ -64,6 +68,16 @@ function PhoneBottom() {
       <CanvasToolbar layout="phone" />
     </div>
   )
+}
+
+/** `#/fixture/<name>` opens a sample diagram, e.g. #/fixture/label-cases for checking label layout. */
+function useFixtureFromHash() {
+  const actions = useCanvasActions()
+  useEffect(() => {
+    const name = window.location.hash.match(/^#\/fixture\/([\w-]+)$/)?.[1]
+    const fixture = name ? fixtures[name] : undefined
+    if (fixture) actions.load(fixture)
+  }, [actions])
 }
 
 export function Editor() {

@@ -36,6 +36,17 @@ describe('fixtures', () => {
     expect([...new Set(valid.nodes.map((n) => n.type))].sort()).toEqual([...NODE_TYPES].sort())
   })
 
+  it('label-cases covers every shape with each kind of label', () => {
+    const doc = parseDiagram(fixtures['label-cases'])
+    for (const type of NODE_TYPES) {
+      const labels = doc.nodes.filter((n) => n.type === type).map((n) => n.label)
+      expect(labels).toContain('Customer')
+      expect(labels.some((l) => l.split(' ').length >= 3)).toBe(true)
+      expect(labels.some((l) => !l.includes(' ') && l.length > 20)).toBe(true)
+      expect(labels.some((l) => l.length <= 3)).toBe(true)
+    }
+  })
+
   it('fills in defaults for omitted fields', () => {
     const diagram = parseDiagram(valid)
     expect(diagram.groups).toEqual([])

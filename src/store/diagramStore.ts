@@ -23,6 +23,8 @@ export interface DiagramState {
   addNode: (type: NodeType, center: Position, grid?: number) => string
   moveNodes: (moves: ReadonlyMap<string, Position>) => void
   resizeNode: (id: string, size: Size, position?: Position) => void
+  /** Grows a node's height so its label fits; never shrinks. */
+  growNodeToFit: (id: string, minHeight: number) => void
   setNodeLabel: (id: string, label: string) => void
   setTitle: (title: string) => void
   updateNodeStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
@@ -82,6 +84,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     moveNodes: (moves) => apply((d) => ops.moveNodes(d, moves)),
     resizeNode: (id, size, position) => apply((d) => ops.resizeNode(d, id, size, position, MIN_NODE_SIZE)),
+    growNodeToFit: (id, minHeight) => apply((d) => ops.growNodeHeight(d, id, minHeight)),
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label)),
     setTitle: (title) => apply((d) => ops.setTitle(d, title)),
     updateNodeStyles: (ids, patch) => apply((d) => ops.updateNodeStyles(d, ids, patch)),
