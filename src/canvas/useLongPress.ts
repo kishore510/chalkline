@@ -2,8 +2,9 @@ import { useMemo, useRef } from 'react'
 import { readToken } from '@/lib/cssVar'
 
 export interface PressTarget {
+  /** Node or edge id; empty for the canvas itself. */
   id: string
-  kind: 'node' | 'edge'
+  kind: 'node' | 'edge' | 'pane'
 }
 
 // How far a finger may drift (in CSS px) before the press counts as a drag.
@@ -15,11 +16,12 @@ function findTarget(target: EventTarget | null): PressTarget | null {
   if (node?.dataset.id) return { id: node.dataset.id, kind: 'node' }
   const edge = target.closest<SVGElement>('.react-flow__edge')
   if (edge?.dataset.id) return { id: edge.dataset.id, kind: 'edge' }
+  if (target.closest('.react-flow__pane') && !target.closest('.react-flow__viewport-portal')) return { id: '', kind: 'pane' }
   return null
 }
 
 /**
- * Long-press on a node or edge (touch and pen only), standing in for right-click.
+ * Long-press on a node, edge or empty canvas (touch and pen only), standing in for right-click.
  * Returns capture-phase pointer handlers for the canvas wrapper.
  */
 export function useLongPress(onLongPress: (target: PressTarget, x: number, y: number) => void) {

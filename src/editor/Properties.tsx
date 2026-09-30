@@ -1,5 +1,5 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { ArrowRight, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
+import { ArrowRight, CopyPlus, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
@@ -317,6 +317,11 @@ function Header({ summary, onClose }: { summary: Summary; onClose?: () => void }
     <div className="flex min-h-touch items-center gap-1">
       {summary.kind === 'node' && <ShapeIcon type={summary.node.type} className="mr-1 size-5 shrink-0 text-text-muted" />}
       <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{summary.title}</h2>
+      {(summary.kind === 'node' || summary.kind === 'nodes') && (
+        <Button variant="ghost" size="icon" aria-label="Duplicate" title="Duplicate (Ctrl D)" onClick={() => store().duplicateSelection()}>
+          <CopyPlus />
+        </Button>
+      )}
       {summary.kind !== 'none' && (
         <Button variant="ghost" size="icon" aria-label="Delete selection" title="Delete (Del)" onClick={() => store().deleteSelection()} className="text-danger">
           <Trash2 />

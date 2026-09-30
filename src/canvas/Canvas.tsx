@@ -47,9 +47,16 @@ function select(id: string) {
 }
 
 function openMenu(target: PressTarget, x: number, y: number) {
-  select(target.id)
+  if (target.kind !== 'pane') select(target.id)
   uiStore().openContextMenu({ ...target, x, y })
 }
+
+// A drag or selection drag is one undo step.
+const beginBatch = () => {
+  uiStore().closeContextMenu()
+  diagramStore().beginBatch()
+}
+const endBatch = () => diagramStore().endBatch()
 
 export function Canvas({ showMinimap }: { showMinimap: boolean }) {
   const diagram = useDiagramStore((s) => s.diagram)
@@ -148,7 +155,10 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
           diagramStore().setSelection([edge.id])
           uiStore().requestLabelFocus()
         }}
-        onNodeDragStart={() => uiStore().closeContextMenu()}
+        onNodeDragStart={beginBatch}
+        onNodeDragStop={endBatch}
+        onSelectionDragStart={beginBatch}
+        onSelectionDragStop={endBatch}
         onNodeContextMenu={(e, node) => {
           e.preventDefault()
           openMenu({ id: node.id, kind: 'node' }, e.clientX, e.clientY)
@@ -157,7 +167,10 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
           e.preventDefault()
           openMenu({ id: edge.id, kind: 'edge' }, e.clientX, e.clientY)
         }}
-        onPaneContextMenu={(e) => e.preventDefault()}
+        onPaneContextMenu={(e) => {
+          e.preventDefault()
+          openMenu({ id: '', kind: 'pane' }, e.clientX, e.clientY)
+        }}
         onPaneClick={() => {
           uiStore().closeContextMenu()
           uiStore().clearLinkSource()
@@ -184,6 +197,9 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
         // is one undoable action; React Flow's own key handling splits nodes and edges.
         deleteKeyCode={null}
         attributionPosition="top-left"
+        // Frame a restored or opened diagram when the canvas first appears.
+        fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 1.5 }}
         className={cn(connecting && 'cl-connecting', !connectable && 'cl-no-handles', tool === 'pan' && 'cl-tool-pan', linkTool && 'cl-tool-link')}
       >
         <Background variant={BackgroundVariant.Dots} gap={sizes.grid} size={sizes.dot} />

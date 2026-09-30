@@ -49,6 +49,9 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         minHeight={minHeight}
         handleClassName="cl-resize-handle"
         lineClassName="cl-resize-line"
+        // One resize gesture is one undo step.
+        onResizeStart={() => useDiagramStore.getState().beginBatch()}
+        onResizeEnd={() => useDiagramStore.getState().endBatch()}
       />
       {linkSource && (
         <div aria-hidden="true" className="pointer-events-none absolute -inset-2 rounded-md border-2 border-dashed border-accent bg-accent-subtle" />

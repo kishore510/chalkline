@@ -1,4 +1,4 @@
-import { Grid3x3, Hand, Link2, Maximize, MousePointer2, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Grid3x3, Hand, Link2, Maximize, MousePointer2, Plus, Redo2, Trash2, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -24,6 +24,23 @@ export function SnapButton({ className }: { className?: string }) {
   )
 }
 
+export function HistoryButtons({ className }: { className?: string }) {
+  const canUndo = useDiagramStore((s) => s.canUndo)
+  const canRedo = useDiagramStore((s) => s.canRedo)
+  const undo = useDiagramStore((s) => s.undo)
+  const redo = useDiagramStore((s) => s.redo)
+  return (
+    <>
+      <Button variant="ghost" size="icon" aria-label="Undo (Ctrl Z)" title="Undo (Ctrl Z)" disabled={!canUndo} onClick={undo} className={className}>
+        <Undo2 />
+      </Button>
+      <Button variant="ghost" size="icon" aria-label="Redo (Ctrl Shift Z)" title="Redo (Ctrl Shift Z)" disabled={!canRedo} onClick={redo} className={className}>
+        <Redo2 />
+      </Button>
+    </>
+  )
+}
+
 /**
  * Canvas commands. The mode switch sits at one end and delete at the other,
  * behind a divider, so a mis-tap on Link can never hit delete.
@@ -42,6 +59,12 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
 
   const content = (
     <>
+      {layout !== 'phone' && (
+        <>
+          <HistoryButtons className={round} />
+          <div aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border" />
+        </>
+      )}
       <Segmented label="Canvas mode" options={TOOL_OPTIONS} value={tool} onChange={setTool} className={round} />
       {layout === 'phone' && (
         <Button variant="primary" size="icon" aria-label="Add shape" className="rounded-full" onClick={() => openPalette(true)}>

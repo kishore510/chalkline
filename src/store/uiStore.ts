@@ -9,6 +9,9 @@ export type LinkTapResult = 'source' | 'linked' | 'cleared' | 'refused' | 'ignor
 
 export type EdgeEnd = 'source' | 'target'
 
+/** Autosave state, shown in the file menu. */
+export type SaveStatus = 'off' | 'saved' | 'error'
+
 export interface ContextMenuState {
   /** Viewport coordinates of the pointer that opened the menu. */
   x: number
@@ -16,7 +19,7 @@ export interface ContextMenuState {
   /** The element that was pressed. */
   id: string
   /** 'grip' is the end grip of a selected connector; `end` says which one. */
-  kind: 'node' | 'edge' | 'grip'
+  kind: 'node' | 'edge' | 'grip' | 'pane'
   end?: EdgeEnd
 }
 
@@ -42,6 +45,12 @@ interface UiState {
   connecting: boolean
   paletteOpen: boolean
   contextMenu: ContextMenuState | null
+  saveStatus: SaveStatus
+  setSaveStatus: (status: SaveStatus) => void
+  /** A short message shown briefly at the bottom of the canvas. `id` changes each time. */
+  notice: { id: number; text: string } | null
+  notify: (text: string) => void
+  dismissNotice: () => void
   edgeDrag: EdgeDrag | null
   setEdgeDrag: (drag: EdgeDrag | null) => void
   /** Bumped to ask the properties panel to focus its label field (e.g. double-click on an edge). */
@@ -67,6 +76,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   connecting: false,
   paletteOpen: false,
   contextMenu: null,
+  saveStatus: 'off',
+  setSaveStatus: (saveStatus) => set({ saveStatus }),
+  notice: null,
+  notify: (text) => set((s) => ({ notice: { id: (s.notice?.id ?? 0) + 1, text } })),
+  dismissNotice: () => set({ notice: null }),
   edgeDrag: null,
   setEdgeDrag: (edgeDrag) => set({ edgeDrag }),
   focusLabelRequest: 0,

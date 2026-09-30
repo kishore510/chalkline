@@ -9,6 +9,7 @@ import { MEDIA } from '@/styles/breakpoints'
 import { ContextMenu } from './ContextMenu'
 import { EmptyCanvas } from './EmptyCanvas'
 import { LinkHint } from './LinkHint'
+import { Notice } from './Notice'
 import { PaletteDrawer, PalettePanel, PaletteRail } from './palette'
 import { PropertiesPanel, PropertiesSheet, PropertiesSlideOver } from './Properties'
 import { CanvasToolbar } from './Toolbar'
@@ -40,6 +41,7 @@ function EditorLayout() {
           <EmptyCanvas layout={layout} />
           <LinkHint />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3">
+            <Notice />
             <UndoToast />
             {layout === 'phone' && <PhoneBottom />}
             {layout === 'tablet' && (

@@ -1,14 +1,17 @@
-import { Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { useReactFlow } from '@xyflow/react'
+import { ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 
-/** Right-click (mouse) or long-press (touch) menu for a node or edge. */
+/** Right-click (mouse) or long-press (touch) menu for a node, an edge, a connector grip or empty canvas. */
 export function ContextMenu() {
   const menu = useUiStore((s) => s.contextMenu)
   const close = useUiStore((s) => s.closeContextMenu)
+  const hasClipboard = useDiagramStore((s) => s.clipboard !== null)
+  const { screenToFlowPosition } = useReactFlow()
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
 
@@ -80,6 +83,32 @@ export function ContextMenu() {
     )
   }
 
+  const store = useDiagramStore.getState
+
+  if (menu.kind === 'pane') {
+    return (
+      <Panel
+        ref={ref}
+        role="menu"
+        aria-label="Canvas actions"
+        className="fixed z-40 flex min-w-40 flex-col p-1 shadow-lg"
+        style={position ?? { left: menu.x, top: menu.y, visibility: 'hidden' }}
+      >
+        <Button
+          role="menuitem"
+          variant="ghost"
+          className="justify-start"
+          disabled={!hasClipboard}
+          onClick={run(() => store().paste(screenToFlowPosition({ x: menu.x, y: menu.y })))}
+        >
+          <ClipboardPaste />
+          Paste here
+        </Button>
+        {!hasClipboard && <p className="px-3 pt-1 pb-2 text-xs text-text-muted">Copy a shape first.</p>}
+      </Panel>
+    )
+  }
+
   return (
     <Panel
       ref={ref}
@@ -97,6 +126,25 @@ export function ContextMenu() {
         <Pencil />
         Edit label
       </Button>
+      {menu.kind === 'node' && (
+        <>
+          <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().duplicateSelection())}>
+            <CopyPlus />
+            Duplicate
+          </Button>
+          <Button
+            role="menuitem"
+            variant="ghost"
+            className="justify-start"
+            onClick={run(() => {
+              if (store().copySelection()) useUiStore.getState().notify('Copied. Long-press empty canvas to paste.')
+            })}
+          >
+            <Copy />
+            Copy
+          </Button>
+        </>
+      )}
       <Button role="menuitem" variant="ghost" className="justify-start text-danger" onClick={run(() => useDiagramStore.getState().deleteElements([menu.id]))}>
         <Trash2 />
         Delete

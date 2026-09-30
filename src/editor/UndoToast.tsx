@@ -8,7 +8,7 @@ import { useDiagramStore } from '@/store/diagramStore'
 /** "Deleted. Undo" after any delete; restores the removed shapes and their connectors. */
 export function UndoToast() {
   const deletionId = useDiagramStore((s) => s.lastDeletion?.id)
-  const restore = useDiagramStore((s) => s.restoreDeleted)
+  const restore = useDiagramStore((s) => s.undoDeletion)
 
   useEffect(() => {
     if (deletionId === undefined) return
