@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { DockingTarget } from '@/canvas/docking'
 import type { Position } from '@/schema/diagram'
+import { cleanRecents, pushRecent } from '@/editor/paletteModel'
 import { useDiagramStore } from './diagramStore'
 
 export type Tool = 'select' | 'pan' | 'link'
@@ -38,6 +39,16 @@ function savePrefs(prefs: ArrangePrefs) {
     globalThis.localStorage?.setItem(PREFS_KEY, JSON.stringify({ direction: prefs.direction, spacing: prefs.spacing }))
   } catch {
     // Fine: the choice just isn't remembered.
+  }
+}
+
+const RECENTS_KEY = 'chalkline.recentShapes'
+
+function loadRecents(): string[] {
+  try {
+    return cleanRecents(JSON.parse(globalThis.localStorage?.getItem(RECENTS_KEY) ?? '[]'))
+  } catch {
+    return []
   }
 }
 
@@ -88,6 +99,9 @@ interface UiState {
   /** True briefly after auto-arrange, so shapes glide to their new places. */
   animating: boolean
   setAnimating: (animating: boolean) => void
+  /** Shapes added most recently, newest first (shown as a row in the phone palette). */
+  recentShapes: string[]
+  noteShapeUsed: (id: string) => void
   arrangePrefs: ArrangePrefs
   setArrangePrefs: (prefs: Partial<ArrangePrefs>) => void
   dismissNotice: () => void
@@ -127,6 +141,17 @@ export const useUiStore = create<UiState>()((set, get) => ({
   setBusy: (busy) => set({ busy }),
   animating: false,
   setAnimating: (animating) => set({ animating }),
+  recentShapes: loadRecents(),
+  noteShapeUsed: (id) =>
+    set((s) => {
+      const recentShapes = pushRecent(s.recentShapes, id)
+      try {
+        globalThis.localStorage?.setItem(RECENTS_KEY, JSON.stringify(recentShapes))
+      } catch {
+        // Fine: just not remembered next time.
+      }
+      return { recentShapes }
+    }),
   arrangePrefs: loadPrefs(),
   setArrangePrefs: (prefs) =>
     set((s) => {

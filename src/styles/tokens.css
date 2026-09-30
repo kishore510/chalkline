@@ -161,6 +161,7 @@
   --cl-minimap-width: 160px;
   --cl-minimap-height: 112px;
   --cl-sheet-max-height: 45dvh;
+  --cl-drawer-max-height: 80dvh;
   --cl-content-max: 1200px;
 }
 
