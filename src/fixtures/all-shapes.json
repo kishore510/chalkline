@@ -1,21 +1,17 @@
 {
   "schemaVersion": 1,
-  "id": "d_all_shapes",
-  "title": "Every node shape",
-  "createdAt": "2026-09-30T00:00:00.000Z",
-  "updatedAt": "2026-09-30T00:00:00.000Z",
+  "meta": {"title": "Every node shape", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
-    { "id": "n_rect", "shape": "rectangle", "position": { "x": 0, "y": 0 }, "size": { "width": 160, "height": 80 }, "label": "Rectangle" },
-    { "id": "n_round", "shape": "rounded", "position": { "x": 220, "y": 0 }, "size": { "width": 160, "height": 80 }, "label": "Rounded box" },
-    { "id": "n_db", "shape": "database", "position": { "x": 440, "y": -10 }, "size": { "width": 120, "height": 100 }, "label": "Database" },
-    { "id": "n_cloud", "shape": "cloud", "position": { "x": 0, "y": 160 }, "size": { "width": 180, "height": 110 }, "label": "Cloud" },
-    { "id": "n_actor", "shape": "actor", "position": { "x": 260, "y": 160 }, "size": { "width": 64, "height": 112 }, "label": "Actor" },
-    { "id": "n_text", "shape": "text", "position": { "x": 400, "y": 190 }, "size": { "width": 160, "height": 40 }, "label": "Free text" }
+    { "id": "n_rect", "type": "rectangle", "position": { "x": 0, "y": 0 }, "size": { "width": 160, "height": 80 }, "label": "Rectangle" },
+    { "id": "n_round", "type": "rounded", "position": { "x": 220, "y": 0 }, "size": { "width": 160, "height": 80 }, "label": "Rounded box" },
+    { "id": "n_db", "type": "database", "position": { "x": 440, "y": -10 }, "size": { "width": 120, "height": 100 }, "label": "Database" },
+    { "id": "n_cloud", "type": "cloud", "position": { "x": 0, "y": 160 }, "size": { "width": 180, "height": 110 }, "label": "Cloud" },
+    { "id": "n_actor", "type": "actor", "position": { "x": 260, "y": 160 }, "size": { "width": 64, "height": 112 }, "label": "Actor" },
+    { "id": "n_text", "type": "text", "position": { "x": 400, "y": 190 }, "size": { "width": 160, "height": 40 }, "label": "Free text" }
   ],
   "edges": [
-    { "id": "e_1", "source": "n_rect", "target": "n_round", "sourceHandle": "right", "targetHandle": "left", "markerStart": "none", "markerEnd": "arrow" },
-    { "id": "e_2", "source": "n_round", "target": "n_db", "markerStart": "arrow", "markerEnd": "arrow" },
-    { "id": "e_3", "source": "n_actor", "target": "n_cloud", "markerStart": "none", "markerEnd": "none" }
-  ],
-  "viewport": { "x": 40, "y": 40, "zoom": 1 }
+    { "id": "e_1", "source": "n_rect", "target": "n_round", "sourceHandle": "right", "targetHandle": "left" },
+    { "id": "e_2", "source": "n_round", "target": "n_db", "style": { "startArrow": "arrow" } },
+    { "id": "e_3", "source": "n_actor", "target": "n_cloud", "style": { "endArrow": "none" } }
+  ]
 }

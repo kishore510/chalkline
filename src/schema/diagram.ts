@@ -1,112 +1,206 @@
 import { z } from 'zod'
 
 /**
- * The Chalkline diagram document.
- *
- * This file is the single source of truth for diagram types: everything else
- * uses the types inferred here. Any change to the shape of the document must
- * bump SCHEMA_VERSION and add a migration in ./migrate.ts, with a test.
+ * Diagram document schema. Single source of truth for types.
+ * Any change here requires: bump SCHEMA_VERSION, add a migration, add a test.
  */
 export const SCHEMA_VERSION = 1
 
-export const NODE_SHAPES = ['rectangle', 'rounded', 'database', 'cloud', 'actor', 'text'] as const
-export const HANDLE_SIDES = ['top', 'right', 'bottom', 'left'] as const
-export const ARROWHEADS = ['none', 'arrow'] as const
+/* ---------- Primitives ---------- */
 
-export const MIN_NODE_SIZE = 16
-export const MAX_NODE_SIZE = 4000
-export const MAX_LABEL_LENGTH = 2000
-export const MAX_TITLE_LENGTH = 200
-export const MIN_ZOOM = 0.05
-export const MAX_ZOOM = 8
+// Colours are either a literal hex value or a design-token reference
+// (e.g. "token:accent"). Token references let diagrams follow light/dark themes.
+export const ColourSchema = z.string().regex(/^(#[0-9a-fA-F]{6}|token:[a-z0-9-]+)$/, 'Use #RRGGBB or token:name')
 
-const IdSchema = z.string().min(1).max(128)
-
-export const NodeShapeSchema = z.enum(NODE_SHAPES)
-export const HandleSideSchema = z.enum(HANDLE_SIDES)
-export const ArrowheadSchema = z.enum(ARROWHEADS)
-
-export const PointSchema = z.strictObject({
+export const PositionSchema = z.object({
   x: z.number(),
   y: z.number(),
 })
 
-export const SizeSchema = z.strictObject({
-  width: z.number().min(MIN_NODE_SIZE).max(MAX_NODE_SIZE),
-  height: z.number().min(MIN_NODE_SIZE).max(MAX_NODE_SIZE),
+export const SizeSchema = z.object({
+  width: z.number().positive(),
+  height: z.number().positive(),
 })
 
-export const NodeSchema = z.strictObject({
-  id: IdSchema,
-  shape: NodeShapeSchema,
-  /** Top-left corner in canvas coordinates. */
-  position: PointSchema,
+/* ---------- Nodes ---------- */
+
+export const NodeTypeSchema = z.enum(['rectangle', 'rounded', 'database', 'cloud', 'actor', 'text'])
+export const NODE_TYPES = NodeTypeSchema.options
+
+export const NodeStyleSchema = z
+  .object({
+    fill: ColourSchema,
+    stroke: ColourSchema,
+    strokeWidth: z.number().min(0).max(12),
+    textColour: ColourSchema,
+    fontSize: z.number().min(8).max(72),
+  })
+  .partial() // every field optional: missing means "use the theme default"
+
+export const NodeSchema = z.object({
+  id: z.string().min(1),
+  type: NodeTypeSchema,
+  position: PositionSchema,
   size: SizeSchema,
-  label: z.string().max(MAX_LABEL_LENGTH),
+  label: z.string().default(''),
+  notes: z.string().default(''),
+  style: NodeStyleSchema.default({}),
+  groupId: z.string().min(1).optional(), // reserved for Phase 4
 })
 
-export const EdgeSchema = z.strictObject({
-  id: IdSchema,
-  source: IdSchema,
-  target: IdSchema,
-  /** Which side of the node the edge attaches to. Omitted means "nearest". */
-  sourceHandle: HandleSideSchema.optional(),
-  targetHandle: HandleSideSchema.optional(),
-  markerStart: ArrowheadSchema,
-  markerEnd: ArrowheadSchema,
+/* ---------- Edges ---------- */
+
+export const EdgeLineTypeSchema = z.enum(['straight', 'step', 'smoothstep', 'bezier'])
+
+export const ArrowheadSchema = z.enum(['none', 'arrow', 'closed'])
+
+export const EdgeStyleSchema = z
+  .object({
+    lineType: EdgeLineTypeSchema,
+    dashed: z.boolean(),
+    startArrow: ArrowheadSchema,
+    endArrow: ArrowheadSchema,
+    colour: ColourSchema,
+    width: z.number().min(0.5).max(12),
+  })
+  .partial()
+
+export const EdgeSchema = z.object({
+  id: z.string().min(1),
+  source: z.string().min(1),
+  target: z.string().min(1),
+  sourceHandle: z.string().optional(),
+  targetHandle: z.string().optional(),
+  label: z.string().default(''),
+  notes: z.string().default(''),
+  style: EdgeStyleSchema.default({}),
 })
 
-export const ViewportSchema = z.strictObject({
-  x: z.number(),
-  y: z.number(),
-  zoom: z.number().min(MIN_ZOOM).max(MAX_ZOOM),
+/* ---------- Groups (reserved for Phase 4) ---------- */
+
+export const GroupSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().default(''),
+  position: PositionSchema,
+  size: SizeSchema,
+  style: NodeStyleSchema.default({}),
+  collapsed: z.boolean().default(false),
+})
+
+/* ---------- Document ---------- */
+
+export const MetaSchema = z.object({
+  title: z.string().default('Untitled diagram'),
+  created: z.iso.datetime(),
+  updated: z.iso.datetime(),
 })
 
 export const DiagramSchema = z
-  .strictObject({
+  .object({
     schemaVersion: z.literal(SCHEMA_VERSION),
-    id: IdSchema,
-    title: z.string().max(MAX_TITLE_LENGTH),
-    createdAt: z.iso.datetime(),
-    updatedAt: z.iso.datetime(),
+    meta: MetaSchema,
     nodes: z.array(NodeSchema),
     edges: z.array(EdgeSchema),
-    viewport: ViewportSchema,
+    groups: z.array(GroupSchema).default([]),
   })
-  .superRefine((diagram, ctx) => {
-    // Ids are unique across nodes and edges so a selection can hold either.
-    const seen = new Set<string>()
+  .superRefine((d, ctx) => {
     const nodeIds = new Set<string>()
-    diagram.nodes.forEach((node, index) => {
-      if (seen.has(node.id)) {
-        ctx.addIssue({ code: 'custom', message: `Duplicate id "${node.id}"`, path: ['nodes', index, 'id'] })
+    const groupIds = new Set(d.groups.map((g) => g.id))
+
+    d.nodes.forEach((n, i) => {
+      if (nodeIds.has(n.id)) {
+        ctx.addIssue({ code: 'custom', path: ['nodes', i, 'id'], message: `Duplicate node id "${n.id}"` })
       }
-      seen.add(node.id)
-      nodeIds.add(node.id)
+      nodeIds.add(n.id)
+      if (n.groupId && !groupIds.has(n.groupId)) {
+        ctx.addIssue({ code: 'custom', path: ['nodes', i, 'groupId'], message: `Unknown group "${n.groupId}"` })
+      }
     })
-    diagram.edges.forEach((edge, index) => {
-      if (seen.has(edge.id)) {
-        ctx.addIssue({ code: 'custom', message: `Duplicate id "${edge.id}"`, path: ['edges', index, 'id'] })
+
+    const edgeIds = new Set<string>()
+    d.edges.forEach((e, i) => {
+      if (edgeIds.has(e.id)) {
+        ctx.addIssue({ code: 'custom', path: ['edges', i, 'id'], message: `Duplicate edge id "${e.id}"` })
       }
-      seen.add(edge.id)
-      for (const end of ['source', 'target'] as const) {
-        if (!nodeIds.has(edge[end])) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `Edge ${end} "${edge[end]}" does not match any node`,
-            path: ['edges', index, end],
-          })
-        }
+      edgeIds.add(e.id)
+      if (!nodeIds.has(e.source)) {
+        ctx.addIssue({ code: 'custom', path: ['edges', i, 'source'], message: `Edge source "${e.source}" does not exist` })
+      }
+      if (!nodeIds.has(e.target)) {
+        ctx.addIssue({ code: 'custom', path: ['edges', i, 'target'], message: `Edge target "${e.target}" does not exist` })
       }
     })
   })
 
-export type NodeShape = z.infer<typeof NodeShapeSchema>
-export type HandleSide = z.infer<typeof HandleSideSchema>
-export type Arrowhead = z.infer<typeof ArrowheadSchema>
-export type Point = z.infer<typeof PointSchema>
-export type Size = z.infer<typeof SizeSchema>
+/* ---------- Inferred types ---------- */
+
+export type Diagram = z.infer<typeof DiagramSchema>
+/** A document as stored on disk, before defaults are filled in. */
+export type DiagramInput = z.input<typeof DiagramSchema>
 export type DiagramNode = z.infer<typeof NodeSchema>
 export type DiagramEdge = z.infer<typeof EdgeSchema>
-export type Viewport = z.infer<typeof ViewportSchema>
-export type Diagram = z.infer<typeof DiagramSchema>
+export type DiagramGroup = z.infer<typeof GroupSchema>
+export type NodeType = z.infer<typeof NodeTypeSchema>
+export type NodeStyle = z.infer<typeof NodeStyleSchema>
+export type EdgeStyle = z.infer<typeof EdgeStyleSchema>
+export type Position = z.infer<typeof PositionSchema>
+export type Size = z.infer<typeof SizeSchema>
+
+/* ---------- Loading and migration ---------- */
+
+type RawDocument = Record<string, unknown> & { schemaVersion?: unknown }
+export type Migration = (doc: RawDocument) => RawDocument
+
+/**
+ * Migrations keyed by the version they upgrade FROM.
+ * Example for a future v2:
+ *   1: (doc) => ({ ...doc, schemaVersion: 2, newField: "default" }),
+ */
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {}
+
+/** Steps a raw document up to `target`. `steps` is injectable for tests. */
+export function migrate(raw: unknown, target: number = SCHEMA_VERSION, steps: Readonly<Record<number, Migration>> = MIGRATIONS): unknown {
+  if (typeof raw !== 'object' || raw === null) return raw
+  let doc = raw as RawDocument
+  let version = typeof doc.schemaVersion === 'number' ? doc.schemaVersion : 0
+
+  if (version > target) {
+    throw new Error(`Diagram was saved with a newer schema (v${version}). This app supports up to v${target}.`)
+  }
+  while (version < target) {
+    const step = steps[version]
+    if (!step) throw new Error(`No migration from schema v${version}.`)
+    doc = step(doc)
+    if (typeof doc.schemaVersion !== 'number' || doc.schemaVersion <= version) {
+      throw new Error(`Migration from schema v${version} did not advance the version.`)
+    }
+    version = doc.schemaVersion
+  }
+  return doc
+}
+
+/** Parse untrusted JSON (file import, browser storage): migrate, then validate. */
+export function parseDiagram(raw: unknown): Diagram {
+  return DiagramSchema.parse(migrate(raw))
+}
+
+/** Non-throwing variant for UI code that wants to show a friendly error. */
+export function safeParseDiagram(raw: unknown) {
+  try {
+    return DiagramSchema.safeParse(migrate(raw))
+  } catch (err) {
+    return { success: false as const, error: err as Error }
+  }
+}
+
+/** A valid empty diagram, used for "New diagram". */
+export function createEmptyDiagram(title = 'Untitled diagram'): Diagram {
+  const now = new Date().toISOString()
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    meta: { title, created: now, updated: now },
+    nodes: [],
+    edges: [],
+    groups: [],
+  }
+}

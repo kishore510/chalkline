@@ -1,4 +1,4 @@
-import type { NodeShape, Size } from '@/schema/diagram'
+import type { NodeType, Size } from '@/schema/diagram'
 
 export interface Box {
   x: number
@@ -8,7 +8,7 @@ export interface Box {
 }
 
 /**
- * Outline of a node shape in its own coordinate space (0,0 to width,height).
+ * Outline of a node type in its own coordinate space (0,0 to width,height).
  * `body` paths are filled and stroked, `detail` paths are stroke only, and
  * `label` is where the label text is laid out.
  */
@@ -91,9 +91,9 @@ function actor(w: number, h: number): ShapeGeometry {
   }
 }
 
-export function shapeGeometry(shape: NodeShape, { width: w, height: h }: Size): ShapeGeometry {
+export function shapeGeometry(type: NodeType, { width: w, height: h }: Size): ShapeGeometry {
   const full: Box = { x: 0, y: 0, width: w, height: h }
-  switch (shape) {
+  switch (type) {
     case 'rectangle':
       return { body: [rectPath(w, h)], detail: [], label: full }
     case 'rounded':

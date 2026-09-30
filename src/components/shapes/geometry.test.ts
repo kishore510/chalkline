@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_NODE_SIZE } from '@/schema/factories'
-import { MIN_NODE_SIZE, NODE_SHAPES, type Size } from '@/schema/diagram'
+import { NODE_TYPES, type Size } from '@/schema/diagram'
 import { shapeGeometry } from './geometry'
 
 // Pull every number out of a path. Arc commands carry radii and flags as well
@@ -12,12 +12,12 @@ function numbers(path: string): number[] {
 
 const SIZES: Size[] = [
   ...Object.values(DEFAULT_NODE_SIZE),
-  { width: MIN_NODE_SIZE, height: MIN_NODE_SIZE },
+  { width: 1, height: 1 },
   { width: 600, height: 40 },
   { width: 40, height: 600 },
 ]
 
-describe.each(NODE_SHAPES)('%s geometry', (shape) => {
+describe.each(NODE_TYPES)('%s geometry', (shape) => {
   it.each(SIZES)('stays inside a $width x $height box', (size) => {
     const geometry = shapeGeometry(shape, size)
     const limit = Math.max(size.width, size.height)

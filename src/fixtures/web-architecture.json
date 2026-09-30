@@ -1,22 +1,21 @@
 {
   "schemaVersion": 1,
-  "id": "d_web_arch",
-  "title": "Three-tier web app",
-  "createdAt": "2026-09-30T00:00:00.000Z",
-  "updatedAt": "2026-09-30T08:15:00.000Z",
+  "meta": {"title": "Three-tier web app", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T08:15:00.000Z"},
   "nodes": [
-    { "id": "user", "shape": "actor", "position": { "x": 0, "y": 40 }, "size": { "width": 64, "height": 112 }, "label": "Customer" },
-    { "id": "cdn", "shape": "cloud", "position": { "x": 140, "y": 40 }, "size": { "width": 180, "height": 110 }, "label": "CDN" },
-    { "id": "web", "shape": "rounded", "position": { "x": 400, "y": 55 }, "size": { "width": 160, "height": 80 }, "label": "Web app" },
-    { "id": "api", "shape": "rectangle", "position": { "x": 640, "y": 55 }, "size": { "width": 160, "height": 80 }, "label": "API service" },
-    { "id": "db", "shape": "database", "position": { "x": 660, "y": 220 }, "size": { "width": 120, "height": 100 }, "label": "Postgres" },
-    { "id": "note", "shape": "text", "position": { "x": 400, "y": 250 }, "size": { "width": 200, "height": 40 }, "label": "All traffic over TLS" }
+    { "id": "user", "type": "actor", "position": { "x": 0, "y": 40 }, "size": { "width": 64, "height": 112 }, "label": "Customer" },
+    { "id": "cdn", "type": "cloud", "position": { "x": 140, "y": 40 }, "size": { "width": 180, "height": 110 }, "label": "CDN" },
+    { "id": "web", "type": "rounded", "position": { "x": 400, "y": 55 }, "size": { "width": 160, "height": 80 }, "label": "Web app" },
+    { "id": "api", "type": "rectangle", "position": { "x": 640, "y": 55 }, "size": { "width": 160, "height": 80 }, "label": "API service", "notes": "Stateless; scales horizontally.", "groupId": "g_backend" },
+    { "id": "db", "type": "database", "position": { "x": 660, "y": 220 }, "size": { "width": 120, "height": 100 }, "label": "Postgres", "style": { "fill": "token:accent-subtle", "stroke": "token:accent" }, "groupId": "g_backend" },
+    { "id": "note", "type": "text", "position": { "x": 400, "y": 250 }, "size": { "width": 200, "height": 40 }, "label": "All traffic over TLS" }
   ],
   "edges": [
-    { "id": "e_user_cdn", "source": "user", "target": "cdn", "markerStart": "none", "markerEnd": "arrow" },
-    { "id": "e_cdn_web", "source": "cdn", "target": "web", "markerStart": "none", "markerEnd": "arrow" },
-    { "id": "e_web_api", "source": "web", "target": "api", "sourceHandle": "right", "targetHandle": "left", "markerStart": "none", "markerEnd": "arrow" },
-    { "id": "e_api_db", "source": "api", "target": "db", "sourceHandle": "bottom", "targetHandle": "top", "markerStart": "arrow", "markerEnd": "arrow" }
+    { "id": "e_user_cdn", "source": "user", "target": "cdn" },
+    { "id": "e_cdn_web", "source": "cdn", "target": "web" },
+    { "id": "e_web_api", "source": "web", "target": "api", "sourceHandle": "right", "targetHandle": "left" },
+    { "id": "e_api_db", "source": "api", "target": "db", "sourceHandle": "bottom", "targetHandle": "top", "style": { "startArrow": "arrow", "lineType": "smoothstep", "dashed": true, "colour": "#1f6aa5", "width": 2 }, "label": "SQL" }
   ],
-  "viewport": { "x": 0, "y": 0, "zoom": 0.9 }
+  "groups": [
+    { "id": "g_backend", "label": "Backend", "position": { "x": 620, "y": 30 }, "size": { "width": 200, "height": 310 } }
+  ]
 }

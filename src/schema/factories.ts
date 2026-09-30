@@ -1,16 +1,8 @@
 import { createId } from '@/lib/id'
-import {
-  SCHEMA_VERSION,
-  type Diagram,
-  type DiagramEdge,
-  type DiagramNode,
-  type NodeShape,
-  type Point,
-  type Size,
-} from './diagram'
+import type { DiagramEdge, DiagramNode, NodeType, Position, Size } from './diagram'
 
-/** Sensible default size per shape, so new nodes look right with no styling. */
-export const DEFAULT_NODE_SIZE: Record<NodeShape, Size> = {
+/** Sensible default size per node type, so new nodes look right with no styling. */
+export const DEFAULT_NODE_SIZE: Record<NodeType, Size> = {
   rectangle: { width: 160, height: 80 },
   rounded: { width: 160, height: 80 },
   database: { width: 120, height: 100 },
@@ -19,7 +11,7 @@ export const DEFAULT_NODE_SIZE: Record<NodeShape, Size> = {
   text: { width: 160, height: 40 },
 }
 
-export const DEFAULT_NODE_LABEL: Record<NodeShape, string> = {
+export const DEFAULT_NODE_LABEL: Record<NodeType, string> = {
   rectangle: 'Service',
   rounded: 'Process',
   database: 'Database',
@@ -28,32 +20,19 @@ export const DEFAULT_NODE_LABEL: Record<NodeShape, string> = {
   text: 'Text',
 }
 
-export function createDiagram(overrides: Partial<Omit<Diagram, 'schemaVersion'>> = {}): Diagram {
-  const now = new Date().toISOString()
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    id: createId('d_'),
-    title: 'Untitled diagram',
-    createdAt: now,
-    updatedAt: now,
-    nodes: [],
-    edges: [],
-    viewport: { x: 0, y: 0, zoom: 1 },
-    ...overrides,
-  }
-}
-
 export function createNode(
-  shape: NodeShape,
-  position: Point,
-  overrides: Partial<Omit<DiagramNode, 'shape' | 'position'>> = {},
+  type: NodeType,
+  position: Position,
+  overrides: Partial<Omit<DiagramNode, 'type' | 'position'>> = {},
 ): DiagramNode {
   return {
     id: createId('n_'),
-    shape,
+    type,
     position,
-    size: { ...DEFAULT_NODE_SIZE[shape] },
-    label: DEFAULT_NODE_LABEL[shape],
+    size: { ...DEFAULT_NODE_SIZE[type] },
+    label: DEFAULT_NODE_LABEL[type],
+    notes: '',
+    style: {},
     ...overrides,
   }
 }
@@ -67,8 +46,9 @@ export function createEdge(
     id: createId('e_'),
     source,
     target,
-    markerStart: 'none',
-    markerEnd: 'arrow',
+    label: '',
+    notes: '',
+    style: {},
     ...overrides,
   }
 }
