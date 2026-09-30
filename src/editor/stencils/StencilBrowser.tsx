@@ -120,7 +120,7 @@ function StencilRow({ item, onInsert, onMenu, tabIndex }: { item: Item; onInsert
       >
         <Thumbnail svg={item.thumbnail} className="h-(--cl-stencil-thumb-height) w-(--cl-stencil-thumb-width)" />
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm text-text">{item.name}</span>
+          <span className="line-clamp-2 text-sm wrap-break-word text-text">{item.name}</span>
           <span className="truncate text-xs text-text-muted">{item.category}</span>
         </span>
       </button>
