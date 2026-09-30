@@ -1,6 +1,7 @@
 import { MarkerType, type Edge, type EdgeChange, type EdgeMarker, type Node, type NodeChange } from '@xyflow/react'
 import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType, Position, Size } from '@/schema/diagram'
 import { edgeAppearance } from './appearance'
+import type { Route } from './routing'
 import { HANDLE_SIDES, type HandleSide } from './handles'
 
 const isSide = (value: string | undefined): value is HandleSide => HANDLE_SIDES.includes(value as HandleSide)
@@ -17,8 +18,12 @@ export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; h
 export type ShapeFlowNode = Node<ShapeNodeData, 'shape'>
 
 export type LineType = NonNullable<EdgeStyle['lineType']>
-/** Edge data: a pinned side is kept; a missing side is chosen at render time from node positions. */
-export type FloatingEdgeData = { lineType: LineType; sourceSide?: HandleSide; targetSide?: HandleSide }
+/**
+ * Edge data. Sides come from the router (pinned sides unchanged, auto sides
+ * chosen around obstacles); a missing side is chosen at render time. `detour`
+ * is a routed polyline to follow instead of the line type's own path.
+ */
+export type FloatingEdgeData = { lineType: LineType; sourceSide?: HandleSide; targetSide?: HandleSide; detour?: Position[] }
 export type FloatingFlowEdge = Edge<FloatingEdgeData, 'floating'>
 
 /** Rendering defaults for optional edge style fields. */
@@ -72,7 +77,7 @@ function marker(arrow: Arrowhead, colour: string): EdgeMarker | undefined {
 /** Default edge width in px; the canvas passes the --cl-edge-width token. */
 export const DEFAULT_EDGE_WIDTH = 1.5
 
-export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH): Edge {
+export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route): Edge {
   const style = edge.style
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
@@ -86,11 +91,18 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
     sourceHandle: null,
     targetHandle: null,
     type: 'floating',
-    data: {
-      lineType,
-      ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
-      ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
-    } satisfies FloatingEdgeData,
+    data: (route
+      ? {
+          lineType,
+          sourceSide: route.sourceSide,
+          targetSide: route.targetSide,
+          ...(route.kind === 'detour' && { detour: route.points }),
+        }
+      : {
+          lineType,
+          ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
+          ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
+        }) satisfies FloatingEdgeData,
     selected,
     markerStart: marker(style.startArrow ?? EDGE_DEFAULTS.startArrow, colour),
     markerEnd: marker(style.endArrow ?? EDGE_DEFAULTS.endArrow, colour),
@@ -105,6 +117,34 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
 
 export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, defaultWidth = DEFAULT_EDGE_WIDTH): Edge[] {
   return diagram.edges.map((edge) => toFlowEdge(edge, selected.has(edge.id), defaultWidth))
+}
+
+/**
+ * Like toFlowEdges, but reuses the previous React Flow edge object when the
+ * edge, its selection and its route are unchanged, so React Flow skips it.
+ */
+export function createEdgeMapper() {
+  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; width: number; flow: Edge }>()
+  return function toFlowEdgesCached(
+    diagram: Diagram,
+    selected: ReadonlySet<string>,
+    routes: ReadonlyMap<string, Route>,
+    defaultWidth = DEFAULT_EDGE_WIDTH,
+  ): Edge[] {
+    const seen = new Set<string>()
+    const edges = diagram.edges.map((edge) => {
+      seen.add(edge.id)
+      const isSelected = selected.has(edge.id)
+      const route = routes.get(edge.id)
+      const hit = cache.get(edge.id)
+      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.width === defaultWidth) return hit.flow
+      const flow = toFlowEdge(edge, isSelected, defaultWidth, route)
+      cache.set(edge.id, { source: edge, selected: isSelected, route, width: defaultWidth, flow })
+      return flow
+    })
+    for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)
+    return edges
+  }
 }
 
 export interface NodeChangeSummary {

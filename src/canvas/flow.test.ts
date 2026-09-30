@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
 import { setNodeLabel } from '@/store/ops'
-import { applySelection, createNodeMapper, summariseEdgeChanges, summariseNodeChanges, toFlowEdge, toFlowEdges } from './flow'
+import { createRouteCache, routeEdge } from './routing'
+import { applySelection, createEdgeMapper, createNodeMapper, summariseEdgeChanges, summariseNodeChanges, toFlowEdge, toFlowEdges } from './flow'
 
 const diagram = () => parseDiagram(fixtures['all-shapes'])
 
@@ -59,6 +60,31 @@ describe('edges', () => {
     expect(edge.markerStart).toMatchObject({ type: MarkerType.ArrowClosed, color: 'var(--cl-accent)' })
     expect(edge.markerEnd).toBeUndefined()
     expect(edge.sourceHandle).toBeNull()
+  })
+})
+
+describe('routed edges', () => {
+  it('carries routed sides and detour points in data', () => {
+    const d = parseDiagram(fixtures['all-shapes'])
+    const edge = d.edges[2]!
+    const route = { ...routeEdge(d.nodes, edge), kind: 'detour' as const, points: [{ x: 0, y: 0 }, { x: 5, y: 5 }] }
+    expect(toFlowEdge(edge, false, 1.5, route).data).toEqual({
+      lineType: 'smoothstep',
+      sourceSide: route.sourceSide,
+      targetSide: route.targetSide,
+      detour: route.points,
+    })
+  })
+
+  it('reuses edge objects whose edge, selection and route are unchanged', () => {
+    const d = parseDiagram(fixtures['all-shapes'])
+    const routes = createRouteCache()
+    const map = createEdgeMapper()
+    const first = map(d, new Set(), routes(d))
+    const moved = { ...d, nodes: d.nodes.map((n) => (n.id === 'n_actor' ? { ...n, position: { x: n.position.x + 5, y: n.position.y } } : n)) }
+    const second = map(moved, new Set(), routes(moved))
+    expect(second[0]).toBe(first[0])
+    expect(second[2]).not.toBe(first[2])
   })
 })
 

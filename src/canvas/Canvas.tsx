@@ -21,14 +21,15 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
+  createEdgeMapper,
   createNodeMapper,
   summariseEdgeChanges,
   summariseNodeChanges,
-  toFlowEdges,
   type ShapeFlowNode,
 } from './flow'
 import { EdgeGrips } from './EdgeGrips'
 import { FloatingEdge } from './FloatingEdge'
+import { createRouteCache } from './routing'
 import { ShapeNode } from './ShapeNode'
 import { useLongPress, type PressTarget } from './useLongPress'
 
@@ -77,7 +78,11 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
   // Dragging from handles needs a precise pointer; touch uses Link mode instead.
   const connectable = selectTool && finePointer
   const nodes = useMemo(() => mapNodes(diagram, selected, selectTool), [mapNodes, diagram, selected, selectTool])
-  const edges = useMemo(() => toFlowEdges(diagram, selected, sizes.edgeWidth), [diagram, selected, sizes.edgeWidth])
+  // Routes are recomputed only for edges a change can affect (see createRouteCache).
+  const route = useMemo(() => createRouteCache(), [])
+  const mapEdges = useMemo(() => createEdgeMapper(), [])
+  const routes = useMemo(() => route(diagram), [route, diagram])
+  const edges = useMemo(() => mapEdges(diagram, selected, routes, sizes.edgeWidth), [mapEdges, diagram, selected, routes, sizes.edgeWidth])
 
   const onNodesChange = useCallback((changes: NodeChange<ShapeFlowNode>[]) => {
     const { moves, resizes, removed, selection: flags } = summariseNodeChanges(changes)

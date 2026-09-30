@@ -5,10 +5,14 @@ import { internalBox } from './EdgeGrips'
 import { floatingEndpoints, type Box } from './floating'
 import type { FloatingFlowEdge } from './flow'
 import { HANDLE_POSITION, type HandleSide } from './handles'
+import { polylineMidpoint, polylinePath } from './polyline'
+
+// Corner radius for routed detours drawn with a rounded line type.
+const DETOUR_RADIUS = 8
 
 /**
- * Draws every connector. Ends attach at side midpoints: a pinned side stays
- * put, an auto side picks the nearest facing side as nodes move. While one of
+ * Draws every connector. Ends attach at side midpoints on the sides the
+ * router chose (pinned sides never change; auto sides avoid other shapes). While one of
  * its end grips is dragged, the dragged end follows the pointer (or the
  * docking point it has snapped to) as a live preview.
  */
@@ -29,6 +33,30 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
     const side = drag.target?.side
     if (drag.end === 'source') [sourceBox, sourceSide] = [box, side]
     else [targetBox, targetSide] = [box, side]
+  }
+
+  // A routed detour (and no grip drag in progress) follows its polyline.
+  if (!drag && data.detour) {
+    const radius = data.lineType === 'smoothstep' || data.lineType === 'bezier' ? DETOUR_RADIUS : 0
+    const mid = polylineMidpoint(data.detour)
+    return (
+      <BaseEdge
+        id={id}
+        path={polylinePath(data.detour, radius)}
+        style={style}
+        markerStart={markerStart}
+        markerEnd={markerEnd}
+        label={label}
+        labelX={mid.x}
+        labelY={mid.y}
+        labelStyle={labelStyle}
+        labelShowBg={labelShowBg}
+        labelBgStyle={labelBgStyle}
+        labelBgPadding={labelBgPadding}
+        labelBgBorderRadius={labelBgBorderRadius}
+        interactionWidth={interactionWidth}
+      />
+    )
   }
 
   const ends = floatingEndpoints(sourceBox, targetBox, sourceSide, targetSide)
