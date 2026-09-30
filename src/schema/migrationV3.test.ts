@@ -11,17 +11,17 @@ const v2 = legacyFixtures['v2-container'] as { schemaVersion: number }
 describe('migration v2 -> v3', () => {
   it('the fixture was saved at v2', () => {
     expect(v2.schemaVersion).toBe(2)
-    expect(SCHEMA_VERSION).toBe(3)
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(3)
   })
 
   it('is a version bump only', () => {
-    const migrated = migrate(v2) as Record<string, unknown>
+    const migrated = migrate(v2, 3) as Record<string, unknown>
     expect(migrated).toEqual({ ...v2, schemaVersion: 3 })
   })
 
   it('loads through parseDiagram and through a browser autosave', () => {
     const diagram = parseDiagram(v2)
-    expect(diagram.schemaVersion).toBe(3)
+    expect(diagram.schemaVersion).toBe(SCHEMA_VERSION)
     expect(diagram.nodes.map((n) => n.type)).toEqual(['rounded', 'rounded', 'database', 'actor'])
     const map = new Map([['chalkline.autosave', JSON.stringify(v2)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
@@ -29,7 +29,7 @@ describe('migration v2 -> v3', () => {
   })
 
   it('still migrates v1 documents all the way', () => {
-    expect(parseDiagram(legacyFixtures['v1-web-architecture']).schemaVersion).toBe(3)
+    expect(parseDiagram(legacyFixtures['v1-web-architecture']).schemaVersion).toBe(SCHEMA_VERSION)
   })
 })
 

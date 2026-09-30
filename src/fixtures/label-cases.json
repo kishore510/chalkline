@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "meta": {"title": "Label cases", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
     {"id": "rectangle_short", "type": "rectangle", "position": {"x": 0, "y": 0}, "size": {"width": 160, "height": 80}, "label": "API"},

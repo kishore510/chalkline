@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Diagram document schema. Single source of truth for types.
  * Any change here requires: bump SCHEMA_VERSION, add a migration, add a test.
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /* ---------- Primitives ---------- */
 
@@ -21,6 +21,8 @@ export const SizeSchema = z.object({
   width: z.number().positive(),
   height: z.number().positive(),
 })
+
+const LayerIdSchema = z.string().min(1).max(128)
 
 /* ---------- Nodes ---------- */
 
@@ -54,6 +56,8 @@ export const NodeSchema = z.object({
   groupId: z.string().min(1).optional(),
   /** Locked nodes can't be moved, resized, deleted or arranged (label and notes stay editable). */
   locked: z.boolean().default(false),
+  /** Layer the node is on; missing means the default layer. */
+  layerId: LayerIdSchema.optional(),
 })
 
 /* ---------- Edges ---------- */
@@ -75,6 +79,8 @@ export const EdgeStyleSchema = z
 
 export const EdgeSchema = z.object({
   id: z.string().min(1),
+  /** Layer the edge is on; missing means the default layer. */
+  layerId: LayerIdSchema.optional(),
   source: z.string().min(1),
   target: z.string().min(1),
   sourceHandle: z.string().optional(),
@@ -109,7 +115,28 @@ export const GroupSchema = z.object({
   size: SizeSchema,
   style: NodeStyleSchema.default({}),
   collapsed: z.boolean().default(false),
+  /** Layer the group frame is on; missing means the default layer. Members keep their own layers. */
+  layerId: LayerIdSchema.optional(),
 })
+
+/* ---------- Layers ---------- */
+
+export const DEFAULT_LAYER_ID = 'default'
+export const MAX_LAYERS = 20
+
+/**
+ * Layers are listed bottom to top. The default layer always exists (it can be
+ * renamed, hidden, locked and reordered, never deleted). `visible` and
+ * `locked` are saved with the diagram but are view state, not undo steps.
+ */
+export const LayerSchema = z.object({
+  id: LayerIdSchema,
+  name: z.string().max(100).default(''),
+  visible: z.boolean().default(true),
+  locked: z.boolean().default(false),
+})
+
+export const defaultLayer = () => ({ id: DEFAULT_LAYER_ID, name: 'Base', visible: true, locked: false })
 
 /* ---------- Document ---------- */
 
@@ -126,8 +153,25 @@ export const DiagramSchema = z
     nodes: z.array(NodeSchema),
     edges: z.array(EdgeSchema),
     groups: z.array(GroupSchema).default([]),
+    layers: z.array(LayerSchema).default(() => [defaultLayer()]),
   })
   .superRefine((d, ctx) => {
+    // Layers: unique ids, the default layer present, not too many, every reference known.
+    const layerIds = new Set<string>()
+    d.layers.forEach((l, i) => {
+      if (layerIds.has(l.id)) ctx.addIssue({ code: 'custom', path: ['layers', i, 'id'], message: `Duplicate layer id "${l.id}"` })
+      layerIds.add(l.id)
+    })
+    if (!layerIds.has(DEFAULT_LAYER_ID)) ctx.addIssue({ code: 'custom', path: ['layers'], message: 'The default layer is missing' })
+    if (d.layers.length > MAX_LAYERS) ctx.addIssue({ code: 'custom', path: ['layers'], message: `At most ${MAX_LAYERS} layers` })
+    for (const key of ['nodes', 'edges', 'groups'] as const) {
+      d[key].forEach((item, i) => {
+        if (item.layerId !== undefined && !layerIds.has(item.layerId)) {
+          ctx.addIssue({ code: 'custom', path: [key, i, 'layerId'], message: `Unknown layer "${item.layerId}"` })
+        }
+      })
+    }
+
     const nodeIds = new Set<string>()
     const groupIds = new Set<string>()
     const groups = new Map(d.groups.map((g) => [g.id, g]))
@@ -199,6 +243,7 @@ export type DiagramInput = z.input<typeof DiagramSchema>
 export type DiagramNode = z.infer<typeof NodeSchema>
 export type DiagramEdge = z.infer<typeof EdgeSchema>
 export type DiagramGroup = z.infer<typeof GroupSchema>
+export type DiagramLayer = z.infer<typeof LayerSchema>
 export type GroupKind = z.infer<typeof GroupKindSchema>
 export type Orientation = z.infer<typeof OrientationSchema>
 export type NodeType = z.infer<typeof NodeTypeSchema>
@@ -224,6 +269,8 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   // v3: node type is a registry id (any string) instead of a fixed list. Existing
   // data is already valid, so this is a version bump only.
   2: (doc) => ({ ...doc, schemaVersion: 3 }),
+  // v4: layers. Every existing item stays on the default layer; nothing else changes.
+  3: (doc) => ({ ...doc, schemaVersion: 4, layers: [defaultLayer()] }),
   // v2: groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked.
   // Existing groups become plain containers; nothing is locked.
   1: (doc) => ({
@@ -278,5 +325,6 @@ export function createEmptyDiagram(title = 'Untitled diagram'): Diagram {
     nodes: [],
     edges: [],
     groups: [],
+    layers: [defaultLayer()],
   }
 }

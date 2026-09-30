@@ -17,9 +17,10 @@ function ordered(obj: object, order: readonly string[]): { [key: string]: Json }
   return out
 }
 
-const NODE_KEYS = ['id', 'type', 'position', 'size', 'label', 'notes', 'style', 'groupId', 'locked'] as const
-const EDGE_KEYS = ['id', 'source', 'target', 'sourceHandle', 'targetHandle', 'label', 'notes', 'style'] as const
-const GROUP_KEYS = ['id', 'label', 'kind', 'parentId', 'orientation', 'headerSize', 'locked', 'position', 'size', 'style', 'collapsed'] as const
+const NODE_KEYS = ['id', 'type', 'layerId', 'position', 'size', 'label', 'notes', 'style', 'groupId', 'locked'] as const
+const EDGE_KEYS = ['id', 'layerId', 'source', 'target', 'sourceHandle', 'targetHandle', 'label', 'notes', 'style'] as const
+const GROUP_KEYS = ['id', 'label', 'kind', 'layerId', 'parentId', 'orientation', 'headerSize', 'locked', 'position', 'size', 'style', 'collapsed'] as const
+const LAYER_KEYS = ['id', 'name', 'visible', 'locked'] as const
 const NODE_STYLE_KEYS = ['fill', 'stroke', 'strokeWidth', 'textColour', 'fontSize'] as const
 const EDGE_STYLE_KEYS = ['lineType', 'dashed', 'startArrow', 'endArrow', 'colour', 'width'] as const
 
@@ -43,8 +44,9 @@ export function toCanonical(diagram: Diagram): { [key: string]: Json } {
       nodes: diagram.nodes.map(node),
       edges: diagram.edges.map(edge),
       groups: diagram.groups.map(group),
+      layers: diagram.layers.map((l) => ordered(l, LAYER_KEYS)),
     },
-    ['schemaVersion', 'meta', 'nodes', 'edges', 'groups'],
+    ['schemaVersion', 'meta', 'nodes', 'edges', 'groups', 'layers'],
   )
 }
 

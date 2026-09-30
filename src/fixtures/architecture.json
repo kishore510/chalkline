@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "meta": {"title": "Service architecture", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
     {"id": "n_users", "type": "user-group", "position": {"x": 0, "y": 30}, "size": {"width": 128, "height": 128}, "label": "Customers"},

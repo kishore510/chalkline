@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 4,
+  "meta": {"title": "Layered architecture", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n_client", "type": "actor", "position": {"x": 0, "y": 20}, "size": {"width": 96, "height": 128}, "label": "Client"},
+    {"id": "n_api", "type": "rounded", "position": {"x": 230, "y": 50}, "size": {"width": 160, "height": 80}, "label": "API", "groupId": "g_zone"},
+    {"id": "n_db", "type": "database", "position": {"x": 470, "y": 40}, "size": {"width": 120, "height": 100}, "label": "Records", "groupId": "g_zone"},
+    {"id": "n_firewall", "type": "hexagon", "layerId": "l_security", "position": {"x": 230, "y": 230}, "size": {"width": 160, "height": 80}, "label": "Firewall"},
+    {"id": "n_note", "type": "sticky-note", "layerId": "l_notes", "position": {"x": 680, "y": 20}, "size": {"width": 150, "height": 150}, "label": "Review access quarterly", "style": {"fill": "token:swatch-amber-soft", "stroke": "token:swatch-amber"}}
+  ],
+  "edges": [
+    {"id": "e_client_api", "source": "n_client", "target": "n_api"},
+    {"id": "e_api_db", "source": "n_api", "target": "n_db"},
+    {"id": "e_firewall_api", "source": "n_firewall", "target": "n_api", "layerId": "l_security", "style": {"dashed": true}},
+    {"id": "e_note_db", "source": "n_note", "target": "n_db", "layerId": "l_notes"}
+  ],
+  "groups": [
+    {"id": "g_zone", "label": "Trusted zone", "kind": "container", "layerId": "l_security", "position": {"x": 200, "y": -20}, "size": {"width": 420, "height": 180}}
+  ],
+  "layers": [
+    {"id": "default", "name": "Base", "visible": true, "locked": false},
+    {"id": "l_security", "name": "Security overlay", "visible": true, "locked": false},
+    {"id": "l_notes", "name": "Notes", "visible": false, "locked": false}
+  ]
+}

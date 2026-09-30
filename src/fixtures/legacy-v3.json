@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 3,
   "meta": {"title": "Process flow", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
     {"id": "n_start", "type": "ellipse", "position": {"x": 0, "y": 20}, "size": {"width": 150, "height": 90}, "label": "Request received"},
