@@ -29,13 +29,18 @@ interface Command {
 
 const store = () => useDiagramStore.getState()
 
+/** Runs an arrange action and says if locked shapes were left out. */
+function report({ skipped }: { skipped: number }) {
+  if (skipped > 0) useUiStore.getState().notify(`Skipped ${skipped} locked ${skipped === 1 ? 'shape' : 'shapes'}.`)
+}
+
 const ALIGN: (Command & { mode: AlignMode })[] = [
-  { mode: 'left', label: 'Left', title: 'Align left edges', icon: <AlignStartVertical />, run: () => store().alignSelection('left') },
-  { mode: 'centre', label: 'Centre', title: 'Align centres horizontally', icon: <AlignCenterVertical />, run: () => store().alignSelection('centre') },
-  { mode: 'right', label: 'Right', title: 'Align right edges', icon: <AlignEndVertical />, run: () => store().alignSelection('right') },
-  { mode: 'top', label: 'Top', title: 'Align top edges', icon: <AlignStartHorizontal />, run: () => store().alignSelection('top') },
-  { mode: 'middle', label: 'Middle', title: 'Align centres vertically', icon: <AlignCenterHorizontal />, run: () => store().alignSelection('middle') },
-  { mode: 'bottom', label: 'Bottom', title: 'Align bottom edges', icon: <AlignEndHorizontal />, run: () => store().alignSelection('bottom') },
+  { mode: 'left', label: 'Left', title: 'Align left edges', icon: <AlignStartVertical />, run: () => report(store().alignSelection('left')) },
+  { mode: 'centre', label: 'Centre', title: 'Align centres horizontally', icon: <AlignCenterVertical />, run: () => report(store().alignSelection('centre')) },
+  { mode: 'right', label: 'Right', title: 'Align right edges', icon: <AlignEndVertical />, run: () => report(store().alignSelection('right')) },
+  { mode: 'top', label: 'Top', title: 'Align top edges', icon: <AlignStartHorizontal />, run: () => report(store().alignSelection('top')) },
+  { mode: 'middle', label: 'Middle', title: 'Align centres vertically', icon: <AlignCenterHorizontal />, run: () => report(store().alignSelection('middle')) },
+  { mode: 'bottom', label: 'Bottom', title: 'Align bottom edges', icon: <AlignEndHorizontal />, run: () => report(store().alignSelection('bottom')) },
 ]
 
 const DISTRIBUTE: (Command & { axis: Axis })[] = [
@@ -44,21 +49,21 @@ const DISTRIBUTE: (Command & { axis: Axis })[] = [
     label: 'Across',
     title: 'Distribute horizontally (equal gaps)',
     icon: <AlignHorizontalDistributeCenter />,
-    run: () => store().distributeSelection('horizontal'),
+    run: () => report(store().distributeSelection('horizontal')),
   },
   {
     axis: 'vertical',
     label: 'Down',
     title: 'Distribute vertically (equal gaps)',
     icon: <AlignVerticalDistributeCenter />,
-    run: () => store().distributeSelection('vertical'),
+    run: () => report(store().distributeSelection('vertical')),
   },
 ]
 
 const MATCH: (Command & { mode: MatchMode })[] = [
-  { mode: 'width', label: 'Width', title: 'Match the widest width', icon: <MoveHorizontal />, run: () => store().matchSizeSelection('width') },
-  { mode: 'height', label: 'Height', title: 'Match the tallest height', icon: <MoveVertical />, run: () => store().matchSizeSelection('height') },
-  { mode: 'both', label: 'Both', title: 'Match the largest width and height', icon: <Scaling />, run: () => store().matchSizeSelection('both') },
+  { mode: 'width', label: 'Width', title: 'Match the widest width', icon: <MoveHorizontal />, run: () => report(store().matchSizeSelection('width')) },
+  { mode: 'height', label: 'Height', title: 'Match the tallest height', icon: <MoveVertical />, run: () => report(store().matchSizeSelection('height')) },
+  { mode: 'both', label: 'Both', title: 'Match the largest width and height', icon: <Scaling />, run: () => report(store().matchSizeSelection('both')) },
 ]
 
 /** Selected shapes (edges don't count), shown only in Select mode. */

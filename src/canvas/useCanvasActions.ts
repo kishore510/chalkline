@@ -1,7 +1,7 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
 import { useCallback, useMemo } from 'react'
 import { readToken } from '@/lib/cssVar'
-import type { NodeType } from '@/schema/diagram'
+import type { NodeType, Orientation } from '@/schema/diagram'
 import { MEDIA } from '@/styles/breakpoints'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
@@ -24,6 +24,17 @@ export function useCanvasActions() {
     [flow, rfStore],
   )
 
+  /** Adds a swimlane pool (three lanes) at the centre of the view. */
+  const addPoolAtCenter = useCallback(
+    (orientation: Orientation) => {
+      const rect = rfStore.getState().domNode?.getBoundingClientRect()
+      if (!rect) return
+      const center = flow.screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+      useDiagramStore.getState().addPool(center, orientation)
+    },
+    [flow, rfStore],
+  )
+
   /** Adds a node where a palette item was dropped. Returns false if the point is not over the canvas. */
   const addAtScreenPoint = useCallback(
     (type: NodeType, x: number, y: number) => {
@@ -39,6 +50,7 @@ export function useCanvasActions() {
     () => ({
       addAtCenter,
       addAtScreenPoint,
+      addPoolAtCenter,
       zoomIn: () => void flow.zoomIn({ duration: duration() }),
       zoomOut: () => void flow.zoomOut({ duration: duration() }),
       fitView: () => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }),
@@ -48,6 +60,6 @@ export function useCanvasActions() {
         requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }))
       },
     }),
-    [flow, addAtCenter, addAtScreenPoint],
+    [flow, addAtCenter, addAtScreenPoint, addPoolAtCenter],
   )
 }

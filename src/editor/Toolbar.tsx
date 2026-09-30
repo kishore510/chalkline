@@ -7,6 +7,7 @@ import type { Layout } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore, type Tool } from '@/store/uiStore'
+import { deleteSelectionWithNotice } from './deleteSelection'
 
 const TOOL_OPTIONS: { value: Tool; label: string; icon: React.ReactNode }[] = [
   { value: 'select', label: 'Select and move (V)', icon: <MousePointer2 /> },
@@ -53,7 +54,6 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
   const setTool = useUiStore((s) => s.setTool)
   const openPalette = useUiStore((s) => s.setPaletteOpen)
   const hasSelection = useDiagramStore((s) => s.selection.length > 0)
-  const deleteSelection = useDiagramStore((s) => s.deleteSelection)
   const floating = layout !== 'desktop'
   const round = cn(floating && 'rounded-full')
 
@@ -92,7 +92,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
         aria-label="Delete selection (Del)"
         title="Delete selection (Del)"
         disabled={!hasSelection}
-        onClick={deleteSelection}
+        onClick={deleteSelectionWithNotice}
         className={cn('text-danger', round)}
       >
         <Trash2 />

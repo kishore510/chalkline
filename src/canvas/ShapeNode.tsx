@@ -44,7 +44,7 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
   return (
     <>
       <NodeResizer
-        isVisible={selected && !editing}
+        isVisible={selected && !editing && !data.locked}
         minWidth={MIN_NODE_SIZE}
         minHeight={minHeight}
         handleClassName="cl-resize-handle"
@@ -63,6 +63,7 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         selected={selected}
         appearance={appearance}
         hasNotes={data.hasNotes}
+        locked={data.locked}
         labelRef={labelRef}
         editor={editing ? <LabelEditor id={id} initial={data.label} /> : undefined}
       />

@@ -1,4 +1,4 @@
-import { StickyNote } from 'lucide-react'
+import { Lock, StickyNote } from 'lucide-react'
 import type { ReactNode, Ref } from 'react'
 import type { NodeAppearance } from '@/canvas/appearance'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,7 @@ export function ShapeView({
   selected = false,
   appearance = {},
   hasNotes = false,
+  locked = false,
   editor,
   labelRef,
   className,
@@ -36,6 +37,8 @@ export function ShapeView({
   appearance?: NodeAppearance
   /** Shows a small badge so annotated nodes are discoverable. */
   hasNotes?: boolean
+  /** Shows a padlock badge. */
+  locked?: boolean
   /** Replaces the label text, e.g. with an inline editor. */
   editor?: ReactNode
   /** The label's content box, for measuring how tall it wants to be. */
@@ -99,6 +102,14 @@ export function ShapeView({
             ))}
         </div>
       </div>
+      {locked && (
+        <span
+          title="Locked"
+          className="absolute -top-2 -left-2 flex size-5 items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-sm"
+        >
+          <Lock className="size-3" aria-label="Locked" />
+        </span>
+      )}
       {hasNotes && (
         <span
           title="Has notes"

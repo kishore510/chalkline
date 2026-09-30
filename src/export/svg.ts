@@ -6,6 +6,8 @@ import { polylineMidpoint, polylinePath } from '@/canvas/polyline'
 import { routeEdge } from '@/canvas/routing'
 import { dashArray } from '@/canvas/appearance'
 import { labelLayout, shapeGeometry } from '@/components/shapes/geometry'
+import { buildRenderModel, type GroupView } from '@/canvas/renderModel'
+import type { RoutableNode } from '@/canvas/routing'
 import type { Diagram, DiagramEdge, DiagramNode } from '@/schema/diagram'
 import { wrapText, type Measure } from './text'
 
@@ -101,11 +103,45 @@ function nodeSvg(node: DiagramNode, env: ExportEnv, bounds: Bounds): string {
 
 type Arrow = 'arrow' | 'closed'
 
-function edgeSvg(edge: DiagramEdge, diagram: Diagram, env: ExportEnv, bounds: Bounds, marker: (type: Arrow, colour: string) => string): string {
-  const source = diagram.nodes.find((n) => n.id === edge.source)
-  const target = diagram.nodes.find((n) => n.id === edge.target)
+/** A group's background, border, header strip and title, drawn behind everything else. */
+function groupSvg(view: GroupView, env: ExportEnv, bounds: Bounds): string {
+  const { box, side, header, group } = view
+  bounds.add(box)
+  const fill = resolve(group.style.fill, 'group-fill', env)
+  const stroke = resolve(group.style.stroke, 'group-border', env)
+  const strip = side === 'top' ? { x: box.x, y: box.y, width: box.width, height: Math.min(header, box.height) } : { x: box.x, y: box.y, width: Math.min(header, box.width), height: box.height }
+  const parts = [
+    `<rect x="${r2(box.x)}" y="${r2(box.y)}" width="${r2(box.width)}" height="${r2(box.height)}" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="${env.nodeStrokeWidth}"/>`,
+    `<rect x="${r2(strip.x)}" y="${r2(strip.y)}" width="${r2(strip.width)}" height="${r2(strip.height)}" rx="10" fill="${env.colour('group-header')}"/>`,
+  ]
+  const label = group.label.trim()
+  if (label) {
+    const fs = env.fontSize
+    const lh = fs * env.lineHeight
+    // Titles run along the strip: across a top header, up a left one.
+    const run = side === 'top' ? strip.width - 2 * env.nodePadding : strip.height - 2 * env.nodePadding
+    const lines = wrapText(label, Math.max(1, run), fs, env.measure)
+    const block = lines.length * lh
+    const colour = env.colour('text')
+    if (side === 'top') {
+      const top = strip.y + (strip.height - block) / 2
+      const tspans = lines.map((l, i) => `<tspan x="${r2(strip.x + env.nodePadding)}" y="${r2(top + (i + 0.5) * lh)}">${escapeXml(l)}</tspan>`).join('')
+      parts.push(`<text font-size="${fs}" font-weight="600" fill="${colour}" dominant-baseline="central">${tspans}</text>`)
+    } else {
+      const cx = strip.x + strip.width / 2
+      const cy = strip.y + strip.height / 2
+      const tspans = lines.map((l, i) => `<tspan x="${r2(cx)}" y="${r2(cy - block / 2 + (i + 0.5) * lh)}">${escapeXml(l)}</tspan>`).join('')
+      parts.push(`<text font-size="${fs}" font-weight="600" fill="${colour}" text-anchor="middle" dominant-baseline="central" transform="rotate(-90 ${r2(cx)} ${r2(cy)})">${tspans}</text>`)
+    }
+  }
+  return parts.join('')
+}
+
+function edgeSvg(edge: DiagramEdge, nodes: readonly RoutableNode[], env: ExportEnv, bounds: Bounds, marker: (type: Arrow, colour: string) => string): string {
+  const source = nodes.find((n) => n.id === edge.source)
+  const target = nodes.find((n) => n.id === edge.target)
   if (!source || !target) return ''
-  const route = routeEdge(diagram.nodes, edge)
+  const route = routeEdge(nodes, edge)
   const style = edge.style
   const colour = resolve(style.colour, 'edge', env)
   const width = style.width ?? env.edgeWidth
@@ -172,8 +208,14 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
     return markers.get(key)!
   }
 
-  const edges = diagram.edges.map((e) => edgeSvg(e, diagram, env, bounds, marker)).join('')
-  const nodes = diagram.nodes.map((n) => nodeSvg(n, env, bounds)).join('')
+  // Draw what the canvas shows: collapsed groups hide their members and take their connectors.
+  const model = buildRenderModel(diagram)
+  const groups = model.groups.map((v) => groupSvg(v, env, bounds)).join('')
+  const edges = model.edges.map((e) => edgeSvg(e, model.routingNodes, env, bounds, marker)).join('')
+  const nodes = diagram.nodes
+    .filter((n) => !model.hiddenNodes.has(n.id))
+    .map((n) => nodeSvg(n, env, bounds))
+    .join('')
   if (bounds.empty) bounds.add({ x: 0, y: 0, width: 1, height: 1 })
 
   const x = Math.floor(bounds.x0 - padding)
@@ -198,6 +240,7 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
     `<title>${escapeXml(diagram.meta.title)}</title>` +
     `<defs><style>${style}</style>${defs.join('')}</defs>` +
     background +
+    groups +
     edges +
     nodes +
     '</svg>'

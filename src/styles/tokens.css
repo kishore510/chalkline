@@ -41,6 +41,9 @@
   --cl-shadow-color-strong: #1d232729;
   --cl-overlay: #1d232766;
   --cl-minimap-mask: #1d23271f;
+  --cl-group-fill: #1d23270a;
+  --cl-group-border: #b9b4a7;
+  --cl-group-header: #ebe8e0;
 
   /* Diagram colour presets: strong for lines and text, soft for fills. */
   --cl-swatch-slate: #4f5a60;
@@ -92,6 +95,9 @@
   --cl-shadow-color-strong: #00000080;
   --cl-overlay: #00000099;
   --cl-minimap-mask: #0000004d;
+  --cl-group-fill: #ebede60d;
+  --cl-group-border: #4a5960;
+  --cl-group-header: #253137;
 
   /* Diagram colour presets: strong for lines and text, soft for fills. */
   --cl-swatch-slate: #b4bec3;
@@ -127,6 +133,8 @@
   --cl-handle-hit-fine: 24px;
   /* Connector end grips and docking points while re-attaching a connector. */
   --cl-dock-dot: 16px;
+  /* Invisible grab strip along a group's border (the body lets clicks through). */
+  --cl-group-edge-hit: 12px;
   --cl-dock-radius: 40px;
   --cl-long-press: 500ms;
   --cl-toast-duration: 5000ms;

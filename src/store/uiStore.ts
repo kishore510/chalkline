@@ -19,7 +19,7 @@ export interface ContextMenuState {
   /** The element that was pressed. */
   id: string
   /** 'grip' is the end grip of a selected connector; `end` says which one. */
-  kind: 'node' | 'edge' | 'grip' | 'pane'
+  kind: 'node' | 'edge' | 'grip' | 'pane' | 'group'
   end?: EdgeEnd
 }
 
@@ -52,6 +52,9 @@ interface UiState {
   notify: (text: string) => void
   dismissNotice: () => void
   edgeDrag: EdgeDrag | null
+  /** Group a dragged node would join if dropped now (drop feedback). */
+  dropTargetId: string | null
+  setDropTarget: (id: string | null) => void
   setEdgeDrag: (drag: EdgeDrag | null) => void
   /** Bumped to ask the properties panel to focus its label field (e.g. double-click on an edge). */
   focusLabelRequest: number
@@ -82,6 +85,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   notify: (text) => set((s) => ({ notice: { id: (s.notice?.id ?? 0) + 1, text } })),
   dismissNotice: () => set({ notice: null }),
   edgeDrag: null,
+  dropTargetId: null,
+  setDropTarget: (dropTargetId) => set((s) => (s.dropTargetId === dropTargetId ? s : { dropTargetId })),
   setEdgeDrag: (edgeDrag) => set({ edgeDrag }),
   focusLabelRequest: 0,
   requestLabelFocus: () => set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null })),

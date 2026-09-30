@@ -1,5 +1,5 @@
 import { useReactFlow } from '@xyflow/react'
-import { ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2, Ungroup } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -105,6 +105,35 @@ export function ContextMenu() {
           Paste here
         </Button>
         {!hasClipboard && <p className="px-3 pt-1 pb-2 text-xs text-text-muted">Copy a shape first.</p>}
+      </Panel>
+    )
+  }
+
+  if (menu.kind === 'group') {
+    return (
+      <Panel
+        ref={ref}
+        role="menu"
+        aria-label="Group actions"
+        className="fixed z-40 flex min-w-48 flex-col p-1 shadow-lg"
+        style={position ?? { left: menu.x, top: menu.y, visibility: 'hidden' }}
+      >
+        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().duplicateSelection())}>
+          <CopyPlus />
+          Duplicate
+        </Button>
+        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().copySelection())}>
+          <Copy />
+          Copy
+        </Button>
+        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().ungroup(menu.id))}>
+          <Ungroup />
+          Ungroup
+        </Button>
+        <Button role="menuitem" variant="ghost" className="justify-start text-danger" onClick={run(() => store().deleteGroupsWithContents([menu.id]))}>
+          <Trash2 />
+          Delete group and contents
+        </Button>
       </Panel>
     )
   }

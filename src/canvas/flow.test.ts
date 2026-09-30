@@ -10,7 +10,7 @@ const diagram = () => parseDiagram(fixtures['all-shapes'])
 
 describe('createNodeMapper', () => {
   it('maps every node with size, measured size and data', () => {
-    const nodes = createNodeMapper()(diagram(), new Set(['n_db']))
+    const nodes = createNodeMapper()(diagram().nodes, new Set(['n_db']))
     expect(nodes).toHaveLength(6)
     expect(nodes.find((n) => n.id === 'n_db')).toMatchObject({
       type: 'shape',
@@ -18,20 +18,25 @@ describe('createNodeMapper', () => {
       height: 100,
       measured: { width: 120, height: 100 },
       selected: true,
-      data: { type: 'database', label: 'Database', style: {}, hasNotes: false },
+      data: { type: 'database', label: 'Database', style: {}, hasNotes: false, locked: false },
     })
   })
 
   it('reuses unchanged nodes and rebuilds changed ones', () => {
     const map = createNodeMapper()
     const d = diagram()
-    const first = map(d, new Set())
+    const first = map(d.nodes, new Set())
     const changed = setNodeLabel(d, 'n_rect', 'New')
-    const second = map(changed, new Set(['n_db']))
+    const second = map(changed.nodes, new Set(['n_db']))
     expect(second[0]).not.toBe(first[0])
     expect(second[1]).toBe(first[1])
     expect(second.find((n) => n.id === 'n_db')).not.toBe(first.find((n) => n.id === 'n_db'))
-    expect(map(changed, new Set(['n_db']), false)[1]).not.toBe(second[1])
+    expect(map(changed.nodes, new Set(['n_db']), false)[1]).not.toBe(second[1])
+  })
+
+  it('makes locked nodes undraggable and flags them', () => {
+    const [rect] = createNodeMapper()(diagram().nodes, new Set(), true, new Set(['n_rect']))
+    expect(rect).toMatchObject({ draggable: false, data: { locked: true } })
   })
 })
 
@@ -80,9 +85,9 @@ describe('routed edges', () => {
     const d = parseDiagram(fixtures['all-shapes'])
     const routes = createRouteCache()
     const map = createEdgeMapper()
-    const first = map(d, new Set(), routes(d))
+    const first = map(d.edges, new Set(), routes(d))
     const moved = { ...d, nodes: d.nodes.map((n) => (n.id === 'n_actor' ? { ...n, position: { x: n.position.x + 5, y: n.position.y } } : n)) }
-    const second = map(moved, new Set(), routes(moved))
+    const second = map(moved.edges, new Set(), routes(moved))
     expect(second[0]).toBe(first[0])
     expect(second[2]).not.toBe(first[2])
   })

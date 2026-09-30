@@ -1,5 +1,5 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { ArrowRight, CopyPlus, Pencil, RotateCcw, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, CopyPlus, Group, LogOut, Pencil, RotateCcw, Trash2, Ungroup, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
@@ -9,14 +9,16 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
-import type { DiagramEdge, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
+import type { DiagramEdge, DiagramGroup, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
 import { useDiagramStore } from '@/store/diagramStore'
+import { groupById, isGroupLocked, isNodeLocked, isPool, laneOrder, minLaneThickness } from '@/store/groups'
 import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
+import { deleteSelectionWithNotice } from './deleteSelection'
 import { SHAPE_NAMES } from './palette'
 
 const store = () => useDiagramStore.getState()
@@ -214,6 +216,7 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         hint={NODE_NOTES_HINT}
         onChange={(notes) => store().setNodeNotes(node.id, notes)}
       />
+      <GroupMembership node={node} />
       <NodeStyleSection nodes={[node]} />
       <Section title="Size">
         <div className="flex gap-3">
@@ -222,6 +225,163 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         </div>
       </Section>
     </>
+  )
+}
+
+/* ---------- Groups, lanes and locking ---------- */
+
+/** Lock toggle for nodes or groups. Shows when a lock comes from an enclosing group instead. */
+function LockField({ ids, locked, inherited }: { ids: string[]; locked: boolean; inherited: boolean }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <ToggleField label="Locked" pressed={locked} onChange={(value) => store().setLocked(ids, value)} />
+      <p className="text-xs text-text-muted">
+        {inherited && !locked
+          ? 'Locked because its group is locked.'
+          : 'A locked item can’t be moved, resized or deleted. Its label and notes stay editable.'}
+      </p>
+    </div>
+  )
+}
+
+/** A shape's group, with a way out that doesn't depend on a precise drag, plus locking and grouping. */
+function GroupMembership({ node }: { node: DiagramNode }) {
+  const diagram = useDiagramStore((s) => s.diagram)
+  const group = groupById(diagram, node.groupId)
+  const lockedByGroup = isGroupLocked(diagram, group)
+  return (
+    <Section title="Group and lock">
+      {group ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="min-w-0 truncate">
+            In <span className="font-medium">{group.label || (group.kind === 'lane' ? 'a lane' : 'a group')}</span>
+          </span>
+          <Button variant="secondary" disabled={isNodeLocked(diagram, node)} onClick={() => store().removeFromGroup([node.id])}>
+            <LogOut />
+            Remove from group
+          </Button>
+        </div>
+      ) : (
+        <GroupButton />
+      )}
+      <LockField ids={[node.id]} locked={node.locked} inherited={lockedByGroup} />
+    </Section>
+  )
+}
+
+function GroupButton() {
+  return (
+    <Button
+      variant="secondary"
+      className="self-start"
+      onClick={() => {
+        if (!store().groupSelection()) useUiStore.getState().notify('Can’t group here: containers can’t go inside a lane.')
+      }}
+    >
+      <Group />
+      Group
+    </Button>
+  )
+}
+
+function GroupProperties({ group }: { group: DiagramGroup }) {
+  const diagram = useDiagramStore((s) => s.diagram)
+  const pool = isPool(diagram, group)
+  const locked = isGroupLocked(diagram, group)
+  const lanes = pool ? laneOrder(diagram, group.id) : []
+  return (
+    <>
+      <TextAreaField label="Name" value={group.label} rows={1} onChange={(label) => store().setGroupLabel(group.id, label)} />
+      <ToggleField label="Collapsed" pressed={group.collapsed} onChange={(collapsed) => store().setCollapsed(group.id, collapsed)} />
+      <LockField ids={[group.id]} locked={group.locked} inherited={locked && !group.locked} />
+      {pool && lanes.at(-1) && (
+        <Button variant="secondary" className="self-start" disabled={locked} onClick={() => store().addLane(lanes.at(-1)!.id, 'after')}>
+          <BetweenHorizontalEnd />
+          Add lane
+        </Button>
+      )}
+      <Section title="Remove">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={locked} onClick={() => store().ungroup(group.id)}>
+            <Ungroup />
+            Ungroup
+          </Button>
+          <Button variant="secondary" disabled={locked} className="text-danger" onClick={() => store().deleteGroupsWithContents([group.id])}>
+            <Trash2 />
+            Delete group and contents
+          </Button>
+        </div>
+        <p className="text-xs text-text-muted">Ungroup (or Delete) keeps the shapes inside. Delete group and contents removes them too; you can undo it.</p>
+      </Section>
+    </>
+  )
+}
+
+function LaneProperties({ lane }: { lane: DiagramGroup }) {
+  const diagram = useDiagramStore((s) => s.diagram)
+  const locked = isGroupLocked(diagram, lane)
+  const horizontal = (lane.orientation ?? 'horizontal') === 'horizontal'
+  const order = lane.parentId ? laneOrder(diagram, lane.parentId) : []
+  const index = order.findIndex((l) => l.id === lane.id)
+  const thickness = horizontal ? lane.size.height : lane.size.width
+  return (
+    <>
+      <TextAreaField label="Name" value={lane.label} rows={1} onChange={(label) => store().setGroupLabel(lane.id, label)} />
+      <Label>
+        {horizontal ? 'Height' : 'Width'}
+        <LaneThickness key={thickness} lane={lane} value={thickness} disabled={locked} />
+      </Label>
+      <Section title="Lanes">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="secondary" disabled={locked} onClick={() => store().addLane(lane.id, 'before')}>
+            <BetweenHorizontalStart />
+            Add before
+          </Button>
+          <Button variant="secondary" disabled={locked} onClick={() => store().addLane(lane.id, 'after')}>
+            <BetweenHorizontalEnd />
+            Add after
+          </Button>
+          <Button variant="secondary" disabled={locked || index <= 0} onClick={() => store().moveLane(lane.id, -1)}>
+            {horizontal ? <ArrowUp /> : <ArrowLeft />}
+            {horizontal ? 'Move up' : 'Move left'}
+          </Button>
+          <Button variant="secondary" disabled={locked || index === order.length - 1} onClick={() => store().moveLane(lane.id, 1)}>
+            {horizontal ? <ArrowDown /> : <ArrowRight />}
+            {horizontal ? 'Move down' : 'Move right'}
+          </Button>
+        </div>
+        <Button variant="secondary" disabled={locked} className="self-start text-danger" onClick={() => store().deleteLane(lane.id)}>
+          <Trash2 />
+          Delete lane
+        </Button>
+        <p className="text-xs text-text-muted">Deleting a lane keeps its shapes; they stay in the pool.</p>
+      </Section>
+      <LockField ids={[lane.id]} locked={lane.locked} inherited={locked && !lane.locked} />
+    </>
+  )
+}
+
+/** Lane thickness, committed on blur or Enter, never thinner than the lane's shapes. */
+function LaneThickness({ lane, value, disabled }: { lane: DiagramGroup; value: number; disabled: boolean }) {
+  const [draft, setDraft] = useState(String(Math.round(value)))
+  const commit = () => {
+    const n = Number(draft)
+    if (Number.isFinite(n)) store().setLaneThickness(lane.id, n)
+    else setDraft(String(Math.round(value)))
+  }
+  const min = Math.round(minLaneThickness(useDiagramStore.getState().diagram, lane))
+  return (
+    <Input
+      type="number"
+      inputMode="numeric"
+      min={min}
+      value={draft}
+      disabled={disabled}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === 'Enter' && commit()}
+      className="tabular-nums"
+    />
   )
 }
 
@@ -279,6 +439,7 @@ type Summary =
   | { kind: 'edge'; title: string; edge: DiagramEdge }
   | { kind: 'nodes'; title: string; nodes: DiagramNode[] }
   | { kind: 'edges'; title: string; edges: DiagramEdge[] }
+  | { kind: 'group'; title: string; group: DiagramGroup }
   | { kind: 'mixed'; title: string }
 
 function useSelectionSummary(): Summary {
@@ -287,6 +448,12 @@ function useSelectionSummary(): Summary {
   const ids = new Set(selection)
   const nodes = diagram.nodes.filter((n) => ids.has(n.id))
   const edges = diagram.edges.filter((e) => ids.has(e.id))
+  const groups = diagram.groups.filter((g) => ids.has(g.id))
+  if (groups.length === 1 && nodes.length + edges.length === 0) {
+    const group = groups[0]!
+    return { kind: 'group', title: group.kind === 'lane' ? 'Lane' : isPool(diagram, group) ? 'Pool' : 'Group', group }
+  }
+  if (groups.length > 0) return { kind: 'mixed', title: `${nodes.length + edges.length + groups.length} selected` }
   if (nodes.length + edges.length === 0) return { kind: 'none', title: 'Diagram' }
   if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: SHAPE_NAMES[nodes[0]!.type], node: nodes[0]! }
   if (edges.length === 1 && nodes.length === 0) return { kind: 'edge', title: 'Connector', edge: edges[0]! }
@@ -303,7 +470,14 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
       {summary.kind === 'none' && <DiagramProperties />}
       {summary.kind === 'node' && <NodeProperties node={summary.node} />}
       {summary.kind === 'edge' && <EdgeProperties edge={summary.edge} />}
-      {summary.kind === 'nodes' && <NodeStyleSection nodes={summary.nodes} />}
+      {summary.kind === 'nodes' && (
+        <>
+          <GroupButton />
+          <NodeStyleSection nodes={summary.nodes} />
+          <LockField ids={summary.nodes.map((n) => n.id)} locked={summary.nodes.every((n) => n.locked)} inherited={false} />
+        </>
+      )}
+      {summary.kind === 'group' && (summary.group.kind === 'lane' ? <LaneProperties lane={summary.group} /> : <GroupProperties group={summary.group} />)}
       {summary.kind === 'edges' && (
         <>
           <ConnectionSection edges={summary.edges} />
@@ -320,14 +494,22 @@ function Header({ summary, onClose }: { summary: Summary; onClose?: () => void }
     <div className="flex min-h-touch items-center gap-1">
       {summary.kind === 'node' && <ShapeIcon type={summary.node.type} className="mr-1 size-5 shrink-0 text-text-muted" />}
       <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{summary.title}</h2>
-      {(summary.kind === 'node' || summary.kind === 'nodes') && (
+      {(summary.kind === 'node' || summary.kind === 'nodes' || (summary.kind === 'group' && summary.group.kind === 'container')) && (
         <Button variant="ghost" size="icon" aria-label="Duplicate" title="Duplicate (Ctrl D)" onClick={() => store().duplicateSelection()}>
           <CopyPlus />
         </Button>
       )}
-      {summary.kind !== 'none' && (
-        <Button variant="ghost" size="icon" aria-label="Delete selection" title="Delete (Del)" onClick={() => store().deleteSelection()} className="text-danger">
-          <Trash2 />
+      {summary.kind !== 'none' && !(summary.kind === 'group' && summary.group.kind === 'lane') && (
+        <Button
+          variant="ghost"
+          size="icon"
+          // Deleting a group keeps its contents; "Delete group and contents" is in the panel.
+          aria-label={summary.kind === 'group' ? 'Ungroup (keep contents)' : 'Delete selection'}
+          title={summary.kind === 'group' ? 'Ungroup (keeps contents)' : 'Delete (Del)'}
+          onClick={deleteSelectionWithNotice}
+          className="text-danger"
+        >
+          {summary.kind === 'group' ? <Ungroup /> : <Trash2 />}
         </Button>
       )}
       {onClose && (

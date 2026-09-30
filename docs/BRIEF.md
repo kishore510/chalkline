@@ -36,7 +36,7 @@ Last updated: 30 Sep 2026
 | Hosting | GitHub Pages via GitHub Actions for now (public repo, https://kishore510.github.io/chalkline/), with `VITE_BASE` env var for the base path. Portal hosting (e.g. Cloudflare Pages) is a later decision. No host-specific code |
 | Dev environment | Raspberry Pi 5 (64-bit arm64 Linux), VS Code, Claude Code extension. No local browser testing |
 | Testing | `tsc --noEmit`, Vitest, `vite build` locally. Visual testing on phone and laptop via the deployed URL |
-| Schema | Zod schema is the single source of truth, versioned with migrations. Colours are hex or `token:name` so diagrams follow themes |
+| Schema | Zod schema is the single source of truth, versioned with migrations (v2 since Phase 4b: group kinds, nesting, lanes, locking). Colours are hex or `token:name` so diagrams follow themes |
 | Design | Chalk-on-slate theme direction (slate dark mode, paper light mode). Design tokens (CSS variables), light and dark from day one, mobile-first, pointer events, 44px touch targets, quiet chrome so the canvas is the focus |
 | Export | Built in-house, no new dependencies: SVG generated from diagram data, PNG rasterised from it, PDF via a small hand-written writer (decided 30 Sep 2026) |
 | AI (Phase 6) | Bring-your-own-key or a thin Cloudflare Worker proxy, decided when hosting is decided. Explicit buttons only, compact JSON payloads, size estimate before sending |
@@ -49,7 +49,7 @@ Last updated: 30 Sep 2026
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
 | 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Done, merged to `main` and deployed |
-| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a (align, distribute, match size) built on `phase-4a-align`; rest not started |
+| 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | 4a done (align/distribute); 4b (groups, swimlanes, locking; schema v2) built on `phase-4b-groups`; rest not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
 | 6. AI | Text-to-diagram, summary, annotation suggestions, review assistant | Not started |
 
@@ -110,3 +110,4 @@ Add one line per thread: date, phase, what was decided or built, what's next.
 - 30 Sep 2026: Obstacle-aware routing for Auto connector ends (pure routeEdge + incremental route cache; other side pairs, then detours; pinned ends untouched). No schema change.
 - 30 Sep 2026: Phase 3 built (autosave with restore, canonical JSON open/save, in-house SVG/PNG/PDF export, 100-step undo/redo with typing/drag grouping, copy/cut/paste incl. across tabs, duplicate, file menu, pane long-press paste). No schema change. Next: review, then Phase 4.
 - 30 Sep 2026: Phase 4a built (align six ways, distribute with equal gaps by size, match width/height/both; one undo step each; desktop arrange bar, phone/tablet panel section). Alignment guides while dragging left out. No schema change.
+- 30 Sep 2026: Phase 4b built: schema v2 with migration (groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked), containers with header-only selection, nesting, adopt/release by drop, collapse, swimlane pools with lane operations that keep tiling, locking, copy/paste and export of groups. Next: review, then 4c.

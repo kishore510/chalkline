@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Columns3, Rows3, X } from 'lucide-react'
 import { useRef, useState, type ComponentProps } from 'react'
 import { createPortal } from 'react-dom'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
@@ -112,6 +112,41 @@ function PaletteItem({ shape, compact, ...props }: { shape: NodeType; compact?: 
 
 const HINT = 'Tap to add, or drag onto the canvas.'
 
+const SWIMLANES = [
+  { orientation: 'horizontal', label: 'Swimlane ↔', title: 'Add a swimlane pool: lanes stacked, headers on the left', icon: <Rows3 className="size-7" /> },
+  { orientation: 'vertical', label: 'Swimlane ↕', title: 'Add a swimlane pool: lanes side by side, headers on top', icon: <Columns3 className="size-7" /> },
+] as const
+
+/** "Swimlane" entries: choose horizontal or vertical; tapping adds a pool with three lanes. */
+function SwimlaneItems({ compact, onAdded, tabIndex }: { compact?: boolean; onAdded?: () => void; tabIndex?: number }) {
+  const actions = useCanvasActions()
+  return (
+    <>
+      {SWIMLANES.map((s) => (
+        <button
+          key={s.orientation}
+          type="button"
+          title={s.title}
+          aria-label={s.title}
+          tabIndex={tabIndex}
+          onClick={() => {
+            actions.addPoolAtCenter(s.orientation)
+            onAdded?.()
+          }}
+          className={cn(
+            'flex min-h-touch items-center gap-3 rounded-md text-sm text-text transition-colors select-none',
+            'hover:bg-surface-muted active:bg-accent-subtle',
+            compact ? 'size-touch justify-center' : 'flex-col justify-center gap-1.5 border border-border bg-surface px-2 py-3',
+          )}
+        >
+          {s.icon}
+          {!compact && <span className="text-xs text-text-muted">{s.label}</span>}
+        </button>
+      ))}
+    </>
+  )
+}
+
 /** Desktop: persistent left panel. */
 export function PalettePanel() {
   const { itemProps, ghostElement } = usePaletteGestures({})
@@ -124,6 +159,10 @@ export function PalettePanel() {
         ))}
       </div>
       <p className="text-xs text-text-muted">{HINT}</p>
+      <h2 className="text-sm font-semibold">Structure</h2>
+      <div className="grid grid-cols-2 gap-2">
+        <SwimlaneItems />
+      </div>
       {ghostElement}
     </aside>
   )
@@ -159,9 +198,18 @@ export function PaletteRail() {
             ))}
           </div>
           <p className="text-xs text-text-muted">{HINT}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <SwimlaneItems />
+          </div>
         </>
       ) : (
-        NODE_TYPES.map((type) => <PaletteItem key={type} shape={type} compact {...itemProps(type)} />)
+        <>
+          {NODE_TYPES.map((type) => (
+            <PaletteItem key={type} shape={type} compact {...itemProps(type)} />
+          ))}
+          <div aria-hidden="true" className="h-px w-8 bg-border" />
+          <SwimlaneItems compact />
+        </>
       )}
       {ghostElement}
     </aside>
@@ -206,6 +254,9 @@ export function PaletteDrawer() {
         ))}
       </div>
       <p className="px-4 pt-3 text-xs text-text-muted">{HINT}</p>
+      <div className="grid grid-cols-2 gap-2 px-4 pt-3">
+        <SwimlaneItems tabIndex={open ? 0 : -1} onAdded={() => setOpen(false)} />
+      </div>
       {ghostElement}
     </div>
   )

@@ -16,6 +16,9 @@ const palette: Record<string, string> = {
   'accent-subtle': '#e0f0ff',
   accent: '#1f6aa5',
   'swatch-blue-soft': '#dbe9f5',
+  'group-fill': '#00000008',
+  'group-border': '#bbbbbb',
+  'group-header': '#eeeeee',
 }
 
 const env: ExportEnv = {
@@ -81,5 +84,25 @@ describe('buildSvg', () => {
     const empty = buildSvg(parseDiagram(fixtures.empty), env, { background: false })
     expect(empty.svg).not.toContain('<rect')
     expect(empty.width).toBeGreaterThan(0)
+  })
+})
+
+describe('buildSvg with groups', () => {
+  it('draws group backgrounds and titles behind nodes, including lane headers', () => {
+    const { svg } = buildSvg(parseDiagram(fixtures['swimlane-pool']), env)
+    for (const title of ['Payments platform', 'Channels', 'Integration', 'Data']) expect(svg).toContain(`>${title}</tspan>`)
+    // Lane headers run up the left side.
+    expect(svg).toContain('transform="rotate(-90')
+    expect(svg.indexOf('fill="#eeeeee"')).toBeLessThan(svg.indexOf('<g transform="translate'))
+  })
+
+  it('draws a collapsed group as its header, hiding members and ending connectors on it', async () => {
+    const { setGroupCollapsed } = await import('@/store/groups')
+    const d = setGroupCollapsed(parseDiagram(fixtures.container), 'g_backend', true)
+    const { svg } = buildSvg(d, env)
+    expect(svg).toContain('>Backend services</tspan>')
+    expect(svg).not.toContain('>Orders</tspan>')
+    expect((svg.match(/<g transform="translate/g) ?? []).length).toBe(1)
+    expect((svg.match(/marker-end=/g) ?? []).length).toBe(1)
   })
 })

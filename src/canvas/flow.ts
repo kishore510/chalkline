@@ -14,7 +14,7 @@ const isSide = (value: string | undefined): value is HandleSide => HANDLE_SIDES.
 
 type Arrowhead = NonNullable<EdgeStyle['endArrow']>
 
-export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; hasNotes: boolean }
+export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; hasNotes: boolean; locked: boolean }
 export type ShapeFlowNode = Node<ShapeNodeData, 'shape'>
 
 export type LineType = NonNullable<EdgeStyle['lineType']>
@@ -39,15 +39,26 @@ export const EDGE_DEFAULTS = {
  * node nor its selection changed, so React Flow can skip re-rendering it.
  */
 export function createNodeMapper() {
-  const cache = new Map<string, { source: DiagramNode; selected: boolean; flow: ShapeFlowNode }>()
+  const cache = new Map<string, { source: DiagramNode; selected: boolean; locked: boolean; flow: ShapeFlowNode }>()
 
-  return function toFlowNodes(diagram: Diagram, selected: ReadonlySet<string>, draggable = true): ShapeFlowNode[] {
+  /**
+   * `nodes`: the visible nodes. `locked`: ids of nodes that are locked, directly
+   * or through their group; they can't be dragged.
+   */
+  return function toFlowNodes(
+    nodes: readonly DiagramNode[],
+    selected: ReadonlySet<string>,
+    draggable = true,
+    locked: ReadonlySet<string> = new Set(),
+  ): ShapeFlowNode[] {
     const seen = new Set<string>()
-    const nodes = diagram.nodes.map((node) => {
+    const out = nodes.map((node) => {
       seen.add(node.id)
       const isSelected = selected.has(node.id)
+      const isLocked = locked.has(node.id)
+      const canDrag = draggable && !isLocked
       const hit = cache.get(node.id)
-      if (hit && hit.source === node && hit.selected === isSelected && hit.flow.draggable === draggable) return hit.flow
+      if (hit && hit.source === node && hit.selected === isSelected && hit.locked === isLocked && hit.flow.draggable === canDrag) return hit.flow
       const flow: ShapeFlowNode = {
         id: node.id,
         type: 'shape',
@@ -58,14 +69,14 @@ export function createNodeMapper() {
         // measured; otherwise React Flow re-measures every node on every change.
         measured: { width: node.size.width, height: node.size.height },
         selected: isSelected,
-        draggable,
-        data: { type: node.type, label: node.label, style: node.style, hasNotes: node.notes.trim().length > 0 },
+        draggable: canDrag,
+        data: { type: node.type, label: node.label, style: node.style, hasNotes: node.notes.trim().length > 0, locked: isLocked },
       }
-      cache.set(node.id, { source: node, selected: isSelected, flow })
+      cache.set(node.id, { source: node, selected: isSelected, locked: isLocked, flow })
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)
-    return nodes
+    return out
   }
 }
 
@@ -125,14 +136,15 @@ export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, def
  */
 export function createEdgeMapper() {
   const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; width: number; flow: Edge }>()
+  /** `edges`: the visible edges (ends already moved onto collapsed groups). */
   return function toFlowEdgesCached(
-    diagram: Diagram,
+    edges: readonly DiagramEdge[],
     selected: ReadonlySet<string>,
     routes: ReadonlyMap<string, Route>,
     defaultWidth = DEFAULT_EDGE_WIDTH,
   ): Edge[] {
     const seen = new Set<string>()
-    const edges = diagram.edges.map((edge) => {
+    const out = edges.map((edge) => {
       seen.add(edge.id)
       const isSelected = selected.has(edge.id)
       const route = routes.get(edge.id)
@@ -143,7 +155,7 @@ export function createEdgeMapper() {
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)
-    return edges
+    return out
   }
 }
 

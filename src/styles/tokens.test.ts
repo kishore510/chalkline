@@ -65,6 +65,8 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['focus', 'canvas', UI],
   ['border-strong', 'surface', UI],
   ['border-strong', 'bg', UI],
+  ['text', 'group-header', TEXT],
+  ['text-muted', 'group-header', TEXT],
 ]
 
 // Diagram presets are used as text and borders on any fill, so hold them to text contrast.

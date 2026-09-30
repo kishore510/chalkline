@@ -3,6 +3,7 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { parseFragment, serializeFragment } from '@/store/clipboard'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { deleteSelectionWithNotice } from './deleteSelection'
 import { saveJson } from './FileMenu'
 
 function isTyping(target: EventTarget | null) {
@@ -51,6 +52,14 @@ export function useShortcuts() {
           case 's':
             void saveJson()
             break
+          case 'g':
+            if (e.shiftKey) {
+              const groups = new Set(diagram.diagram.groups.map((g) => g.id))
+              for (const id of diagram.selection) if (groups.has(id)) diagram.ungroup(id)
+            } else if (diagram.selection.length > 0 && !diagram.groupSelection()) {
+              ui.notify('Can’t group here: containers can’t go inside a lane.')
+            }
+            break
           case 'a':
             diagram.setSelection([...diagram.diagram.nodes.map((n) => n.id), ...diagram.diagram.edges.map((edge) => edge.id)])
             break
@@ -94,7 +103,7 @@ export function useShortcuts() {
         case 'Backspace':
           if (diagram.selection.length === 0) return
           e.preventDefault()
-          diagram.deleteSelection()
+          deleteSelectionWithNotice()
           break
         case 'Enter': {
           const [only, ...rest] = diagram.selection

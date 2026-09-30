@@ -195,6 +195,22 @@
   transform: scale(1.4);
 }
 
+/* Groups: the box lets pointer events through to the canvas and the nodes inside;
+   only the header, border strips and resize controls take them. */
+.react-flow__node-group-box {
+  pointer-events: none !important;
+}
+
+.react-flow__node-group-box .react-flow__resize-control {
+  pointer-events: auto;
+}
+
+/* Pan mode ignores groups; Link mode lets taps reach shapes but not groups. */
+.cl-tool-pan .cl-group-drag,
+.cl-tool-link .cl-group-drag {
+  pointer-events: none;
+}
+
 /* Touch, pan and link modes have no handle-drag connections. Hidden, not removed, so edges keep their anchors. */
 .cl-no-handles .react-flow__handle.cl-handle {
   visibility: hidden;

@@ -18,6 +18,7 @@ import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
+import { innermostGroupAt, isNodeLocked, subtreeIds } from '@/store/groups'
 import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
@@ -29,15 +30,22 @@ import {
 } from './flow'
 import { EdgeGrips } from './EdgeGrips'
 import { FloatingEdge } from './FloatingEdge'
+import { GroupNode, type GroupFlowNode } from './GroupNode'
+import { buildRenderModel } from './renderModel'
 import { createRouteCache } from './routing'
 import { ShapeNode } from './ShapeNode'
 import { useLongPress, type PressTarget } from './useLongPress'
 
-const nodeTypes = { shape: ShapeNode }
+const nodeTypes = { shape: ShapeNode, 'group-box': GroupNode }
+type CanvasNode = ShapeFlowNode | GroupFlowNode
+
+// Groups sit behind edges and nodes; deeper groups above their parents.
+const GROUP_Z = -1000
 const edgeTypes = { floating: FloatingEdge }
 const isValidConnection: IsValidConnection = (c) => c.source !== c.target
 
-const minimapColour = (node: ShapeFlowNode) => resolveColour(node.data.style.fill, 'var(--cl-border-strong)')
+const minimapColour = (node: CanvasNode) =>
+  node.type === 'group-box' ? 'var(--cl-group-border)' : resolveColour(node.data.style.fill, 'var(--cl-border-strong)')
 
 const diagramStore = () => useDiagramStore.getState()
 const uiStore = () => useUiStore.getState()
@@ -48,7 +56,17 @@ function select(id: string) {
 
 function openMenu(target: PressTarget, x: number, y: number) {
   if (target.kind !== 'pane') select(target.id)
-  uiStore().openContextMenu({ ...target, x, y })
+  const isGroup = target.kind === 'node' && diagramStore().diagram.groups.some((g) => g.id === target.id)
+  uiStore().openContextMenu({ ...target, kind: isGroup ? 'group' : target.kind, x, y })
+}
+
+/** While shapes are dragged, highlight the group they'd join if dropped now. */
+function showDropTarget(dragged: CanvasNode[], main: CanvasNode) {
+  const shapes = dragged.filter((n) => n.type === 'shape')
+  const node = shapes.find((n) => n.id === main.id) ?? shapes[0]
+  if (!node || uiStore().tool !== 'select') return uiStore().setDropTarget(null)
+  const centre = { x: node.position.x + (node.width ?? 0) / 2, y: node.position.y + (node.height ?? 0) / 2 }
+  uiStore().setDropTarget(innermostGroupAt(diagramStore().diagram, centre)?.id ?? null)
 }
 
 // A drag or selection drag is one undo step.
@@ -58,6 +76,14 @@ const beginBatch = () => {
 }
 const endBatch = () => diagramStore().endBatch()
 
+/** End of a node drag: shapes join (or leave) the group under their centre, in the same undo step. */
+function endNodeDrag(dragged: CanvasNode[]) {
+  const shapes = dragged.filter((n) => n.type === 'shape').map((n) => n.id)
+  if (shapes.length && uiStore().tool === 'select') diagramStore().adoptDropped(shapes)
+  uiStore().setDropTarget(null)
+  endBatch()
+}
+
 /** `minimap`: where the overview sits, or 'none' (phone). Desktop keeps the top clear for the arrange bar. */
 export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-right' }) {
   const diagram = useDiagramStore((s) => s.diagram)
@@ -65,6 +91,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const tool = useUiStore((s) => s.tool)
   const snapToGrid = useUiStore((s) => s.snapToGrid)
   const connecting = useUiStore((s) => s.connecting)
+  const dropTarget = useUiStore((s) => s.dropTargetId)
   const finePointer = useMediaQuery(MEDIA.finePointer)
 
   // Grid and minimap sizes come from tokens; read once on mount.
@@ -85,17 +112,65 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   const linkTool = tool === 'link'
   // Dragging from handles needs a precise pointer; touch uses Link mode instead.
   const connectable = selectTool && finePointer
-  const nodes = useMemo(() => mapNodes(diagram, selected, selectTool), [mapNodes, diagram, selected, selectTool])
+  // What's drawn: collapsed groups hide their members, and connectors end on the group instead.
+  const model = useMemo(() => buildRenderModel(diagram), [diagram])
+  const shapeNodes = useMemo(() => {
+    const visible = diagram.nodes.filter((n) => !model.hiddenNodes.has(n.id))
+    const locked = new Set(visible.filter((n) => isNodeLocked(diagram, n)).map((n) => n.id))
+    return mapNodes(visible, selected, selectTool, locked)
+  }, [mapNodes, diagram, model, selected, selectTool])
+  const groupNodes = useMemo(
+    () =>
+      model.groups.map(
+        (view): GroupFlowNode => ({
+          id: view.group.id,
+          type: 'group-box',
+          position: { x: view.box.x, y: view.box.y },
+          width: view.box.width,
+          height: view.box.height,
+          measured: { width: view.box.width, height: view.box.height },
+          zIndex: GROUP_Z + view.depth,
+          // Selected through the header (see GroupNode), never by box-select or body clicks.
+          selectable: false,
+          connectable: false,
+          focusable: false,
+          // Lanes move only with their pool (and reorder via move up/down).
+          draggable: selectTool && !view.locked && view.group.kind === 'container',
+          dragHandle: '.cl-group-drag',
+          data: { view, selected: selected.has(view.group.id), dropTarget: dropTarget === view.group.id },
+        }),
+      ),
+    [model, selected, dropTarget, selectTool],
+  )
+  // Parents before children: groups (already ordered) first, then shapes.
+  const nodes = useMemo<CanvasNode[]>(() => [...groupNodes, ...shapeNodes], [groupNodes, shapeNodes])
   // Routes are recomputed only for edges a change can affect (see createRouteCache).
+  // Expanded groups aren't obstacles; nodes inside them still are.
   const route = useMemo(() => createRouteCache(), [])
   const mapEdges = useMemo(() => createEdgeMapper(), [])
-  const routes = useMemo(() => route(diagram), [route, diagram])
-  const edges = useMemo(() => mapEdges(diagram, selected, routes, sizes.edgeWidth), [mapEdges, diagram, selected, routes, sizes.edgeWidth])
+  const routes = useMemo(() => route({ nodes: model.routingNodes, edges: model.edges }), [route, model])
+  const edges = useMemo(() => mapEdges(model.edges, selected, routes, sizes.edgeWidth), [mapEdges, model, selected, routes, sizes.edgeWidth])
 
-  const onNodesChange = useCallback((changes: NodeChange<ShapeFlowNode>[]) => {
+  const onNodesChange = useCallback((changes: NodeChange<CanvasNode>[]) => {
     const { moves, resizes, removed, selection: flags } = summariseNodeChanges(changes)
-    if (moves.size) diagramStore().moveNodes(moves)
-    for (const r of resizes) diagramStore().resizeNode(r.id, r.size, r.position)
+    const d = diagramStore().diagram
+    const groupIds = new Set(d.groups.map((g) => g.id))
+    // Groups move first, taking everything inside; members dragged along too aren't moved twice.
+    const movedWithGroup = new Set<string>()
+    for (const [id, to] of moves) {
+      if (!groupIds.has(id)) continue
+      diagramStore().moveGroup(id, to)
+      for (const sub of subtreeIds(d, id)) movedWithGroup.add(sub)
+    }
+    const nodeMoves = new Map(
+      [...moves].filter(([id]) => !groupIds.has(id) && !movedWithGroup.has(d.nodes.find((n) => n.id === id)?.groupId ?? '')),
+    )
+    if (nodeMoves.size) diagramStore().moveNodes(nodeMoves)
+    for (const r of resizes) {
+      const group = d.groups.find((g) => g.id === r.id)
+      if (group) diagramStore().resizeGroup(r.id, { ...(r.position ?? group.position), ...r.size })
+      else diagramStore().resizeNode(r.id, r.size, r.position)
+    }
     if (removed.length) diagramStore().deleteElements(removed)
     if (flags.size) diagramStore().setSelection(applySelection(diagramStore().selection, flags))
   }, [])
@@ -150,16 +225,19 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
         connectionRadius={32}
-        onNodeClick={(_, node) => void uiStore().linkTap(node.id)}
-        onNodeDoubleClick={(_, node) => selectTool && uiStore().setEditing(node.id)}
+        // In Link mode shapes (including ones inside groups) can be linked; groups ignore taps.
+        onNodeClick={(_, node) => node.type === 'shape' && void uiStore().linkTap(node.id)}
+        onNodeDoubleClick={(_, node) => selectTool && node.type === 'shape' && uiStore().setEditing(node.id)}
         onEdgeDoubleClick={(_, edge) => {
           diagramStore().setSelection([edge.id])
           uiStore().requestLabelFocus()
         }}
         onNodeDragStart={beginBatch}
-        onNodeDragStop={endBatch}
+        onNodeDrag={(_, node, dragged) => showDropTarget(dragged, node)}
+        onNodeDragStop={(_, __, dragged) => endNodeDrag(dragged)}
         onSelectionDragStart={beginBatch}
-        onSelectionDragStop={endBatch}
+        onSelectionDrag={(_, dragged) => dragged[0] && showDropTarget(dragged, dragged[0])}
+        onSelectionDragStop={(_, dragged) => endNodeDrag(dragged)}
         onNodeContextMenu={(e, node) => {
           e.preventDefault()
           openMenu({ id: node.id, kind: 'node' }, e.clientX, e.clientY)
