@@ -37,6 +37,8 @@ export interface DiagramState {
   /** Pins an edge end to a side, or returns it to auto with null. */
   setEdgeSides: (ids: string[], patch: ops.SidesPatch) => void
   resetEdgeSides: (ids: string[]) => void
+  /** Moves an edge's ends to other nodes/sides. Returns false (and changes nothing) if rejected. */
+  reconnectEdge: (id: string, reconnection: ops.Reconnection) => boolean
   connect: (connection: ops.Connection) => string | null
   /** Connects two nodes with a floating edge (no stored handles; it attaches to the nearest sides). */
   linkNodes: (source: string, target: string) => string | null
@@ -96,6 +98,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     setEdgeNotes: (id, notes) => apply((d) => ops.setEdgeNotes(d, id, notes)),
     setEdgeSides: (ids, patch) => apply((d) => ops.setEdgeSides(d, ids, patch)),
     resetEdgeSides: (ids) => apply((d) => ops.resetEdgeSides(d, ids)),
+    reconnectEdge(id, reconnection) {
+      const current = get().diagram
+      const { diagram, ok } = ops.reconnectEdge(current, id, reconnection)
+      if (diagram !== current) set({ diagram: ops.touch(diagram) })
+      return ok
+    },
 
     connect(connection) {
       const { diagram, edgeId } = ops.connect(get().diagram, connection)

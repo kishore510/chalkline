@@ -1,4 +1,4 @@
-import { EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
+import { DiagramSchema, EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
 import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
 import { createEdge } from '@/schema/factories'
 
@@ -271,4 +271,47 @@ export function growNodeHeight(diagram: Diagram, id: string, minHeight: number):
   return mapNodes(diagram, (node) =>
     node.id === id && node.size.height < minHeight ? { ...node, size: { ...node.size, height: Math.ceil(minHeight) } } : node,
   )
+}
+
+/** Where an edge's two ends attach. A null handle means auto (nearest side). */
+export interface Reconnection {
+  source: string
+  target: string
+  sourceHandle: HandleSide | null
+  targetHandle: HandleSide | null
+}
+
+/**
+ * Moves an edge's ends to other nodes and/or sides. Rejects self-loops,
+ * missing nodes, unknown sides, exact duplicates of another edge, and
+ * anything else the schema would refuse. Returns ok=false when rejected.
+ */
+export function reconnectEdge(diagram: Diagram, id: string, r: Reconnection): { diagram: Diagram; ok: boolean } {
+  const reject = { diagram, ok: false }
+  const edge = diagram.edges.find((e) => e.id === id)
+  if (!edge || r.source === r.target) return reject
+  const nodeIds = new Set(diagram.nodes.map((n) => n.id))
+  if (!nodeIds.has(r.source) || !nodeIds.has(r.target)) return reject
+  const side = (h: HandleSide | null) => h === null || HANDLE_SIDES.includes(h)
+  if (!side(r.sourceHandle) || !side(r.targetHandle)) return reject
+  const others = diagram.edges.filter((e) => e.id !== id)
+  if (isDuplicate(others, r)) return reject
+
+  const { sourceHandle: _s, targetHandle: _t, ...rest } = edge
+  const next: DiagramEdge = {
+    ...rest,
+    source: r.source,
+    target: r.target,
+    ...(r.sourceHandle && { sourceHandle: r.sourceHandle }),
+    ...(r.targetHandle && { targetHandle: r.targetHandle }),
+  }
+  const unchanged =
+    next.source === edge.source &&
+    next.target === edge.target &&
+    next.sourceHandle === edge.sourceHandle &&
+    next.targetHandle === edge.targetHandle
+  if (unchanged) return { diagram, ok: true }
+
+  const result = { ...diagram, edges: diagram.edges.map((e) => (e.id === id ? next : e)) }
+  return DiagramSchema.safeParse(result).success ? { diagram: result, ok: true } : reject
 }

@@ -125,6 +125,9 @@
   /* Connection/resize handles: small visible dot, larger invisible hit area. */
   --cl-handle-dot: 10px;
   --cl-handle-hit-fine: 24px;
+  /* Connector end grips and docking points while re-attaching a connector. */
+  --cl-dock-dot: 16px;
+  --cl-dock-radius: 40px;
   --cl-long-press: 500ms;
   --cl-toast-duration: 5000ms;
   --cl-focus-ring-width: 2px;

@@ -1,9 +1,13 @@
 import { create } from 'zustand'
+import type { DockingTarget } from '@/canvas/docking'
+import type { Position } from '@/schema/diagram'
 import { useDiagramStore } from './diagramStore'
 
 export type Tool = 'select' | 'pan' | 'link'
 
 export type LinkTapResult = 'source' | 'linked' | 'cleared' | 'refused' | 'ignored'
+
+export type EdgeEnd = 'source' | 'target'
 
 export interface ContextMenuState {
   /** Viewport coordinates of the pointer that opened the menu. */
@@ -11,7 +15,19 @@ export interface ContextMenuState {
   y: number
   /** The element that was pressed. */
   id: string
-  kind: 'node' | 'edge'
+  /** 'grip' is the end grip of a selected connector; `end` says which one. */
+  kind: 'node' | 'edge' | 'grip'
+  end?: EdgeEnd
+}
+
+/** A connector end being dragged to another docking point (live preview only; not saved). */
+export interface EdgeDrag {
+  edgeId: string
+  end: EdgeEnd
+  /** Pointer position in flow coordinates. */
+  point: Position
+  /** The docking point it would attach to if released now. */
+  target: DockingTarget | null
 }
 
 /** Editor state that is not part of the saved document. */
@@ -26,6 +42,8 @@ interface UiState {
   connecting: boolean
   paletteOpen: boolean
   contextMenu: ContextMenuState | null
+  edgeDrag: EdgeDrag | null
+  setEdgeDrag: (drag: EdgeDrag | null) => void
   /** Bumped to ask the properties panel to focus its label field (e.g. double-click on an edge). */
   focusLabelRequest: number
   requestLabelFocus: () => void
@@ -49,12 +67,14 @@ export const useUiStore = create<UiState>()((set, get) => ({
   connecting: false,
   paletteOpen: false,
   contextMenu: null,
+  edgeDrag: null,
+  setEdgeDrag: (edgeDrag) => set({ edgeDrag }),
   focusLabelRequest: 0,
   requestLabelFocus: () => set((s) => ({ focusLabelRequest: s.focusLabelRequest + 1, contextMenu: null })),
   setTool(tool) {
     // Link mode taps nodes to connect them, so an existing selection would only get in the way.
     if (tool === 'link') useDiagramStore.getState().setSelection([])
-    set({ tool, linkSourceId: null, contextMenu: null })
+    set({ tool, linkSourceId: null, contextMenu: null, edgeDrag: null })
   },
   linkTap(nodeId) {
     const { tool, linkSourceId } = get()

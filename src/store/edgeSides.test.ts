@@ -25,11 +25,10 @@ describe('edge sides', () => {
     expectValid()
   })
 
-  it('pins both sides, which switches rendering to a fixed edge', () => {
+  it('pins both sides, which the rendered edge honours', () => {
     store().setEdgeSides([floating], { source: 'left', target: 'top' })
     expect(edge(floating)).toMatchObject({ sourceHandle: 'left', targetHandle: 'top' })
-    expect(toFlowEdge(edge(floating), false)).toMatchObject({ sourceHandle: 'left', targetHandle: 'top' })
-    expect(toFlowEdge(edge(floating), false).type).not.toBe('floating')
+    expect(toFlowEdge(edge(floating), false).data).toMatchObject({ sourceSide: 'left', targetSide: 'top' })
   })
 
   it('unpins a side back to auto by removing the handle', () => {
@@ -43,7 +42,7 @@ describe('edge sides', () => {
     store().resetEdgeSides(['e_1', floating])
     expect(edge('e_1')).not.toHaveProperty('sourceHandle')
     expect(edge('e_1')).not.toHaveProperty('targetHandle')
-    expect(toFlowEdge(edge('e_1'), false).type).toBe('floating')
+    expect(toFlowEdge(edge('e_1'), false).data).toEqual({ lineType: 'smoothstep' })
     expectValid()
   })
 

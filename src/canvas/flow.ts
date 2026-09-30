@@ -17,7 +17,7 @@ export type ShapeNodeData = { type: NodeType; label: string; style: NodeStyle; h
 export type ShapeFlowNode = Node<ShapeNodeData, 'shape'>
 
 export type LineType = NonNullable<EdgeStyle['lineType']>
-/** Data for edges that float: a missing side is chosen at render time from node positions. */
+/** Edge data: a pinned side is kept; a missing side is chosen at render time from node positions. */
 export type FloatingEdgeData = { lineType: LineType; sourceSide?: HandleSide; targetSide?: HandleSide }
 export type FloatingFlowEdge = Edge<FloatingEdgeData, 'floating'>
 
@@ -28,7 +28,6 @@ export const EDGE_DEFAULTS = {
   endArrow: 'arrow',
 } as const satisfies Required<Pick<EdgeStyle, 'lineType' | 'startArrow' | 'endArrow'>>
 
-const FLOW_EDGE_TYPE = { straight: 'straight', step: 'step', smoothstep: 'smoothstep', bezier: 'default' } as const
 
 /**
  * Builds React Flow nodes, reusing the previous object when neither the diagram
@@ -77,24 +76,21 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
   const style = edge.style
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
-  // Edges with both ends pinned to a side use React Flow's built-in edges; the rest float.
-  const pinned = isSide(edge.sourceHandle) && isSide(edge.targetHandle)
+  // Every edge is drawn by FloatingEdge, which attaches exactly at side midpoints.
+  // (React Flow's built-in edges attach at the outer edge of the handle's touch-sized
+  // hit area, leaving a visible gap.) Pinned sides travel in data; auto sides float.
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    sourceHandle: pinned ? edge.sourceHandle : null,
-    targetHandle: pinned ? edge.targetHandle : null,
-    ...(pinned
-      ? { type: FLOW_EDGE_TYPE[lineType] }
-      : {
-          type: 'floating',
-          data: {
-            lineType,
-            ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
-            ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
-          } satisfies FloatingEdgeData,
-        }),
+    sourceHandle: null,
+    targetHandle: null,
+    type: 'floating',
+    data: {
+      lineType,
+      ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
+      ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
+    } satisfies FloatingEdgeData,
     selected,
     markerStart: marker(style.startArrow ?? EDGE_DEFAULTS.startArrow, colour),
     markerEnd: marker(style.endArrow ?? EDGE_DEFAULTS.endArrow, colour),

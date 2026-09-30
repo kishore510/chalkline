@@ -1,24 +1,37 @@
-import { BaseEdge, getBezierPath, getSmoothStepPath, getStraightPath, useInternalNode, type EdgeProps, type InternalNode } from '@xyflow/react'
+import { BaseEdge, getBezierPath, getSmoothStepPath, getStraightPath, useInternalNode, type EdgeProps } from '@xyflow/react'
+import { useDiagramStore } from '@/store/diagramStore'
+import { useUiStore } from '@/store/uiStore'
+import { internalBox } from './EdgeGrips'
 import { floatingEndpoints, type Box } from './floating'
 import type { FloatingFlowEdge } from './flow'
-import { HANDLE_POSITION } from './handles'
+import { HANDLE_POSITION, type HandleSide } from './handles'
 
-function boxOf(node: InternalNode): Box {
-  return {
-    x: node.internals.positionAbsolute.x,
-    y: node.internals.positionAbsolute.y,
-    width: node.measured.width ?? node.width ?? 0,
-    height: node.measured.height ?? node.height ?? 0,
-  }
-}
-
-/** An edge that attaches to the nearest facing sides of its nodes, recomputed as they move. */
+/**
+ * Draws every connector. Ends attach at side midpoints: a pinned side stays
+ * put, an auto side picks the nearest facing side as nodes move. While one of
+ * its end grips is dragged, the dragged end follows the pointer (or the
+ * docking point it has snapped to) as a live preview.
+ */
 export function FloatingEdge({ id, source, target, data, style, markerStart, markerEnd, label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius, interactionWidth }: EdgeProps<FloatingFlowEdge>) {
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
+  const drag = useUiStore((s) => (s.edgeDrag?.edgeId === id ? s.edgeDrag : null))
+  const snapNode = useDiagramStore((s) => (drag?.target ? s.diagram.nodes.find((n) => n.id === drag.target!.nodeId) : undefined))
   if (!sourceNode || !targetNode || !data) return null
 
-  const ends = floatingEndpoints(boxOf(sourceNode), boxOf(targetNode), data.sourceSide, data.targetSide)
+  let sourceBox: Box = internalBox(sourceNode)
+  let targetBox: Box = internalBox(targetNode)
+  let sourceSide: HandleSide | undefined = data.sourceSide
+  let targetSide: HandleSide | undefined = data.targetSide
+  if (drag) {
+    // Snapped: attach to that docking point. Free: a zero-size box at the pointer.
+    const box = snapNode && drag.target ? { ...snapNode.position, ...snapNode.size } : { ...drag.point, width: 0, height: 0 }
+    const side = drag.target?.side
+    if (drag.end === 'source') [sourceBox, sourceSide] = [box, side]
+    else [targetBox, targetSide] = [box, side]
+  }
+
+  const ends = floatingEndpoints(sourceBox, targetBox, sourceSide, targetSide)
   const params = {
     sourceX: ends.sourceX,
     sourceY: ends.sourceY,

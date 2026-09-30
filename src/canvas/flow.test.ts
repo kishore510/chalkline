@@ -35,15 +35,11 @@ describe('createNodeMapper', () => {
 })
 
 describe('edges', () => {
-  it('uses built-in edges when both sides are pinned', () => {
+  it('draws pinned edges with the floating edge, passing the sides as data', () => {
     const [edge] = toFlowEdges(diagram(), new Set())
-    expect(edge).toMatchObject({ type: 'smoothstep', sourceHandle: 'right', targetHandle: 'left', markerStart: undefined })
+    expect(edge).toMatchObject({ type: 'floating', sourceHandle: null, targetHandle: null, markerStart: undefined })
+    expect(edge!.data).toEqual({ lineType: 'smoothstep', sourceSide: 'right', targetSide: 'left' })
     expect(edge!.markerEnd).toMatchObject({ type: MarkerType.Arrow, color: 'var(--cl-edge)' })
-    const pinnedCurve = toFlowEdge(
-      { id: 'e', source: 'a', target: 'b', sourceHandle: 'top', targetHandle: 'left', label: '', notes: '', style: { lineType: 'bezier' } },
-      false,
-    )
-    expect(pinnedCurve.type).toBe('default')
   })
 
   it('floats edges without handles, keeping any single pinned side', () => {

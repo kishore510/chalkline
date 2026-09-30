@@ -27,6 +27,7 @@ import {
   toFlowEdges,
   type ShapeFlowNode,
 } from './flow'
+import { EdgeGrips } from './EdgeGrips'
 import { FloatingEdge } from './FloatingEdge'
 import { ShapeNode } from './ShapeNode'
 import { useLongPress, type PressTarget } from './useLongPress'
@@ -181,6 +182,7 @@ export function Canvas({ showMinimap }: { showMinimap: boolean }) {
         className={cn(connecting && 'cl-connecting', !connectable && 'cl-no-handles', tool === 'pan' && 'cl-tool-pan', linkTool && 'cl-tool-link')}
       >
         <Background variant={BackgroundVariant.Dots} gap={sizes.grid} size={sizes.dot} />
+        <EdgeGrips />
         {showMinimap && (
           <MiniMap
             position="top-right"

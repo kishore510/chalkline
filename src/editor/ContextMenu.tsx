@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -42,11 +42,42 @@ export function ContextMenu() {
     }
   }, [menu, close])
 
+  const pinned = useDiagramStore((s) => {
+    if (menu?.kind !== 'grip') return false
+    const edge = s.diagram.edges.find((e) => e.id === menu.id)
+    return Boolean(menu.end === 'source' ? edge?.sourceHandle : edge?.targetHandle)
+  })
+
   if (!menu) return null
 
   const run = (action: () => void) => () => {
     close()
     action()
+  }
+
+  if (menu.kind === 'grip') {
+    const which = menu.end === 'source' ? 'start' : 'end'
+    return (
+      <Panel
+        ref={ref}
+        role="menu"
+        aria-label={`Connector ${which} actions`}
+        className="fixed z-40 flex min-w-40 flex-col p-1 shadow-lg"
+        style={position ?? { left: menu.x, top: menu.y, visibility: 'hidden' }}
+      >
+        <Button
+          role="menuitem"
+          variant="ghost"
+          className="justify-start"
+          disabled={!pinned}
+          onClick={run(() => useDiagramStore.getState().setEdgeSides([menu.id], { [menu.end ?? 'source']: null }))}
+        >
+          <RotateCcw />
+          {pinned ? `Reset ${which} to auto` : `The ${which} is on auto`}
+        </Button>
+        <p className="px-3 pt-1 pb-2 text-xs text-text-muted">Drag the grip onto a side to pin it.</p>
+      </Panel>
+    )
   }
 
   return (
