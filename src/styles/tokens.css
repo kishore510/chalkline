@@ -156,6 +156,12 @@
   --cl-header-height: 56px;
   --cl-gutter: 16px;
   --cl-palette-width: 224px;
+  /* Desktop palette: resizable between these; shape tiles never narrower than item-min. */
+  --cl-palette-min-width: 200px;
+  --cl-palette-max-width: 480px;
+  --cl-palette-item-min: 88px;
+  /* Invisible grab strip on the palette's edge (touch screens get the full touch target). */
+  --cl-palette-resize-hit: 12px;
   --cl-rail-width: 64px;
   --cl-properties-width: 288px;
   --cl-minimap-width: 160px;
@@ -174,6 +180,7 @@
 @media (pointer: coarse) {
   :root {
     --cl-node-font-min: 14px;
+    --cl-palette-resize-hit: var(--cl-touch-target);
   }
 }
 

@@ -1,5 +1,5 @@
 import { ChevronsLeft, ChevronsRight, Columns3, LayoutTemplate, Rows3, Search, X } from 'lucide-react'
-import { useRef, useState, type ComponentProps } from 'react'
+import { useMemo, useRef, useState, type ComponentProps } from 'react'
 import { createPortal } from 'react-dom'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
 import { byCategory, searchShapes } from './paletteModel'
+import { clampPaletteWidth, loadPalettePrefs, maxPaletteWidth, savePalettePrefs, shouldCollapse, type PalettePrefs } from './paletteWidth'
 import { useUiStore } from '@/store/uiStore'
 import { StencilBrowser } from './stencils/StencilBrowser'
 
@@ -262,14 +263,16 @@ function ShapeSections({
 }: {
   query: string
   itemProps: (type: string) => object
-  columns?: 2 | 3
+  /** 'fill': as many columns as fit (the resizable desktop panel). */
+  columns?: 2 | 3 | 'fill'
   tabIndex?: number
 }) {
   const results = searchShapes(query)
-  const grid = cn('grid gap-2', columns === 3 ? 'grid-cols-3' : 'grid-cols-2')
+  const grid = cn('grid gap-2', columns === 3 ? 'grid-cols-3' : columns === 2 && 'grid-cols-2')
+  const gridStyle = columns === 'fill' ? FILL_COLUMNS : undefined
   if (query.trim()) {
     return results.length ? (
-      <div className={grid}>
+      <div className={grid} style={gridStyle}>
         {results.map((s) => (
           <PaletteItem key={s.id} shape={s.id} tabIndex={tabIndex} {...itemProps(s.id)} />
         ))}
@@ -283,7 +286,7 @@ function ShapeSections({
       {byCategory(results).map((group) => (
         <section key={group.id} aria-label={group.name} className="flex flex-col gap-2">
           <h3 className="text-xs font-semibold tracking-wide text-text-muted uppercase">{group.name}</h3>
-          <div className={grid}>
+          <div className={grid} style={gridStyle}>
             {group.shapes.map((s) => (
               <PaletteItem key={s.id} shape={s.id} tabIndex={tabIndex} {...itemProps(s.id)} />
             ))}
@@ -294,33 +297,194 @@ function ShapeSections({
   )
 }
 
-/** Desktop: persistent left panel with search and category headings. */
+const FILL_COLUMNS = { gridTemplateColumns: 'repeat(auto-fill, minmax(var(--cl-palette-item-min), 1fr))' }
+
+/** Collapsed palette: one column of shape icons (tap or drag to add), then stencils. */
+function CompactPalette({ itemProps, onStencils }: { itemProps: (type: string) => object; onStencils: () => void }) {
+  return (
+    <>
+      {byCategory(searchShapes('')).map((group, i) => (
+        <div key={group.id} role="group" aria-label={group.name} className="flex flex-col items-center gap-1">
+          {i > 0 && <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />}
+          {group.shapes.map((s) => (
+            <PaletteItem key={s.id} shape={s.id} compact {...itemProps(s.id)} />
+          ))}
+        </div>
+      ))}
+      <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
+      <SwimlaneItems compact />
+      <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
+      <Button variant="ghost" size="icon" aria-label="Stencils" title="Stencils" onClick={onStencils}>
+        <LayoutTemplate />
+      </Button>
+    </>
+  )
+}
+
+const KEY_STEP = 16
+
+/**
+ * The palette's right edge: drag (mouse, pen or touch) or use the arrow keys
+ * to resize. Released well below the minimum, the palette collapses.
+ * Double-click restores the default width.
+ */
+function PaletteResizer({
+  width,
+  min,
+  max,
+  onResize,
+  onCommit,
+  onCollapse,
+  onReset,
+}: {
+  width: number
+  min: number
+  max: number
+  onResize: (width: number) => void
+  onCommit: (width: number) => void
+  onCollapse: () => void
+  onReset: () => void
+}) {
+  const drag = useRef<{ pointerId: number; x: number; width: number; raw: number } | null>(null)
+  const [active, setActive] = useState(false)
+  const end = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || d.pointerId !== e.pointerId) return
+    drag.current = null
+    setActive(false)
+    if (shouldCollapse(d.raw, min)) {
+      onResize(d.width)
+      onCollapse()
+    } else {
+      onCommit(clampPaletteWidth(d.raw, min, max))
+    }
+  }
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize palette"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={width}
+      title="Drag to resize. Double-click for the default width."
+      tabIndex={0}
+      className="group absolute inset-y-0 right-0 z-10 flex w-(--cl-palette-resize-hit) translate-x-1/2 cursor-col-resize touch-none justify-center outline-none"
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return
+        e.preventDefault()
+        e.currentTarget.setPointerCapture(e.pointerId)
+        drag.current = { pointerId: e.pointerId, x: e.clientX, width, raw: width }
+        setActive(true)
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current
+        if (!d || d.pointerId !== e.pointerId) return
+        d.raw = d.width + e.clientX - d.x
+        onResize(clampPaletteWidth(d.raw, min, max))
+      }}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onDoubleClick={onReset}
+      onKeyDown={(e) => {
+        const next =
+          e.key === 'ArrowLeft' ? width - KEY_STEP : e.key === 'ArrowRight' ? width + KEY_STEP : e.key === 'Home' ? min : e.key === 'End' ? max : null
+        if (next === null) return
+        e.preventDefault()
+        onCommit(clampPaletteWidth(next, min, max))
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className={cn(
+          'h-full w-0.5 transition-colors group-hover:bg-accent group-focus-visible:bg-accent',
+          active ? 'bg-accent' : 'bg-transparent',
+        )}
+      />
+    </div>
+  )
+}
+
+/**
+ * Desktop: persistent left panel with search and category headings. Its
+ * width can be dragged or set with the keyboard, and it can collapse to an
+ * icon rail; both are remembered.
+ */
 export function PalettePanel() {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<PaletteView>('shapes')
   const { itemProps, ghostElement } = usePaletteGestures({})
-  if (view === 'stencils') {
+  const [prefs, setPrefs] = useState(loadPalettePrefs)
+  const limits = useMemo(() => {
+    const min = readToken('--cl-palette-min-width', 200)
+    return { min, max: maxPaletteWidth(min, readToken('--cl-palette-max-width', 480), window.innerWidth), initial: readToken('--cl-palette-width', 224) }
+  }, [])
+  // Live width while dragging; saved on release.
+  const [liveWidth, setLiveWidth] = useState<number | null>(null)
+  const width = liveWidth ?? clampPaletteWidth(prefs.width ?? limits.initial, limits.min, limits.max)
+
+  const update = (next: PalettePrefs) => {
+    setPrefs(next)
+    setLiveWidth(null)
+    savePalettePrefs(next)
+  }
+
+  if (prefs.collapsed) {
     return (
-      <aside aria-label="Stencils" className="flex w-palette shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4">
-        <PaletteTabs value={view} onChange={setView} />
-        <StencilBrowser />
+      <aside aria-label="Shapes" className="flex w-rail shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-border bg-surface py-2">
+        <Button variant="ghost" size="icon" aria-label="Expand palette" title="Expand palette" aria-expanded={false} onClick={() => update({ ...prefs, collapsed: false })}>
+          <ChevronsRight />
+        </Button>
+        <CompactPalette
+          itemProps={itemProps}
+          onStencils={() => {
+            setView('stencils')
+            update({ ...prefs, collapsed: false })
+          }}
+        />
+        {ghostElement}
       </aside>
     )
   }
+
   return (
-    <aside aria-label="Shapes" className="flex w-palette shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4">
-      <PaletteTabs value={view} onChange={setView} />
-      <SearchField value={query} onChange={setQuery} />
-      <ShapeSections query={query} itemProps={itemProps} />
-      <p className="text-xs text-text-muted">{HINT}</p>
-      {!query.trim() && (
-        <section aria-label="Structure" className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold tracking-wide text-text-muted uppercase">Structure</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <SwimlaneItems />
+    <aside aria-label={view === 'stencils' ? 'Stencils' : 'Shapes'} className="relative flex shrink-0 border-r border-border bg-surface" style={{ width }}>
+      <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <PaletteTabs value={view} onChange={setView} />
           </div>
-        </section>
-      )}
+          <Button variant="ghost" size="icon" aria-label="Collapse palette" title="Collapse palette" aria-expanded={true} onClick={() => update({ ...prefs, collapsed: true })}>
+            <ChevronsLeft />
+          </Button>
+        </div>
+        {view === 'stencils' ? (
+          <StencilBrowser />
+        ) : (
+          <>
+            <SearchField value={query} onChange={setQuery} />
+            <ShapeSections query={query} itemProps={itemProps} columns="fill" />
+            <p className="text-xs text-text-muted">{HINT}</p>
+            {!query.trim() && (
+              <section aria-label="Structure" className="flex flex-col gap-2">
+                <h3 className="text-xs font-semibold tracking-wide text-text-muted uppercase">Structure</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <SwimlaneItems />
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+      <PaletteResizer
+        width={width}
+        min={limits.min}
+        max={limits.max}
+        onResize={setLiveWidth}
+        onCommit={(w) => update({ ...prefs, width: w })}
+        onCollapse={() => update({ ...prefs, collapsed: true })}
+        onReset={() => update({ ...prefs, width: null })}
+      />
       {ghostElement}
     </aside>
   )
@@ -367,31 +531,13 @@ export function PaletteRail() {
           )}
         </>
       ) : (
-        <>
-          {byCategory(searchShapes('')).map((group, i) => (
-            <div key={group.id} role="group" aria-label={group.name} className="flex flex-col items-center gap-1">
-              {i > 0 && <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />}
-              {group.shapes.map((s) => (
-                <PaletteItem key={s.id} shape={s.id} compact {...itemProps(s.id)} />
-              ))}
-            </div>
-          ))}
-          <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
-          <SwimlaneItems compact />
-          <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Stencils"
-            title="Stencils"
-            onClick={() => {
-              setView('stencils')
-              setExpanded(true)
-            }}
-          >
-            <LayoutTemplate />
-          </Button>
-        </>
+        <CompactPalette
+          itemProps={itemProps}
+          onStencils={() => {
+            setView('stencils')
+            setExpanded(true)
+          }}
+        />
       )}
       {ghostElement}
     </aside>
