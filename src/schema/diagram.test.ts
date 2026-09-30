@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fixtures } from '@/fixtures'
+import { fixtures, invalidFixtures } from '@/fixtures'
 import {
   createEmptyDiagram,
   DiagramSchema,
@@ -22,6 +22,14 @@ function issuesOf(input: unknown): string[] {
 describe('fixtures', () => {
   it.each(Object.entries(fixtures))('%s validates against the current schema', (_name, fixture) => {
     expect(issuesOf(fixture)).toEqual([])
+  })
+
+  it('the invalid fixture reports each problem', () => {
+    expect(issuesOf(invalidFixtures['invalid-dangling-edge'])).toEqual([
+      'nodes.1.id: Duplicate node id "n_a"',
+      'edges.0.target: Edge target "n_missing" does not exist',
+    ])
+    expect(safeParseDiagram(invalidFixtures['invalid-dangling-edge']).success).toBe(false)
   })
 
   it('all-shapes covers every node type', () => {
