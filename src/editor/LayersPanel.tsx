@@ -256,15 +256,23 @@ export function LayersButton({ layout, className }: { layout: Layout; className?
   const { hidden, locked } = useLayerStatus()
   const open = useUiStore((s) => s.layersOpen)
   const setOpen = useUiStore((s) => s.setLayersOpen)
+  // Desktop: layers live in the right panel, which may be collapsed to a rail.
+  const collapsed = useUiStore((s) => layout === 'desktop' && s.rightPanelCollapsed)
+  const setCollapsed = useUiStore((s) => s.setRightPanelCollapsed)
   const status = [hidden && `${hidden} hidden`, locked && `${locked} locked`].filter(Boolean).join(', ')
   return (
     <Button
       variant="ghost"
       size={layout === 'desktop' ? 'default' : 'icon'}
-      aria-pressed={open}
+      aria-pressed={open && !collapsed}
       aria-label={`Layers${status ? ` (${status})` : ''}`}
       title={status ? `Layers: ${status}` : 'Layers'}
-      onClick={() => setOpen(!open)}
+      onClick={() => {
+        if (collapsed) {
+          setOpen(true)
+          setCollapsed(false)
+        } else setOpen(!open)
+      }}
       className={cn('relative', className)}
     >
       <Layers />
