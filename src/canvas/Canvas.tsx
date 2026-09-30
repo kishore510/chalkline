@@ -255,6 +255,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         onNodeDragStart={beginBatch}
         onNodeDrag={(_, node, dragged) => showDropTarget(dragged, node)}
         onNodeDragStop={(_, __, dragged) => endNodeDrag(dragged)}
+        // A fresh box-select starts from nothing (groups and lanes included); Shift/Cmd/Ctrl adds.
+        onSelectionStart={(e) => {
+          if (!isAdditive(e)) diagramStore().setSelection([])
+        }}
         onSelectionDragStart={beginBatch}
         onSelectionDrag={(_, dragged) => dragged[0] && showDropTarget(dragged, dragged[0])}
         onSelectionDragStop={(_, dragged) => endNodeDrag(dragged)}
