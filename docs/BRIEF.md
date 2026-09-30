@@ -46,7 +46,7 @@ Last updated: 30 Sep 2026
 |---|---|---|
 | 0. Foundations | Scaffold, `VITE_BASE`, Pages workflow, zod schema, fixtures and tests, design tokens, light/dark, static style-sheet page | Done, merged to `main` and deployed |
 | 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Done, merged to `main` and deployed |
-| 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Built on `phase-2-styling`, awaiting review |
+| 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Done, merged to `main` and deployed |
 | 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Not started |
 | 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | Not started |
 | 5. Polish | Shortcuts, search, read-only share view, PWA, optional `.drawio` import | Not started |
