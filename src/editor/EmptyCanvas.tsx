@@ -1,4 +1,4 @@
-import { Plus, Sparkles } from 'lucide-react'
+import { LayoutTemplate, Plus, Sparkles } from 'lucide-react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import type { Layout } from '@/hooks/useMediaQuery'
 import { fixtures } from '@/fixtures'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { useStencilStore } from '@/stencils/stencilStore'
 
 /** Shown over the canvas while the diagram has no shapes. */
 export function EmptyCanvas({ layout }: { layout: Layout }) {
@@ -26,6 +27,10 @@ export function EmptyCanvas({ layout }: { layout: Layout }) {
                   Add shape
                 </Button>
               )}
+              <Button variant={layout === 'phone' ? 'secondary' : 'primary'} onClick={() => useStencilStore.getState().openDialog({ kind: 'templates' })}>
+                <LayoutTemplate />
+                Start from a template
+              </Button>
               <Button variant="secondary" onClick={() => actions.load(fixtures['web-architecture'])}>
                 <Sparkles />
                 Load an example

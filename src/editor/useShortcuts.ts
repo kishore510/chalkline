@@ -11,6 +11,9 @@ function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
 }
 
+/** Canvas shortcuts don't apply while a dialog is open over it. */
+const inDialog = (target: EventTarget | null) => target instanceof Element && target.closest('[aria-modal="true"]') !== null
+
 /** Puts the copied shapes on the system clipboard too, so they can be pasted in another tab. */
 function copyToSystemClipboard() {
   const fragment = useDiagramStore.getState().clipboard
@@ -24,7 +27,7 @@ export function useShortcuts() {
   const actions = useCanvasActions()
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || isTyping(e.target)) return
+      if (e.defaultPrevented || e.altKey || isTyping(e.target) || inDialog(e.target)) return
       const ui = useUiStore.getState()
       const diagram = useDiagramStore.getState()
       const key = e.key.toLowerCase()

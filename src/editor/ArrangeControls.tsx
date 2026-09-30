@@ -18,6 +18,7 @@ import { Panel } from '@/components/ui/panel'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import { SaveStencilButton, useSelectionSaveable } from './stencils/SaveStencilButton'
 
 interface Command {
   label: string
@@ -78,10 +79,12 @@ function useArrangeState() {
 
 const DISTRIBUTE_HINT = 'Select 3 or more shapes to distribute.'
 
-/** Desktop: a compact icon bar floating at the top of the canvas. */
+/** Desktop: a compact contextual bar floating at the top of the canvas: arrange (2+ shapes) and Save as stencil. */
 export function ArrangeBar() {
   const { visible, canDistribute } = useArrangeState()
-  if (!visible) return null
+  const saveable = useSelectionSaveable()
+  const selectTool = useUiStore((s) => s.tool === 'select')
+  if (!visible && !(saveable && selectTool)) return null
   const group = (label: string, commands: Command[], disabled = false, hint?: string) => (
     <div role="group" aria-label={label} className="flex items-center gap-0.5">
       <span className="px-1.5 text-xs font-medium text-text-muted">{label}</span>
@@ -94,12 +97,18 @@ export function ArrangeBar() {
   )
   return (
     <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center px-4">
-      <Panel role="toolbar" aria-label="Arrange shapes" className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-x-1 p-1 shadow-lg">
-        {group('Align', ALIGN)}
-        <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-        {group('Distribute', DISTRIBUTE, !canDistribute, DISTRIBUTE_HINT)}
-        <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-        {group('Match size', MATCH)}
+      <Panel role="toolbar" aria-label="Selection" className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-x-1 p-1 shadow-lg">
+        {visible && (
+          <>
+            {group('Align', ALIGN)}
+            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+            {group('Distribute', DISTRIBUTE, !canDistribute, DISTRIBUTE_HINT)}
+            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+            {group('Match size', MATCH)}
+            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+          </>
+        )}
+        <SaveStencilButton variant="ghost" />
       </Panel>
     </div>
   )

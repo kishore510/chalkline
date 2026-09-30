@@ -19,6 +19,13 @@ export const EXTRACT_MESSAGES: Record<Exclude<ExtractResult, { ok: true }>['reas
   'too-many': `A stencil can hold at most ${MAX_STENCIL_NODES} shapes.`,
 }
 
+/** Cheap check for showing "Save as stencil": a shape or container is selected (lanes alone don't count). */
+export function selectionSaveable(diagram: Diagram, ids: readonly string[]): boolean {
+  if (ids.length === 0) return false
+  const selected = new Set(ids)
+  return diagram.nodes.some((n) => selected.has(n.id)) || diagram.groups.some((g) => selected.has(g.id) && g.kind === 'container')
+}
+
 /**
  * Stencil content from selected nodes and groups. A group brings its members
  * and nested groups (a pool brings its lanes); a lane selected on its own is

@@ -23,6 +23,7 @@ import { ArrangeSection } from './ArrangeControls'
 import { LayersContent } from './LayersPanel'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { CATEGORIES, getShape, isKnownShape, SHAPES } from '@/shapes/registry'
+import { SaveStencilButton } from './stencils/SaveStencilButton'
 
 const store = () => useDiagramStore.getState()
 
@@ -570,6 +571,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
         </>
       )}
       {summary.kind === 'mixed' && <p className="text-sm text-text-muted">Select only shapes or only connectors to style them together. Arranging ignores connectors.</p>}
+      {summary.kind !== 'none' && <SaveStencilButton />}
     </div>
   )
 }

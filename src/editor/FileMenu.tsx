@@ -7,7 +7,8 @@ import { fixtures } from '@/fixtures'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { serializeDiagram, fileNameFor } from '@/persistence/serialize'
-import { createEmptyDiagram, safeParseDiagram } from '@/schema/diagram'
+import { safeParseDiagram } from '@/schema/diagram'
+import { useStencilStore } from '@/stencils/stencilStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 
@@ -133,8 +134,8 @@ export function FileMenu({ layout }: { layout: Layout }) {
       />
       {open && (
         <Panel ref={menuRef} role="menu" aria-label="File" className="absolute top-full right-0 z-40 mt-1 flex w-72 flex-col p-1 shadow-lg">
-          <Item icon={<FilePlus />} onClick={run(() => actions.load(createEmptyDiagram()))}>
-            New diagram
+          <Item icon={<FilePlus />} onClick={run(() => useStencilStore.getState().openDialog({ kind: 'templates' }))}>
+            New diagram…
           </Item>
           <Item icon={<FolderOpen />} onClick={run(() => fileRef.current?.click())}>
             Open JSON…

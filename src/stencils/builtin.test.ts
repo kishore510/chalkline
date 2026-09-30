@@ -133,3 +133,16 @@ describe('templates', () => {
     expect(() => parseTemplate({ kind: 'chalkline-template', id: 'x', name: 'x', category: 'x', diagram: { schemaVersion: 4 } })).toThrow()
   })
 })
+
+describe('thumbnail colours', () => {
+  it('resolve to each theme’s token values', async () => {
+    const { resolveTokenColours } = await import('./thumbnail')
+    const svg = stencilThumbnail(BUILTIN_STENCILS[0]!.content, testThumbnailEnv)
+    expect(svg).toContain('var(--cl-')
+    for (const theme of THEMES) {
+      const colours = themeColours(theme)
+      const resolved = resolveTokenColours(svg, (t) => colours[t] ?? '')
+      expect(resolved).not.toContain('var(')
+    }
+  })
+})

@@ -3,10 +3,11 @@ import { buildSvg, type ExportEnv } from '@/export/svg'
 import type { StencilContent } from './format'
 
 /*
- * Small SVG previews for stencils and templates. Colours are left as CSS
- * variables (var(--cl-token)), so one cached preview follows the light and
- * dark themes when shown inline. Labels are left out: at thumbnail size they
- * are unreadable noise; the shapes and structure are what tell items apart.
+ * Small SVG previews for stencils and templates. Colours are left as token
+ * references (var(--cl-token)), so one cached preview serves both themes; the
+ * palette resolves them to the current theme's values when it shows one.
+ * Labels are left out: at thumbnail size they are unreadable noise; the
+ * shapes and structure are what tell items apart.
  */
 
 /** Sizes the preview is drawn at (it scales to fit its box). */
@@ -49,4 +50,9 @@ export function diagramThumbnail(diagram: Diagram, env: ExportEnv): string {
 
 export function stencilThumbnail(content: StencilContent, env: ExportEnv): string {
   return diagramThumbnail({ ...createEmptyDiagram(), ...content }, env)
+}
+
+/** Swaps var(--cl-token) for real colours (`lookup` returns '' for unknown tokens, which are left alone). */
+export function resolveTokenColours(svg: string, lookup: (token: string) => string): string {
+  return svg.replace(/var\(--cl-([a-z0-9-]+)\)/g, (match, token: string) => lookup(token) || match)
 }

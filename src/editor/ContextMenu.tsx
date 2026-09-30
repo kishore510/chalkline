@@ -1,11 +1,12 @@
 import { useReactFlow } from '@xyflow/react'
-import { ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2, Ungroup } from 'lucide-react'
+import { BookmarkPlus, ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2, Ungroup } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { explainBlockedAdd } from './layerNotices'
+import { saveSelectionAsStencil } from './stencils/actions'
 
 /** Right-click (mouse) or long-press (touch) menu for a node, an edge, a connector grip or empty canvas. */
 export function ContextMenu() {
@@ -129,6 +130,10 @@ export function ContextMenu() {
           <Copy />
           Copy
         </Button>
+        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(saveSelectionAsStencil)}>
+          <BookmarkPlus />
+          Save as stencil…
+        </Button>
         <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().ungroup(menu.id))}>
           <Ungroup />
           Ungroup
@@ -174,6 +179,10 @@ export function ContextMenu() {
           >
             <Copy />
             Copy
+          </Button>
+          <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(saveSelectionAsStencil)}>
+            <BookmarkPlus />
+            Save as stencil…
           </Button>
         </>
       )}

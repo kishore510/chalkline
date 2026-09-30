@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, Columns3, Rows3, Search, X } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Columns3, LayoutTemplate, Rows3, Search, X } from 'lucide-react'
 import { useRef, useState, type ComponentProps } from 'react'
 import { createPortal } from 'react-dom'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
@@ -10,6 +10,7 @@ import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
 import { byCategory, searchShapes } from './paletteModel'
 import { useUiStore } from '@/store/uiStore'
+import { StencilBrowser } from './stencils/StencilBrowser'
 
 // Distance (CSS px) a pointer must travel before a press becomes a drag.
 const DRAG_THRESHOLD = 6
@@ -223,6 +224,33 @@ function SearchField({ value, onChange, tabIndex }: { value: string; onChange: (
   )
 }
 
+type PaletteView = 'shapes' | 'stencils'
+
+/** Shapes or Stencils: which half of the palette is showing. */
+function PaletteTabs({ value, onChange, tabIndex }: { value: PaletteView; onChange: (value: PaletteView) => void; tabIndex?: number }) {
+  const tab = (view: PaletteView, label: string) => (
+    <button
+      type="button"
+      role="tab"
+      tabIndex={tabIndex}
+      aria-selected={value === view}
+      onClick={() => onChange(view)}
+      className={cn(
+        'min-h-touch flex-1 rounded-sm text-sm font-medium transition-colors',
+        value === view ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text',
+      )}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <div role="tablist" aria-label="Palette" className="flex shrink-0 gap-1 rounded-md bg-surface-muted p-1">
+      {tab('shapes', 'Shapes')}
+      {tab('stencils', 'Stencils')}
+    </div>
+  )
+}
+
 const NoMatches = ({ query }: { query: string }) => <p className="py-2 text-sm text-text-muted">No shapes match “{query.trim()}”.</p>
 
 /** Headed category sections (or flat results while searching), as a grid. */
@@ -269,9 +297,19 @@ function ShapeSections({
 /** Desktop: persistent left panel with search and category headings. */
 export function PalettePanel() {
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<PaletteView>('shapes')
   const { itemProps, ghostElement } = usePaletteGestures({})
+  if (view === 'stencils') {
+    return (
+      <aside aria-label="Stencils" className="flex w-palette shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4">
+        <PaletteTabs value={view} onChange={setView} />
+        <StencilBrowser />
+      </aside>
+    )
+  }
   return (
     <aside aria-label="Shapes" className="flex w-palette shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-4">
+      <PaletteTabs value={view} onChange={setView} />
       <SearchField value={query} onChange={setQuery} />
       <ShapeSections query={query} itemProps={itemProps} />
       <p className="text-xs text-text-muted">{HINT}</p>
@@ -291,6 +329,7 @@ export function PalettePanel() {
 /** Tablet: icon rail that expands to show names, search and categories. */
 export function PaletteRail() {
   const [expanded, setExpanded] = useState(false)
+  const [view, setView] = useState<PaletteView>('shapes')
   const [query, setQuery] = useState('')
   const { itemProps, ghostElement } = usePaletteGestures({})
   return (
@@ -313,12 +352,19 @@ export function PaletteRail() {
       </Button>
       {expanded ? (
         <>
-          <SearchField value={query} onChange={setQuery} />
-          <ShapeSections query={query} itemProps={itemProps} />
-          <p className="text-xs text-text-muted">{HINT}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <SwimlaneItems />
-          </div>
+          <PaletteTabs value={view} onChange={setView} />
+          {view === 'stencils' ? (
+            <StencilBrowser />
+          ) : (
+            <>
+              <SearchField value={query} onChange={setQuery} />
+              <ShapeSections query={query} itemProps={itemProps} />
+              <p className="text-xs text-text-muted">{HINT}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <SwimlaneItems />
+              </div>
+            </>
+          )}
         </>
       ) : (
         <>
@@ -332,6 +378,19 @@ export function PaletteRail() {
           ))}
           <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
           <SwimlaneItems compact />
+          <div aria-hidden="true" className="my-1 h-px w-8 bg-border" />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Stencils"
+            title="Stencils"
+            onClick={() => {
+              setView('stencils')
+              setExpanded(true)
+            }}
+          >
+            <LayoutTemplate />
+          </Button>
         </>
       )}
       {ghostElement}
@@ -369,6 +428,7 @@ export function PaletteDrawer() {
   const setOpen = useUiStore((s) => s.setPaletteOpen)
   const recents = useUiStore((s) => s.recentShapes)
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<PaletteView>('shapes')
   const [dragging, setDragging] = useState(false)
   const { itemProps, ghostElement } = usePaletteGestures({
     onDragStart: () => setDragging(true),
@@ -392,40 +452,51 @@ export function PaletteDrawer() {
       )}
     >
       <div className="flex min-h-touch shrink-0 items-center justify-between gap-2 pr-2 pl-4">
-        <h2 className="text-sm font-semibold">Add a shape</h2>
+        <h2 className="text-sm font-semibold">{view === 'stencils' ? 'Add a stencil' : 'Add a shape'}</h2>
         <Button variant="ghost" size="icon" aria-label="Close" onClick={() => setOpen(false)} tabIndex={tab}>
           <X />
         </Button>
       </div>
-      {/* Search first, then recents and categories. */}
       <div className="shrink-0 px-4 pb-3">
-        <SearchField value={query} onChange={setQuery} tabIndex={tab} />
+        <PaletteTabs value={view} onChange={setView} tabIndex={tab} />
       </div>
-      <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pb-2">
-        {query.trim() ? (
-          results.length ? (
-            <ShapeRow label="Results" shapes={results} itemProps={itemProps} tabIndex={tab} />
-          ) : (
-            <div className="px-4">
-              <NoMatches query={query} />
-            </div>
-          )
-        ) : (
-          <>
-            {recents.length > 0 && <ShapeRow label="Recently used" shapes={recents.map((id) => getShape(id))} itemProps={itemProps} tabIndex={tab} />}
-            {byCategory(results).map((group) => (
-              <ShapeRow key={group.id} label={group.name} shapes={group.shapes} itemProps={itemProps} tabIndex={tab} />
-            ))}
-            <section aria-label="Structure" className="flex flex-col gap-1.5">
-              <h3 className="px-4 text-xs font-semibold tracking-wide text-text-muted uppercase">Structure</h3>
-              <div className="grid grid-cols-2 gap-2 px-4">
-                <SwimlaneItems tabIndex={tab} onAdded={() => setOpen(false)} />
-              </div>
-            </section>
-          </>
-        )}
-        <p className="px-4 text-xs text-text-muted">{HOLD_HINT}</p>
-      </div>
+      {view === 'stencils' ? (
+        <div className="flex min-h-0 flex-col overflow-y-auto overscroll-contain px-4 pb-2">
+          <StencilBrowser tabIndex={tab} onInserted={() => setOpen(false)} />
+        </div>
+      ) : (
+        <>
+          {/* Search first, then recents and categories. */}
+          <div className="shrink-0 px-4 pb-3">
+            <SearchField value={query} onChange={setQuery} tabIndex={tab} />
+          </div>
+          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pb-2">
+            {query.trim() ? (
+              results.length ? (
+                <ShapeRow label="Results" shapes={results} itemProps={itemProps} tabIndex={tab} />
+              ) : (
+                <div className="px-4">
+                  <NoMatches query={query} />
+                </div>
+              )
+            ) : (
+              <>
+                {recents.length > 0 && <ShapeRow label="Recently used" shapes={recents.map((id) => getShape(id))} itemProps={itemProps} tabIndex={tab} />}
+                {byCategory(results).map((group) => (
+                  <ShapeRow key={group.id} label={group.name} shapes={group.shapes} itemProps={itemProps} tabIndex={tab} />
+                ))}
+                <section aria-label="Structure" className="flex flex-col gap-1.5">
+                  <h3 className="px-4 text-xs font-semibold tracking-wide text-text-muted uppercase">Structure</h3>
+                  <div className="grid grid-cols-2 gap-2 px-4">
+                    <SwimlaneItems tabIndex={tab} onAdded={() => setOpen(false)} />
+                  </div>
+                </section>
+              </>
+            )}
+            <p className="px-4 text-xs text-text-muted">{HOLD_HINT}</p>
+          </div>
+        </>
+      )}
       {ghostElement}
     </div>
   )

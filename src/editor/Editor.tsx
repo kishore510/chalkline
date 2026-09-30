@@ -19,6 +19,7 @@ import { BusyIndicator } from './TidyMenu'
 import { TopBar } from './TopBar'
 import { UndoToast } from './UndoToast'
 import { useShortcuts } from './useShortcuts'
+import { StencilDialogs } from './stencils/StencilDialogs'
 
 /**
  * Adaptive editor layout.
@@ -63,6 +64,7 @@ function EditorLayout() {
       {layout === 'phone' && <PaletteDrawer />}
       {layout !== 'desktop' && <LayersSheet />}
       <ContextMenu />
+      <StencilDialogs />
     </div>
   )
 }

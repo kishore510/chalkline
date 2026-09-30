@@ -162,6 +162,11 @@
   --cl-minimap-height: 112px;
   --cl-sheet-max-height: 45dvh;
   --cl-drawer-max-height: 80dvh;
+  --cl-dialog-max-height: 90dvh;
+  /* Stencil and template previews in the palette and pickers. */
+  --cl-stencil-thumb-width: 64px;
+  --cl-stencil-thumb-height: 48px;
+  --cl-template-thumb-height: 112px;
   --cl-content-max: 1200px;
 }
 
