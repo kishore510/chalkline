@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
+import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
 import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
@@ -12,6 +13,9 @@ import { useUiStore } from '@/store/uiStore'
 
 // Distance (CSS px) a pointer must travel before a press becomes a drag.
 const DRAG_THRESHOLD = 6
+
+/** Axis the list around an item scrolls along; `xy` when both (the phone drawer). */
+type ScrollAxis = 'x' | 'y' | 'xy'
 
 interface Ghost {
   type: string
@@ -40,38 +44,54 @@ function usePaletteGestures({
   hooks.current = { onAdded, onDragStart, onDragEnd }
 
   /**
-   * `scroll` is the axis the surrounding list scrolls along. On touch and pen a
-   * move along that axis is left to the browser as a scroll; only a move across
-   * it pulls the shape out. A mouse drags in any direction.
+   * On touch and pen a move along the list's scroll axis is left to the browser
+   * as a scroll; only a move across it pulls the shape out. Where the list
+   * scrolls both ways (`xy`), press and hold picks the shape up instead. A mouse
+   * drags in any direction.
    */
-  const itemProps = (type: string, scroll: 'x' | 'y' = 'y') => ({
+  const itemProps = (type: string, scroll: ScrollAxis = 'y') => ({
     onPointerDown(e: React.PointerEvent) {
       if (e.pointerType === 'mouse' && e.button !== 0) return
+      const touch = e.pointerType !== 'mouse'
       const start = { x: e.clientX, y: e.clientY }
       let dragging = false
 
+      const beginDrag = (x: number, y: number) => {
+        dragging = true
+        hooks.current.onDragStart?.()
+        setGhost({ type, x, y })
+      }
+      // Once a held shape is picked up, keep the browser from scrolling under it.
+      const blockScroll = (ev: TouchEvent) => {
+        if (dragging && ev.cancelable) ev.preventDefault()
+      }
+      const hold = touch && scroll === 'xy' ? window.setTimeout(() => beginDrag(start.x, start.y), readToken('--cl-long-press', 500)) : 0
+
       const stop = () => {
+        window.clearTimeout(hold)
         window.removeEventListener('pointermove', move)
         window.removeEventListener('pointerup', end)
         window.removeEventListener('pointercancel', end)
+        window.removeEventListener('touchmove', blockScroll)
         setGhost(null)
         if (dragging) hooks.current.onDragEnd?.()
       }
       const move = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return
+        if (dragging) {
+          setGhost({ type, x: ev.clientX, y: ev.clientY })
+          return
+        }
         const dx = Math.abs(ev.clientX - start.x)
         const dy = Math.abs(ev.clientY - start.y)
-        if (!dragging && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
-          const alongScroll = scroll === 'x' ? dx >= dy : dy >= dx
-          if (e.pointerType !== 'mouse' && alongScroll) {
-            // The user is scrolling the list: neither a drag nor a tap.
-            stop()
-            return
-          }
-          dragging = true
-          hooks.current.onDragStart?.()
+        if (Math.hypot(dx, dy) <= DRAG_THRESHOLD) return
+        const alongScroll = scroll === 'xy' || (scroll === 'x' ? dx >= dy : dy >= dx)
+        if (touch && alongScroll) {
+          // The user is scrolling the list: neither a drag nor a tap.
+          stop()
+          return
         }
-        if (dragging) setGhost({ type, x: ev.clientX, y: ev.clientY })
+        beginDrag(ev.clientX, ev.clientY)
       }
       const end = (ev: PointerEvent) => {
         if (ev.pointerId !== e.pointerId) return
@@ -85,6 +105,11 @@ function usePaletteGestures({
       window.addEventListener('pointermove', move)
       window.addEventListener('pointerup', end)
       window.addEventListener('pointercancel', end)
+      if (hold) window.addEventListener('touchmove', blockScroll, { passive: false })
+    },
+    onContextMenu(e: React.MouseEvent) {
+      // Press and hold drags; don't let the browser open its own menu.
+      if (scroll === 'xy') e.preventDefault()
     },
     onClick(e: React.MouseEvent) {
       // Pointer taps are handled above; this covers keyboard activation (Enter/Space).
@@ -122,7 +147,7 @@ function PaletteItem({
   scroll = 'y',
   className,
   ...props
-}: { shape: string; compact?: boolean; scroll?: 'x' | 'y' } & Omit<ComponentProps<'button'>, 'type'>) {
+}: { shape: string; compact?: boolean; scroll?: ScrollAxis } & Omit<ComponentProps<'button'>, 'type'>) {
   return (
     <button
       type="button"
@@ -130,7 +155,7 @@ function PaletteItem({
       aria-label={`Add ${getShape(shape).name.toLowerCase()}`}
       className={cn(
         'flex min-h-touch items-center gap-3 rounded-md text-sm text-text transition-colors select-none',
-        scroll === 'x' ? 'touch-pan-x' : 'touch-pan-y',
+        scroll === 'xy' ? 'touch-manipulation [-webkit-touch-callout:none]' : scroll === 'x' ? 'touch-pan-x' : 'touch-pan-y',
         className,
         'hover:bg-surface-muted active:bg-accent-subtle',
         compact ? 'size-touch justify-center' : 'flex-col justify-center gap-1.5 border border-border bg-surface px-2 py-3',
@@ -144,6 +169,7 @@ function PaletteItem({
 }
 
 const HINT = 'Tap to add, or drag onto the canvas.'
+const HOLD_HINT = 'Tap to add, or press and hold to drag onto the canvas.'
 
 const SWIMLANES = [
   { orientation: 'horizontal', label: 'Swimlane ↔', title: 'Add a swimlane pool: lanes stacked, headers on the left', icon: <Rows3 className="size-7" /> },
@@ -313,7 +339,7 @@ export function PaletteRail() {
   )
 }
 
-/** A horizontally scrolling row of shapes (phone drawer). Dragging upwards pulls a shape onto the canvas. */
+/** A horizontally scrolling row of shapes (phone drawer). Press and hold picks a shape up to drag onto the canvas. */
 function ShapeRow({
   label,
   shapes,
@@ -322,7 +348,7 @@ function ShapeRow({
 }: {
   label: string
   shapes: ShapeDefinition[]
-  itemProps: (type: string, scroll: 'x' | 'y') => object
+  itemProps: (type: string, scroll: ScrollAxis) => object
   tabIndex?: number
 }) {
   return (
@@ -330,7 +356,7 @@ function ShapeRow({
       <h3 className="px-4 text-xs font-semibold tracking-wide text-text-muted uppercase">{label}</h3>
       <div className="flex gap-2 overflow-x-auto px-4 pb-1">
         {shapes.map((s) => (
-          <PaletteItem key={s.id} shape={s.id} scroll="x" tabIndex={tabIndex} className="w-20 shrink-0" {...itemProps(s.id, 'x')} />
+          <PaletteItem key={s.id} shape={s.id} scroll="xy" tabIndex={tabIndex} className="w-20 shrink-0" {...itemProps(s.id, 'xy')} />
         ))}
       </div>
     </section>
@@ -398,7 +424,7 @@ export function PaletteDrawer() {
             </section>
           </>
         )}
-        <p className="px-4 text-xs text-text-muted">{HINT}</p>
+        <p className="px-4 text-xs text-text-muted">{HOLD_HINT}</p>
       </div>
       {ghostElement}
     </div>
