@@ -1,6 +1,18 @@
+import { useSyncExternalStore } from 'react'
+import { Editor } from '@/editor/Editor'
 import { StyleSheetPage } from '@/pages/StyleSheetPage'
 
-// Phase 0 ships the style sheet only. The canvas arrives in Phase 1.
+// Hash routing keeps the app host-agnostic: no server rewrites needed.
+function useHash() {
+  return useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener('hashchange', onChange)
+      return () => window.removeEventListener('hashchange', onChange)
+    },
+    () => window.location.hash,
+  )
+}
+
 export function App() {
-  return <StyleSheetPage />
+  return useHash() === '#/styles' ? <StyleSheetPage /> : <Editor />
 }

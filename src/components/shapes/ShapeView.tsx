@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { NodeType, Size } from '@/schema/diagram'
 import { cn } from '@/lib/utils'
 import { shapeGeometry } from './geometry'
@@ -11,12 +12,15 @@ export function ShapeView({
   size,
   label,
   selected = false,
+  editor,
   className,
 }: {
   type: NodeType
   size: Size
   label: string
   selected?: boolean
+  /** Replaces the label text, e.g. with an inline editor. */
+  editor?: ReactNode
   className?: string
 }) {
   const { body, detail, label: box } = shapeGeometry(type, size)
@@ -41,7 +45,13 @@ export function ShapeView({
         className="absolute flex items-center justify-center overflow-hidden px-(--cl-node-padding) text-center text-node font-medium break-words text-node-text"
         style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
       >
-        <span className="line-clamp-3">{label}</span>
+        {editor ??
+          (label ? (
+            <span className="line-clamp-3 whitespace-pre-line">{label}</span>
+          ) : (
+            // Keep empty text nodes findable.
+            type === 'text' && <span className="text-text-muted italic">Text</span>
+          ))}
       </div>
     </div>
   )

@@ -40,6 +40,7 @@
   --cl-shadow-color: #1d23271a;
   --cl-shadow-color-strong: #1d232729;
   --cl-overlay: #1d232766;
+  --cl-minimap-mask: #1d23271f;
 }
 
 /* ── Dark: slate blackboard with chalk lines ────────────────────────── */
@@ -74,6 +75,7 @@
   --cl-shadow-color: #00000059;
   --cl-shadow-color-strong: #00000080;
   --cl-overlay: #00000099;
+  --cl-minimap-mask: #0000004d;
 }
 
 /* ── Theme-independent tokens ───────────────────────────────────────── */
@@ -88,6 +90,10 @@
 
   /* Touch and focus */
   --cl-touch-target: 44px;
+  /* Connection/resize handles: small visible dot, larger invisible hit area. */
+  --cl-handle-dot: 10px;
+  --cl-handle-hit-fine: 24px;
+  --cl-long-press: 500ms;
   --cl-focus-ring-width: 2px;
   --cl-focus-ring-offset: 2px;
 
@@ -99,6 +105,12 @@
   /* Layout */
   --cl-header-height: 56px;
   --cl-gutter: 16px;
+  --cl-palette-width: 224px;
+  --cl-rail-width: 64px;
+  --cl-properties-width: 288px;
+  --cl-minimap-width: 160px;
+  --cl-minimap-height: 112px;
+  --cl-sheet-max-height: 45dvh;
   --cl-content-max: 1200px;
 }
 
@@ -136,6 +148,9 @@
 
   --spacing-touch: var(--cl-touch-target);
   --spacing-header: var(--cl-header-height);
+  --spacing-palette: var(--cl-palette-width);
+  --spacing-rail: var(--cl-rail-width);
+  --spacing-properties: var(--cl-properties-width);
   --container-content: var(--cl-content-max);
 
   --ease-standard: var(--cl-ease);

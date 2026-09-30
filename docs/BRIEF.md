@@ -45,7 +45,7 @@ Last updated: 30 Sep 2026
 | Phase | Scope | Status |
 |---|---|---|
 | 0. Foundations | Scaffold, `VITE_BASE`, Pages workflow, zod schema, fixtures and tests, design tokens, light/dark, static style-sheet page | Done, merged to `main` and deployed |
-| 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | In progress on `phase-1-canvas` |
+| 1. Core canvas | React Flow canvas, palette (rectangle, rounded, database, cloud, actor, text), tap or drag to add, editable labels, resize, connectors, multi-select, delete, snap-to-grid, Zustand store, adaptive layout | Built on `phase-1-canvas`, awaiting review |
 | 2. Styling and annotations | Properties panel, edge styles and labels, notes on every node and edge, colour presets | Not started |
 | 3. Persistence and export | Autosave, JSON open/save, PNG/SVG/PDF export, undo/redo, copy/paste, duplicate | Not started |
 | 4. Structure | Groups, swimlanes, layers, alignment, auto-layout (ELK or dagre), stencil library | Not started |
@@ -100,3 +100,4 @@ Add one line per thread: date, phase, what was decided or built, what's next.
 - 30 Sep 2026: Scoped the project, agreed phases, drafted `CLAUDE.md` and zod schema. Next: run Phase 0 in Claude Code.
 - 30 Sep 2026: Chose the name Chalkline. Updated brief, `CLAUDE.md` and project instructions. Next: check name availability, then run Phase 0.
 - 30 Sep 2026: Phase 0 built (tokens with contrast tests, schema v1 with style/notes/groups, fixtures, style-sheet page, CI and Pages deploy). Public repo created, merged to `main`, live on Pages. Next: Phase 1 core canvas.
+- 30 Sep 2026: Phase 1 built (React Flow canvas, tap/drag palette, inline labels, resize, connectors incl. drop-on-node, box/shift multi-select, delete, snap, long-press menu, phone/tablet/desktop layouts, example diagram). Next: review on phone and laptop, then Phase 2.

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import '@xyflow/react/dist/style.css';
 @import './styles/tokens.css';
 
 @layer base {
@@ -10,6 +11,8 @@
   }
 
   body {
+    /* No pull-to-refresh or scroll chaining; the editor fills the viewport. */
+    overscroll-behavior: none;
     background-color: var(--cl-bg);
     color: var(--cl-text);
     font-family: var(--font-sans);
@@ -67,4 +70,148 @@
     stroke-linecap: round;
     fill: none;
   }
+}
+
+/*
+ * React Flow. Its stylesheet is unlayered, so these overrides are unlayered
+ * too. Colours and sizes all come from tokens.
+ */
+.react-flow {
+  --xy-background-color: var(--cl-canvas);
+  --xy-background-pattern-color: var(--cl-grid);
+  --xy-edge-stroke: var(--cl-edge);
+  --xy-edge-stroke-selected: var(--cl-accent);
+  --xy-edge-stroke-width: var(--cl-edge-width);
+  --xy-connectionline-stroke: var(--cl-accent);
+  --xy-connectionline-stroke-width: var(--cl-edge-width);
+  --xy-selection-background-color: var(--cl-accent-subtle);
+  --xy-selection-border: var(--cl-edge-width) dashed var(--cl-accent);
+  --xy-minimap-background-color: var(--cl-surface);
+  --xy-minimap-mask-background-color: var(--cl-minimap-mask);
+  --xy-minimap-mask-stroke-color: var(--cl-border-strong);
+  --xy-minimap-node-background-color: var(--cl-border-strong);
+  --xy-resize-background-color: var(--cl-accent);
+  --xy-attribution-background-color: transparent;
+
+  /* Canvas owns all touch gestures: no page pinch-zoom, scrolling or callouts. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.react-flow__attribution {
+  color: var(--cl-text-muted);
+  font-size: var(--text-xs);
+}
+
+.react-flow__attribution a {
+  color: inherit;
+}
+
+.react-flow__minimap {
+  border: var(--cl-node-stroke-width) solid var(--cl-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.react-flow__minimap svg {
+  display: block;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke-width: calc(var(--cl-edge-width) * 1.5);
+}
+
+.react-flow__node:focus-visible {
+  outline: var(--cl-focus-ring-width) solid var(--cl-focus);
+  outline-offset: var(--cl-focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+/* Connection handles: hidden until the node is selected or a connector is being drawn. */
+.react-flow__handle.cl-handle {
+  width: var(--cl-touch-target);
+  height: var(--cl-touch-target);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--cl-duration-fast) var(--cl-ease);
+  z-index: 2;
+}
+
+@media (pointer: fine) {
+  .react-flow__handle.cl-handle {
+    width: var(--cl-handle-hit-fine);
+    height: var(--cl-handle-hit-fine);
+  }
+
+  /* Hover is a shortcut on mouse devices only; selecting always works too. */
+  .react-flow__node:hover .cl-handle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.react-flow__handle.cl-handle::after {
+  content: '';
+  width: var(--cl-handle-dot);
+  height: var(--cl-handle-dot);
+  border-radius: 50%;
+  background: var(--cl-surface);
+  border: var(--cl-focus-ring-width) solid var(--cl-accent);
+  transition: transform var(--cl-duration-fast) var(--cl-ease);
+}
+
+.react-flow__node.selected .cl-handle,
+.cl-connecting .cl-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cl-connecting .cl-handle.connectingto::after,
+.cl-connecting .cl-handle.valid::after,
+.cl-handle.connectingfrom::after {
+  background: var(--cl-accent);
+  transform: scale(1.4);
+}
+
+.cl-tool-pan .cl-handle,
+.cl-tool-pan .react-flow__resize-control {
+  display: none;
+}
+
+/* Resize handles: small visible square, touch-sized hit area around it. */
+.react-flow__resize-control.handle.cl-resize-handle {
+  width: var(--cl-handle-dot);
+  height: var(--cl-handle-dot);
+  border-radius: var(--radius-sm);
+  background: var(--cl-surface);
+  border: var(--cl-focus-ring-width) solid var(--cl-accent);
+}
+
+.react-flow__resize-control.handle.cl-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: calc((var(--cl-handle-dot) - var(--cl-touch-target)) / 2);
+}
+
+@media (pointer: fine) {
+  .react-flow__resize-control.handle.cl-resize-handle::before {
+    inset: calc((var(--cl-handle-dot) - var(--cl-handle-hit-fine)) / 2);
+  }
+}
+
+.react-flow__resize-control.line.cl-resize-line {
+  border-color: var(--cl-accent);
+  opacity: 0.4;
 }
