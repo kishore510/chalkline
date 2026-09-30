@@ -15,6 +15,7 @@ import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode
 import { createId } from '@/lib/id'
 import { createNode, DEFAULT_NODE_SIZE, MIN_NODE_SIZE } from '@/schema/factories'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
+import type { LayoutChanges } from '@/layout/computeLayout'
 import * as groups from './groups'
 import * as ops from './ops'
 
@@ -101,6 +102,16 @@ export interface DiagramState {
   setLaneThickness: (laneId: string, thickness: number) => void
   /** Deletes groups with everything inside them (members, nested groups, their connectors). */
   deleteGroupsWithContents: (ids: string[]) => void
+
+  /* Auto-arrange and tidy. One undo step each. */
+  /** Applies a computed layout (see computeLayout). Locked items never move. Returns true if anything changed. */
+  applyLayout: (changes: LayoutChanges) => boolean
+  /**
+   * Auto ends already route to the nearest clear sides as you edit, so this
+   * changes data only with `clearPinned`: pinned ends (of the selected
+   * connectors, or all) go back to auto. Returns how many connectors changed.
+   */
+  tidyConnectors: (options: { clearPinned: boolean }) => { cleared: number }
 
   /* Deleting */
   /** What the most recent delete removed. `id` changes on every delete; `historySize` detects later edits. */
@@ -373,6 +384,39 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     setLaneThickness(laneId, thickness) {
       if (!groupLocked(laneId)) apply((d) => groups.setLaneThickness(d, laneId, thickness), { key: `lane-thickness:${laneId}` })
     },
+    applyLayout({ nodes, groups: boxes, groupMoves }) {
+      const current = get().diagram
+      let next = current
+      for (const [id, to] of groupMoves) {
+        if (!groups.isGroupLocked(next, groups.groupById(next, id))) next = groups.moveGroupTo(next, id, to)
+      }
+      const moves = new Map([...nodes].filter(([id]) => {
+        const node = next.nodes.find((n) => n.id === id)
+        return node && !groups.isNodeLocked(next, node)
+      }))
+      next = ops.arrangeNodes(next, moves)
+      next = {
+        ...next,
+        groups: next.groups.map((g) => {
+          const box = boxes.get(g.id)
+          if (!box || groups.isGroupLocked(next, g) || g.kind !== 'container') return g
+          return { ...g, position: { x: box.x, y: box.y }, size: { width: box.width, height: box.height } }
+        }),
+      }
+      return commit(next)
+    },
+
+    tidyConnectors({ clearPinned }) {
+      if (!clearPinned) return { cleared: 0 }
+      const { diagram, selection } = get()
+      const selected = new Set(selection)
+      const scope = diagram.edges.filter((e) => selected.size === 0 || selected.has(e.id))
+      const pinned = scope.filter((e) => e.sourceHandle !== undefined || e.targetHandle !== undefined).map((e) => e.id)
+      if (pinned.length === 0) return { cleared: 0 }
+      commit(ops.resetEdgeSides(diagram, pinned))
+      return { cleared: pinned.length }
+    },
+
     deleteGroupsWithContents(ids) {
       const { diagram, selection, lastDeletion } = get()
       const unlocked = ids.filter((id) => !groups.isGroupLocked(diagram, groups.groupById(diagram, id)))
