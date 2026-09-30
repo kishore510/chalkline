@@ -186,7 +186,7 @@ describe('swimlanes', () => {
   it('creates a pool with three generic lanes, horizontal or vertical', () => {
     store().load(fixtures.empty, { undoable: false })
     for (const orientation of ['horizontal', 'vertical'] as const) {
-      const id = store().addPool({ x: 0, y: orientation === 'horizontal' ? 0 : 2000 }, orientation)
+      const id = store().addPool({ x: 0, y: orientation === 'horizontal' ? 0 : 2000 }, orientation)!
       const lanes = laneOrder(store().diagram, id)
       expect(lanes.map((l) => l.label)).toEqual(['Lane 1', 'Lane 2', 'Lane 3'])
       expect(lanes.every((l) => l.orientation === orientation)).toBe(true)
@@ -275,7 +275,7 @@ describe('locking', () => {
     store().setLocked(['n_orders'], true)
     store().setSelection(['n_orders', 'n_payments', 'n_store'])
     const orders = node('n_orders').position
-    expect(store().alignSelection('top')).toEqual({ skipped: 1 })
+    expect(store().alignSelection('top')).toEqual({ skipped: 1, hidden: 0 })
     expect(node('n_orders').position).toEqual(orders)
     expect(node('n_payments').position.y).toBe(node('n_store').position.y)
     expect(store().matchSizeSelection('both').skipped).toBe(1)

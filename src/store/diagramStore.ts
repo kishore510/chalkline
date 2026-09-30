@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import {
   createEmptyDiagram,
+  DEFAULT_LAYER_ID,
   DiagramSchema,
+  MAX_LAYERS,
   parseDiagram,
   type Diagram,
   type EdgeStyle,
@@ -18,6 +20,7 @@ import { getShape, isKnownShape } from '@/shapes/registry'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import type { LayoutChanges } from '@/layout/computeLayout'
 import * as groups from './groups'
+import * as layers from './layers'
 import * as ops from './ops'
 
 /** Undo steps kept. */
@@ -45,8 +48,8 @@ export interface DiagramState {
   endBatch: () => void
 
   /* Editing */
-  /** Adds a node centred on `center` and selects it. Returns its id. */
-  addNode: (type: NodeType, center: Position, grid?: number) => string
+  /** Adds a node centred on `center`, on the active layer, and selects it. Returns its id, or null if the active layer is hidden or locked. */
+  addNode: (type: NodeType, center: Position, grid?: number) => string | null
   moveNodes: (moves: ReadonlyMap<string, Position>) => void
   resizeNode: (id: string, size: Size, position?: Position) => void
   /** Grows a node's height so its label fits; never shrinks. Joins the previous undo step. */
@@ -96,8 +99,8 @@ export interface DiagramState {
   setGroupLabel: (id: string, label: string) => void
   /** Grows a group's header so its title fits. Joins the previous undo step. */
   growGroupHeader: (id: string, size: number) => void
-  /** A pool with three lanes centred on `center`; selects it and returns its id. */
-  addPool: (center: Position, orientation: Orientation) => string
+  /** A pool with three lanes centred on `center`, on the active layer; selects it and returns its id (null if the active layer can't take it). */
+  addPool: (center: Position, orientation: Orientation) => string | null
   addLane: (laneId: string, where: 'before' | 'after') => string | null
   /** Removes a lane; its members stay, now in the pool. */
   deleteLane: (laneId: string) => void
@@ -114,7 +117,7 @@ export interface DiagramState {
    * changes data only with `clearPinned`: pinned ends (of the selected
    * connectors, or all) go back to auto. Returns how many connectors changed.
    */
-  tidyConnectors: (options: { clearPinned: boolean }) => { cleared: number }
+  tidyConnectors: (options: { clearPinned: boolean }) => { cleared: number; skipped: number }
 
   /* Deleting */
   /** What the most recent delete removed. `id` changes on every delete; `historySize` detects later edits. */
@@ -138,15 +141,40 @@ export interface DiagramState {
   pasteFrom: (fragment: Fragment, at?: Position) => string[]
   duplicateSelection: () => string[]
 
+  /* Layers. Add, rename, reorder, delete and move-to-layer are undo steps; visibility and locks are view state (saved, not undoable). */
+  /** Where new items go. Not part of the document. */
+  activeLayerId: string
+  setActiveLayer: (id: string) => void
+  /** Why nothing can be added right now, if so. */
+  activeLayerProblem: () => 'hidden' | 'locked' | null
+  /** Adds a layer on top and makes it active. Null at the limit. */
+  addLayer: (name?: string) => string | null
+  renameLayer: (id: string, name: string) => void
+  /** +1 moves a layer up the stack, -1 down. */
+  moveLayer: (id: string, direction: -1 | 1) => void
+  /** Deletes a layer (not the default one), moving its items to `moveTo` (default: Base). */
+  deleteLayer: (id: string, moveTo?: string) => void
+  /** Deletes a layer and everything on it, with an undo toast. */
+  deleteLayerWithContents: (id: string) => void
+  /** Returns the layer switched to if the active one became unusable (null if none was usable). */
+  setLayerVisible: (id: string, visible: boolean) => { switchedTo?: string | null }
+  setLayerLocked: (id: string, locked: boolean) => { switchedTo?: string | null }
+  showAllLayers: () => void
+  /** Shows only this layer. */
+  soloLayer: (id: string) => void
+  /** Moves the selected items to a layer, one step. Locked items stay. */
+  moveSelectionToLayer: (layerId: string) => { moved: number; skipped: number }
+
   setSelection: (ids: string[]) => void
   /** Replaces the document with untrusted input (migrated and validated). Throws if invalid. Undoable by default. */
   load: (raw: unknown, options?: { undoable?: boolean }) => void
   reset: () => void
 }
 
-/** How many selected nodes an arrange action left alone because they are locked. */
+/** How many selected nodes an arrange action left alone: locked, and on hidden layers. */
 export interface ArrangeResult {
   skipped: number
+  hidden: number
 }
 
 const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i])
@@ -194,8 +222,13 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
   const apply = (op: (d: Diagram) => Diagram, options?: CommitOptions) => void commit(op(get().diagram), options)
 
+  // Hidden items (and connectors to them) can't be selected.
   const pruneSelection = (diagram: Diagram, selection: string[]) => {
-    const ids = new Set([...diagram.nodes.map((n) => n.id), ...diagram.edges.map((e) => e.id), ...diagram.groups.map((g) => g.id)])
+    const ids = new Set([
+      ...diagram.nodes.filter((n) => !layers.isNodeHidden(diagram, n)).map((n) => n.id),
+      ...diagram.edges.filter((e) => !layers.isEdgeHidden(diagram, e)).map((e) => e.id),
+      ...diagram.groups.filter((g) => !layers.isGroupFrameHidden(diagram, g)).map((g) => g.id),
+    ])
     const kept = selection.filter((id) => ids.has(id))
     return kept.length === selection.length ? selection : kept
   }
@@ -207,19 +240,44 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     const { diagram, selection } = get()
     const ids = new Set(selection)
     const nodes = diagram.nodes.filter((n) => ids.has(n.id))
-    const free = nodes.filter((n) => !groups.isNodeLocked(diagram, n))
-    return { free, skipped: nodes.length - free.length }
+    const visible = nodes.filter((n) => !layers.isNodeHidden(diagram, n))
+    const free = visible.filter((n) => !groups.isNodeLocked(diagram, n))
+    return { free, skipped: visible.length - free.length, hidden: nodes.length - visible.length }
   }
 
   const arrange = (make: (free: ReturnType<typeof selectedNodes>['free']) => Diagram): ArrangeResult => {
-    const { free, skipped } = selectedNodes()
+    const { free, skipped, hidden } = selectedNodes()
     commit(make(free))
-    return { skipped }
+    return { skipped, hidden }
   }
 
+  // A group can't be moved, resized, deleted or regrouped when locked or on a locked layer.
   const groupLocked = (id: string) => {
     const d = get().diagram
-    return groups.isGroupLocked(d, groups.groupById(d, id))
+    return groups.isGroupFixed(d, groups.groupById(d, id))
+  }
+  const edgeLocked = (id: string) => {
+    const d = get().diagram
+    const edge = d.edges.find((e) => e.id === id)
+    return Boolean(edge && layers.isEdgeLocked(d, edge))
+  }
+
+  /** The active layer's id if things can be added to it, otherwise null. */
+  const usableActive = () => {
+    const { diagram, activeLayerId } = get()
+    return layers.isLayerUsable(diagram, activeLayerId) ? activeLayerId : null
+  }
+
+  /** Commits a layer view change (visibility, lock): saved and autosaved, but not an undo step. */
+  const commitView = (next: Diagram) => {
+    const { diagram, selection, activeLayerId } = get()
+    if (next === diagram) return {}
+    set({ diagram: ops.touch(next), selection: pruneSelection(next, selection) })
+    // If the active layer just became unusable, move to the nearest usable one.
+    if (layers.isLayerUsable(next, activeLayerId)) return {}
+    const switchedTo = layers.nearestUsableLayer(next, activeLayerId)
+    if (switchedTo) set({ activeLayerId: switchedTo })
+    return { switchedTo }
   }
   const nodeLocked = (id: string) => {
     const d = get().diagram
@@ -237,12 +295,25 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     return { diagram: { ...diagram, groups: diagram.groups.filter((g) => !groupIds.has(g.id)) }, removed: { ...removed, groups: removedGroups } }
   }
 
-  const pasteAt = (fragment: Fragment, at: Position | undefined, step: number) => {
+  /**
+   * Pastes a fragment. `layer`: 'active' puts everything on the active layer
+   * (paste); 'keep' keeps each item's own layer unless that layer can't take
+   * new items, then uses the active one (duplicate).
+   */
+  const pasteAt = (fragment: Fragment, at: Position | undefined, step: number, layer: 'active' | 'keep') => {
+    const active = usableActive()
+    if (!active) return []
     const bounds = fragmentBounds(fragment)
     const offset = at
       ? { x: at.x - (bounds.x + bounds.width / 2), y: at.y - (bounds.y + bounds.height / 2) }
       : { x: PASTE_STEP * step, y: PASTE_STEP * step }
-    const { diagram, ids } = pasteFragment(get().diagram, fragment, offset)
+    const current = get().diagram
+    const place = <T extends { layerId?: string }>(item: T): T => {
+      const own = layers.layerIdOf(item)
+      return layers.withLayer(item, layer === 'keep' && layers.isLayerUsable(current, own) ? own : active)
+    }
+    const placed: Fragment = { nodes: fragment.nodes.map(place), edges: fragment.edges.map(place), groups: fragment.groups.map(place) }
+    const { diagram, ids } = pasteFragment(current, placed, offset)
     commit(diagram, { extra: { selection: ids } })
     return ids
   }
@@ -256,6 +327,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     canRedo: false,
     lastDeletion: null,
     clipboard: null,
+    activeLayerId: DEFAULT_LAYER_ID,
 
     undo() {
       const { past, future, diagram, selection } = get()
@@ -263,12 +335,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       if (!previous) return
       lastKey = null
       set({
-        diagram: previous,
+        diagram: layers.carryLayerView(previous, diagram),
         past: past.slice(0, -1),
         future: [diagram, ...future],
         canUndo: past.length > 1,
         canRedo: true,
-        selection: pruneSelection(previous, selection),
+        selection: pruneSelection(layers.carryLayerView(previous, diagram), selection),
         lastDeletion: null,
       })
     },
@@ -279,12 +351,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       if (!next) return
       lastKey = null
       set({
-        diagram: next,
+        diagram: layers.carryLayerView(next, diagram),
         past: [...past, diagram].slice(-HISTORY_LIMIT),
         future: rest,
         canUndo: true,
         canRedo: rest.length > 0,
-        selection: pruneSelection(next, selection),
+        selection: pruneSelection(layers.carryLayerView(next, diagram), selection),
       })
     },
 
@@ -301,8 +373,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
 
     addNode(type, center, grid = 0) {
+      const active = usableActive()
+      if (!active) return null
       const { diagram } = get()
-      const node = createNode(type, ops.placeNode(diagram, center, getShape(type).defaultSize, grid))
+      const node = layers.withLayer(createNode(type, ops.placeNode(diagram, center, getShape(type).defaultSize, grid)), active)
       commit(ops.addNode(diagram, node), { extra: { selection: [node.id] } })
       return node.id
     },
@@ -331,18 +405,23 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     resetEdgeStyles: (ids) => apply((d) => ops.resetEdgeStyles(d, ids)),
     setEdgeLabel: (id, label) => apply((d) => ops.setEdgeLabel(d, id, label), { key: `edge-label:${id}` }),
     setEdgeNotes: (id, notes) => apply((d) => ops.setEdgeNotes(d, id, notes), { key: `edge-notes:${id}` }),
-    setEdgeSides: (ids, patch) => apply((d) => ops.setEdgeSides(d, ids, patch)),
-    resetEdgeSides: (ids) => apply((d) => ops.resetEdgeSides(d, ids)),
+    // Connectors on locked layers can't be reconnected.
+    setEdgeSides: (ids, patch) => apply((d) => ops.setEdgeSides(d, ids.filter((id) => !edgeLocked(id)), patch)),
+    resetEdgeSides: (ids) => apply((d) => ops.resetEdgeSides(d, ids.filter((id) => !edgeLocked(id)))),
 
     reconnectEdge(id, reconnection) {
+      if (edgeLocked(id)) return false
       const { diagram, ok } = ops.reconnectEdge(get().diagram, id, reconnection)
       commit(diagram)
       return ok
     },
 
     connect(connection) {
+      const active = usableActive()
+      if (!active) return null
       const { diagram, edgeId } = ops.connect(get().diagram, connection)
-      if (edgeId) commit(diagram)
+      if (!edgeId) return null
+      commit(layers.assignLayerOp(diagram, new Set([edgeId]), active))
       return edgeId
     },
 
@@ -353,10 +432,15 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     matchSizeSelection: (mode) => arrange((free) => ops.arrangeNodes(get().diagram, new Map(), matchSize(free, mode))),
 
     groupSelection() {
+      const active = usableActive()
+      if (!active) return null
       const id = createId('g_')
-      const next = groups.groupItems(get().diagram, get().selection, id)
+      const d = get().diagram
+      // Locked items (or ones on locked layers) can't be regrouped.
+      const free = get().selection.filter((s) => !nodeLocked(s) && !groupLocked(s))
+      const next = groups.groupItems(d, free, id)
       if (!next) return null
-      commit(next, { extra: { selection: [id] } })
+      commit(layers.assignLayerOp(next, new Set([id]), active), { extra: { selection: [id] } })
       return id
     },
     ungroup(id) {
@@ -375,15 +459,22 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     setGroupLabel: (id, label) => apply((d) => groups.setGroupLabel(d, id, label), { key: `group-label:${id}` }),
     growGroupHeader: (id, size) => apply((d) => groups.growGroupHeader(d, id, size), { merge: true }),
     addPool(center, orientation) {
+      const active = usableActive()
+      if (!active) return null
       const pool = createId('g_')
-      commit(groups.createPool(get().diagram, center, orientation, { pool, lanes: [createId('g_'), createId('g_'), createId('g_')] }), {
-        extra: { selection: [pool] },
-      })
+      const lanes = [createId('g_'), createId('g_'), createId('g_')]
+      const created = groups.createPool(get().diagram, center, orientation, { pool, lanes })
+      commit(layers.assignLayerOp(created, new Set([pool, ...lanes]), active), { extra: { selection: [pool] } })
       return pool
     },
     addLane(laneId, where) {
+      if (groupLocked(laneId)) return null
       const id = createId('g_')
-      return commit(groups.insertLane(get().diagram, laneId, where, id), { extra: { selection: [id] } }) ? id : null
+      const d = get().diagram
+      const lane = groups.groupById(d, laneId)
+      // A new lane joins its pool's layer.
+      const inserted = layers.assignLayerOp(groups.insertLane(d, laneId, where, id), new Set([id]), lane ? layers.layerIdOf(lane) : DEFAULT_LAYER_ID)
+      return commit(inserted, { extra: { selection: [id] } }) ? id : null
     },
     deleteLane(laneId) {
       if (!groupLocked(laneId)) apply((d) => groups.removeLane(d, laneId))
@@ -398,18 +489,19 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const current = get().diagram
       let next = current
       for (const [id, to] of groupMoves) {
-        if (!groups.isGroupLocked(next, groups.groupById(next, id))) next = groups.moveGroupTo(next, id, to)
+        if (!groups.isGroupFixed(next, groups.groupById(next, id))) next = groups.moveGroupTo(next, id, to)
       }
+      // Locked and hidden shapes never move.
       const moves = new Map([...nodes].filter(([id]) => {
         const node = next.nodes.find((n) => n.id === id)
-        return node && !groups.isNodeLocked(next, node)
+        return node && !groups.isNodeLocked(next, node) && !layers.isNodeHidden(next, node)
       }))
       next = ops.arrangeNodes(next, moves)
       next = {
         ...next,
         groups: next.groups.map((g) => {
           const box = boxes.get(g.id)
-          if (!box || groups.isGroupLocked(next, g) || g.kind !== 'container') return g
+          if (!box || groups.isGroupFixed(next, g) || g.kind !== 'container') return g
           return { ...g, position: { x: box.x, y: box.y }, size: { width: box.width, height: box.height } }
         }),
       }
@@ -417,19 +509,22 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
 
     tidyConnectors({ clearPinned }) {
-      if (!clearPinned) return { cleared: 0 }
+      if (!clearPinned) return { cleared: 0, skipped: 0 }
       const { diagram, selection } = get()
       const selected = new Set(selection)
       const scope = diagram.edges.filter((e) => selected.size === 0 || selected.has(e.id))
-      const pinned = scope.filter((e) => e.sourceHandle !== undefined || e.targetHandle !== undefined).map((e) => e.id)
-      if (pinned.length === 0) return { cleared: 0 }
-      commit(ops.resetEdgeSides(diagram, pinned))
-      return { cleared: pinned.length }
+      const pinned = scope.filter((e) => e.sourceHandle !== undefined || e.targetHandle !== undefined)
+      // Hidden and locked connectors are left alone.
+      const clearable = pinned.filter((e) => !layers.isEdgeHidden(diagram, e) && !layers.isEdgeLocked(diagram, e)).map((e) => e.id)
+      const skipped = pinned.length - clearable.length
+      if (clearable.length === 0) return { cleared: 0, skipped }
+      commit(ops.resetEdgeSides(diagram, clearable))
+      return { cleared: clearable.length, skipped }
     },
 
     deleteGroupsWithContents(ids) {
       const { diagram, selection, lastDeletion } = get()
-      const unlocked = ids.filter((id) => !groups.isGroupLocked(diagram, groups.groupById(diagram, id)))
+      const unlocked = ids.filter((id) => !groups.isGroupFixed(diagram, groups.groupById(diagram, id)))
       const { diagram: next, removed } = removeWithContents(diagram, unlocked)
       if (!commit(next, { extra: { selection: pruneSelection(next, selection) } })) return
       set({ lastDeletion: { ...removed, id: (lastDeletion?.id ?? 0) + 1, historySize: get().past.length } })
@@ -442,9 +537,9 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const groupIds = new Set(diagram.groups.map((g) => g.id))
       let next = diagram
       for (const id of wanted) {
-        if (groupIds.has(id) && !groups.isGroupLocked(next, groups.groupById(next, id))) next = groups.ungroupGroup(next, id)
+        if (groupIds.has(id) && !groups.isGroupFixed(next, groups.groupById(next, id))) next = groups.ungroupGroup(next, id)
       }
-      const removable = wanted.filter((id) => !groupIds.has(id) && !nodeLocked(id))
+      const removable = wanted.filter((id) => !groupIds.has(id) && !nodeLocked(id) && !edgeLocked(id))
       const { diagram: after, removed } = ops.removeElements(next, removable)
       if (!commit(after, { extra: { selection: pruneSelection(after, selection) } })) return
       if (removed.nodes.length + removed.edges.length > 0) {
@@ -492,7 +587,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const { clipboard } = get()
       if (!clipboard) return []
       pasteCount++
-      return pasteAt(clipboard, at, pasteCount)
+      return pasteAt(clipboard, at, pasteCount, 'active')
     },
 
     pasteFrom(fragment, at) {
@@ -503,7 +598,66 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     duplicateSelection() {
       const fragment = copyFragment(get().diagram, get().selection)
-      return fragment ? pasteAt(fragment, undefined, 1) : []
+      return fragment ? pasteAt(fragment, undefined, 1, 'keep') : []
+    },
+
+    setActiveLayer(id) {
+      if (layers.getLayer(get().diagram, id)) set({ activeLayerId: id })
+    },
+    activeLayerProblem() {
+      const { diagram, activeLayerId } = get()
+      const layer = layers.getLayer(diagram, activeLayerId)
+      return !layer ? 'hidden' : !layer.visible ? 'hidden' : layer.locked ? 'locked' : null
+    },
+    addLayer(name) {
+      const d = get().diagram
+      if (d.layers.length >= MAX_LAYERS) return null
+      const id = createId('l_')
+      commit(layers.addLayerOp(d, id, name?.trim() || `Layer ${d.layers.length + 1}`), { extra: { activeLayerId: id } })
+      return id
+    },
+    renameLayer: (id, name) => apply((d) => layers.renameLayerOp(d, id, name), { key: `layer-name:${id}` }),
+    moveLayer: (id, direction) => apply((d) => layers.moveLayerOp(d, id, direction)),
+    deleteLayer(id, moveTo = DEFAULT_LAYER_ID) {
+      const next = layers.deleteLayerOp(get().diagram, id, moveTo)
+      if (!commit(next, { extra: { selection: pruneSelection(next, get().selection) } })) return
+      if (get().activeLayerId === id) set({ activeLayerId: layers.isLayerUsable(next, moveTo) ? moveTo : (layers.nearestUsableLayer(next, moveTo) ?? DEFAULT_LAYER_ID) })
+    },
+    deleteLayerWithContents(id) {
+      const d = get().diagram
+      if (id === DEFAULT_LAYER_ID || !layers.getLayer(d, id)) return
+      const on = layers.itemsOnLayer(d, id)
+      // Group frames on the layer go (their members on other layers stay, released), then everything else on it.
+      let next = d
+      for (const g of d.groups) if (on.has(g.id) && next.groups.some((x) => x.id === g.id)) next = groups.ungroupGroup(next, g.id)
+      const { diagram: removedItems, removed } = ops.removeElements(next, [...on])
+      const without = { ...removedItems, layers: removedItems.layers.filter((l) => l.id !== id) }
+      const lastDeletion = get().lastDeletion
+      if (!commit(without, { extra: { selection: pruneSelection(without, get().selection) } })) return
+      const frames = d.groups.filter((g) => on.has(g.id))
+      set({ lastDeletion: { ...removed, groups: frames, id: (lastDeletion?.id ?? 0) + 1, historySize: get().past.length } })
+      if (get().activeLayerId === id) set({ activeLayerId: layers.nearestUsableLayer(without, DEFAULT_LAYER_ID) ?? DEFAULT_LAYER_ID })
+    },
+    setLayerVisible: (id, visible) => commitView(layers.setLayerViewOp(get().diagram, id, { visible })),
+    setLayerLocked: (id, locked) => commitView(layers.setLayerViewOp(get().diagram, id, { locked })),
+    showAllLayers() {
+      let d = get().diagram
+      for (const l of d.layers) d = layers.setLayerViewOp(d, l.id, { visible: true })
+      commitView(d)
+    },
+    soloLayer(id) {
+      let d = get().diagram
+      for (const l of d.layers) d = layers.setLayerViewOp(d, l.id, { visible: l.id === id })
+      commitView(d)
+    },
+    moveSelectionToLayer(layerId) {
+      const d = get().diagram
+      if (!layers.getLayer(d, layerId)) return { moved: 0, skipped: 0 }
+      const selected = get().selection
+      const free = selected.filter((id) => !nodeLocked(id) && !edgeLocked(id) && !groupLocked(id))
+      const next = layers.assignLayerOp(d, new Set(free), layerId)
+      commit(next, { extra: { selection: pruneSelection(next, selected) } })
+      return { moved: free.length, skipped: selected.length - free.length }
     },
 
     setSelection(ids) {
@@ -518,10 +672,11 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const history = undoable
         ? { past: [...past, current].slice(-HISTORY_LIMIT), future: [], canUndo: true, canRedo: false }
         : clearedHistory
-      set({ diagram, selection: [], lastDeletion: null, ...history })
+      const activeLayerId = layers.isLayerUsable(diagram, DEFAULT_LAYER_ID) ? DEFAULT_LAYER_ID : (layers.nearestUsableLayer(diagram, DEFAULT_LAYER_ID) ?? DEFAULT_LAYER_ID)
+      set({ diagram, selection: [], lastDeletion: null, activeLayerId, ...history })
     },
 
-    reset: () => set({ diagram: createEmptyDiagram(), selection: [], lastDeletion: null, ...clearedHistory }),
+    reset: () => set({ diagram: createEmptyDiagram(), selection: [], lastDeletion: null, activeLayerId: DEFAULT_LAYER_ID, ...clearedHistory }),
   }
 })
 

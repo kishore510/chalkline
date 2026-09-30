@@ -1,4 +1,5 @@
 import { DEFAULT_HEADER_SIZE, type Diagram, type DiagramGroup, type DiagramNode, type Orientation, type Position } from '@/schema/diagram'
+import { isGroupFrameHidden, isLayerLocked, layerIdOf } from './layers'
 
 /*
  * Pure operations on groups (containers, pools and lanes). Positions are
@@ -93,13 +94,22 @@ export function parentsFirst(groups: DiagramGroup[]): DiagramGroup[] {
   return out
 }
 
+/** The 4b rule: a group's own lock flag, or an enclosing group's. This is what locks members. */
 export function isGroupLocked(d: Diagram, group: DiagramGroup | undefined): boolean {
   return Boolean(group && (group.locked || ancestors(d, group).some((a) => a.locked)))
 }
 
-/** Locked itself, or inside a locked group. */
+/**
+ * The group itself can't be moved, resized, deleted or regrouped: locked
+ * (above), or on a locked layer. A layer lock doesn't lock members on other layers.
+ */
+export function isGroupFixed(d: Diagram, group: DiagramGroup | undefined): boolean {
+  return Boolean(group && (isGroupLocked(d, group) || isLayerLocked(d, layerIdOf(group))))
+}
+
+/** Locked itself, on a locked layer, or inside a locked group. */
 export function isNodeLocked(d: Diagram, node: DiagramNode): boolean {
-  return node.locked || isGroupLocked(d, groupById(d, node.groupId))
+  return node.locked || isLayerLocked(d, layerIdOf(node)) || isGroupLocked(d, groupById(d, node.groupId))
 }
 
 /** Hidden because some enclosing group is collapsed. */
@@ -150,7 +160,7 @@ export function innermostGroupAt(d: Diagram, point: Position): DiagramGroup | un
   let best: DiagramGroup | undefined
   let bestDepth = -1
   for (const g of d.groups) {
-    if (g.collapsed || isGroupHidden(d, g) || isGroupLocked(d, g)) continue
+    if (g.collapsed || isGroupHidden(d, g) || isGroupFixed(d, g) || isGroupFrameHidden(d, g)) continue
     const b = boxOf(g)
     if (point.x < b.x || point.x > b.x + b.width || point.y < b.y || point.y > b.y + b.height) continue
     const level = depth(d, g)

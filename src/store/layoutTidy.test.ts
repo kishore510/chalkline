@@ -50,14 +50,14 @@ describe('tidyConnectors', () => {
 
   it('leaves pinned ends alone by default (auto ends already route to the nearest clear sides)', () => {
     const before = store().diagram
-    expect(store().tidyConnectors({ clearPinned: false })).toEqual({ cleared: 0 })
+    expect(store().tidyConnectors({ clearPinned: false })).toEqual({ cleared: 0, skipped: 0 })
     expect(store().diagram).toBe(before)
   })
 
   it('"Also clear pinned sides" returns pinned ends to auto, as one undo step', () => {
     const before = store().diagram
     const pinned = before.edges.filter((e) => e.sourceHandle || e.targetHandle).length
-    expect(store().tidyConnectors({ clearPinned: true })).toEqual({ cleared: pinned })
+    expect(store().tidyConnectors({ clearPinned: true })).toEqual({ cleared: pinned, skipped: 0 })
     expect(store().diagram.edges.every((e) => e.sourceHandle === undefined && e.targetHandle === undefined)).toBe(true)
     valid()
     store().undo()
@@ -66,7 +66,7 @@ describe('tidyConnectors', () => {
 
   it('works on the selection only when there is one', () => {
     store().setSelection(['e_web_api'])
-    expect(store().tidyConnectors({ clearPinned: true })).toEqual({ cleared: 1 })
+    expect(store().tidyConnectors({ clearPinned: true })).toEqual({ cleared: 1, skipped: 0 })
     expect(store().diagram.edges.find((e) => e.id === 'e_api_db')!.sourceHandle).toBe('bottom')
   })
 })
