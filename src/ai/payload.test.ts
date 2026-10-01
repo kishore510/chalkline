@@ -37,8 +37,8 @@ describe('payload builder', () => {
         { id: 'c', shape: 'text', label: undefined, notes: undefined, group: undefined },
       ],
       edges: [
-        { id: 'e1', from: 'a', to: 'b', label: 'writes', notes: undefined },
-        { id: 'e2', from: 'b', to: 'c', label: undefined, notes: undefined },
+        { id: 'e1', from: 'a', to: 'b', dir: undefined, label: 'writes', notes: undefined },
+        { id: 'e2', from: 'b', to: 'c', dir: undefined, label: undefined, notes: undefined },
       ],
     })
     expect(json).toBe(

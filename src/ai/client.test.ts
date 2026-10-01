@@ -222,6 +222,6 @@ describe('messages', () => {
       json(200, { content: [{ type: 'text', text: 'Hello ' }, { type: 'text', text: 'there' }], stop_reason: 'end_turn', usage: { input_tokens: 9, output_tokens: 3 } }, { 'request-id': 'req_ok' }),
     )
     const outcome = await sendMessage(FAKE, { model: AI_MODELS.large, prompt: 'Hi', maxTokens: 64 }, { fetch, online: always })
-    expect(outcome).toEqual({ ok: true, value: { text: 'Hello there', stopReason: 'end_turn', usage: { inputTokens: 9, outputTokens: 3, cacheReadTokens: 0 } }, requestId: 'req_ok' })
+    expect(outcome).toEqual({ ok: true, value: { text: 'Hello there', stopReason: 'end_turn', usage: { inputTokens: 9, outputTokens: 3, cacheReadTokens: 0, cacheWriteTokens: 0 } }, requestId: 'req_ok' })
   })
 })
