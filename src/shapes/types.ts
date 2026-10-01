@@ -7,7 +7,7 @@ import type { NodeStyle, Size } from '@/schema/diagram'
  * connector attachment and export all read from it.
  */
 
-export type ShapeCategory = 'basic' | 'process' | 'architecture' | 'annotation'
+export type ShapeCategory = 'basic' | 'process' | 'architecture' | 'networking' | 'ai' | 'annotation'
 export type Side = 'top' | 'right' | 'bottom' | 'left'
 export const SIDES: readonly Side[] = ['top', 'right', 'bottom', 'left']
 
@@ -52,6 +52,10 @@ export interface ShapeDefinition {
   category: ShapeCategory
   /** Palette icon. */
   icon: LucideIcon
+  /** What it stands for, in a few words (help reference and palette search). */
+  description?: string
+  /** Extra search words, so similar shapes can be told apart. */
+  keywords?: readonly string[]
   defaultSize: Size
   minSize: Size
   /** Resize keeps the width:height ratio. */

@@ -23,7 +23,7 @@ describe('searchShapes', () => {
 describe('byCategory', () => {
   it('groups shapes under their category, in category order, skipping empty ones', () => {
     const groups = byCategory(SHAPES)
-    expect(groups.map((g) => g.id)).toEqual(['basic', 'process', 'architecture', 'annotation'])
+    expect(groups.map((g) => g.id)).toEqual(['basic', 'process', 'architecture', 'networking', 'ai', 'annotation'])
     expect(groups.flatMap((g) => g.shapes)).toHaveLength(SHAPES.length)
     expect(byCategory(searchShapes('queue')).map((g) => g.id)).toEqual(['architecture'])
   })

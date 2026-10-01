@@ -7,7 +7,7 @@ keywords: add, shape, palette, label, text, resize, move, select, duplicate, cop
 
 - **Tap** a shape in the palette to add it in the middle of the view.
 - **Drag** it onto the canvas to place it exactly. On a phone, press and hold a shape in the drawer, then drag.
-- Search the palette by name, or pick from **Recently used**.
+- Search the palette by name or by what a shape is for (for example *pub-sub*, *llm* or *rag*), or pick from **Recently used**.
 
 ## Edit a label
 

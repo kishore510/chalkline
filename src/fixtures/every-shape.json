@@ -17,7 +17,26 @@
     {"id": "n_user_group", "type": "user-group", "position": {"x": 0, "y": 600}, "size": {"width": 128, "height": 128}, "label": "User group"},
     {"id": "n_text", "type": "text", "position": {"x": 240, "y": 600}, "size": {"width": 160, "height": 40}, "label": "Text"},
     {"id": "n_sticky_note", "type": "sticky-note", "position": {"x": 480, "y": 600}, "size": {"width": 150, "height": 150}, "label": "Sticky note", "style": {"fill": "token:swatch-amber-soft", "stroke": "token:swatch-amber"}},
-    {"id": "n_callout", "type": "callout", "position": {"x": 720, "y": 600}, "size": {"width": 170, "height": 100}, "label": "Callout"}
+    {"id": "n_callout", "type": "callout", "position": {"x": 720, "y": 600}, "size": {"width": 170, "height": 100}, "label": "Callout"},
+    {"id": "n_firewall", "type": "firewall", "position": {"x": 0, "y": 800}, "size": {"width": 140, "height": 100}, "label": "Firewall"},
+    {"id": "n_router", "type": "router", "position": {"x": 240, "y": 800}, "size": {"width": 140, "height": 100}, "label": "Router / switch"},
+    {"id": "n_load-balancer", "type": "load-balancer", "position": {"x": 480, "y": 800}, "size": {"width": 160, "height": 100}, "label": "Load balancer"},
+    {"id": "n_api-gateway", "type": "api-gateway", "position": {"x": 720, "y": 800}, "size": {"width": 160, "height": 100}, "label": "API gateway"},
+    {"id": "n_cdn", "type": "cdn", "position": {"x": 0, "y": 1000}, "size": {"width": 140, "height": 100}, "label": "CDN / edge node"},
+    {"id": "n_cache", "type": "cache", "position": {"x": 240, "y": 1000}, "size": {"width": 120, "height": 120}, "label": "Cache store"},
+    {"id": "n_message-bus", "type": "message-bus", "position": {"x": 480, "y": 1000}, "size": {"width": 220, "height": 60}, "label": "Message bus / pub-sub"},
+    {"id": "n_microservice", "type": "microservice", "position": {"x": 720, "y": 1000}, "size": {"width": 140, "height": 100}, "label": "Microservice"},
+    {"id": "n_object-storage", "type": "object-storage", "position": {"x": 0, "y": 1200}, "size": {"width": 140, "height": 120}, "label": "Object storage / data lake"},
+    {"id": "n_worker", "type": "worker", "position": {"x": 240, "y": 1200}, "size": {"width": 140, "height": 100}, "label": "Worker / cron job"},
+    {"id": "n_ai-gateway", "type": "ai-gateway", "position": {"x": 480, "y": 1200}, "size": {"width": 160, "height": 100}, "label": "AI gateway"},
+    {"id": "n_ai-guardrails", "type": "ai-guardrails", "position": {"x": 720, "y": 1200}, "size": {"width": 120, "height": 140}, "label": "AI guardrails"},
+    {"id": "n_llm", "type": "llm", "position": {"x": 0, "y": 1400}, "size": {"width": 160, "height": 100}, "label": "Foundation model (LLM)"},
+    {"id": "n_vector-db", "type": "vector-db", "position": {"x": 240, "y": 1400}, "size": {"width": 120, "height": 120}, "label": "Vector database"},
+    {"id": "n_embeddings", "type": "embeddings", "position": {"x": 480, "y": 1400}, "size": {"width": 160, "height": 100}, "label": "Embeddings engine"},
+    {"id": "n_semantic-cache", "type": "semantic-cache", "position": {"x": 720, "y": 1400}, "size": {"width": 120, "height": 120}, "label": "Semantic cache"},
+    {"id": "n_ai-agent", "type": "ai-agent", "position": {"x": 0, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "AI agent / orchestrator"},
+    {"id": "n_agent-identity", "type": "agent-identity", "position": {"x": 240, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "Agent identity"},
+    {"id": "n_prompt-template", "type": "prompt-template", "position": {"x": 480, "y": 1600}, "size": {"width": 140, "height": 120}, "label": "Prompt template"}
   ],
   "edges": []
 }
