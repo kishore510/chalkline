@@ -3,6 +3,8 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import { minHeightForLabel } from '@/components/shapes/geometry'
 import { ShapeView } from '@/components/shapes/ShapeView'
 import { getShape } from '@/shapes/registry'
+import { cn } from '@/lib/utils'
+import { currentTarget, useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { nodeAppearance } from './appearance'
@@ -30,6 +32,9 @@ function useHeight() {
 export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeFlowNode>) {
   const editing = useUiStore((s) => s.editingId === id)
   const linkSource = useUiStore((s) => s.linkSourceId === id)
+  // Search highlight (view state only; exports draw from the diagram, so it never appears in them).
+  const found = useSearchStore((s) => s.matchIds.has(id))
+  const current = useSearchStore((s) => currentTarget(s) === id)
   const appearance = useMemo(() => nodeAppearance(data.style), [data.style])
   const [labelRef, labelHeight] = useHeight()
 
@@ -56,6 +61,12 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
         onResizeStart={startResize}
         onResizeEnd={endResize}
       />
+      {found && (
+        <div
+          aria-hidden="true"
+          className={cn('pointer-events-none absolute -inset-2 rounded-md bg-(--cl-found-subtle)', current && 'border-2 border-(--cl-found)')}
+        />
+      )}
       {linkSource && (
         <div aria-hidden="true" className="pointer-events-none absolute -inset-2 rounded-md border-2 border-dashed border-accent bg-accent-subtle" />
       )}

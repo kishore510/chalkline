@@ -16,18 +16,22 @@ Every action has a button or menu item. Gestures and shortcuts are quicker ways 
 
 ## Keyboard shortcuts
 
-On a Mac, use `Cmd` instead of `Ctrl`.
+Press `?` to see every shortcut, with the keys for Mac and for Windows and Linux. You can also open it from **Help** > **Keyboard shortcuts**. On a Mac, use `Cmd` wherever this list says `Ctrl`.
 
 - `V`, `H`, `L`: Select, Pan and Link modes
-- `Ctrl Z`, `Ctrl Shift Z`: undo and redo
+- `Ctrl Z`, `Ctrl Shift Z` (or `Ctrl Y`): undo and redo
 - `Ctrl C`, `Ctrl X`, `Ctrl V`: copy, cut and paste
 - `Ctrl D`: duplicate
 - `Ctrl A`: select everything
 - `Delete` or `Backspace`: delete the selection
+- Arrow keys: nudge the selection; with `Shift`, a bigger step. See [Grid, snap and guides](help:grid-and-guides).
 - `Enter`: edit the selected shape's label
 - `Ctrl G`, `Ctrl Shift G`: group and ungroup
 - `G`: snap to grid on or off
 - `+`, `-`, `F`: zoom in, zoom out, fit to screen
+- `Ctrl F`: find in the diagram. See [Find in the diagram](help:find-in-diagram).
 - `Ctrl S`: save as JSON
-- `Escape`: clear the selection and close menus
-- `?`: open help
+- `Escape`: clear the selection, close menus and close search
+- `?`: keyboard shortcuts
+
+Shortcuts don't apply while you're typing in a field, the search box or a label.

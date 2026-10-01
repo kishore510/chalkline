@@ -4,6 +4,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
+import { currentTarget, useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { endResize, startResize } from './guideSession'
 import type { GroupView } from './renderModel'
@@ -34,6 +35,8 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
   const { view, selected, dropTarget } = data
   const { group, side, header, locked } = view
   const lane = group.kind === 'lane'
+  // Search: this collapsed group hides the current result.
+  const found = useSearchStore((s) => currentTarget(s) === id)
   const titleRef = useRef<HTMLDivElement>(null)
   const [titleSize, setTitleSize] = useState(0)
 
@@ -73,6 +76,7 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
         // A pool grows from its far edges only, so its lanes (and their members) never shift.
         shouldResize={view.pool ? (_, p) => p.x === view.box.x && p.y === view.box.y : undefined}
       />
+      {found && <div aria-hidden="true" className="pointer-events-none absolute -inset-2 rounded-lg border-2 border-(--cl-found) bg-(--cl-found-subtle)" />}
       <div
         className={cn('absolute inset-0 rounded-md border transition-colors', selected && 'border-2', dropTarget && 'border-2 border-accent bg-accent-subtle')}
         style={dropTarget ? undefined : { background: fill, borderColor: selected ? 'var(--cl-accent)' : border }}

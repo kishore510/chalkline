@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
+import { useSearchStore } from '@/search/searchStore'
+import { useDiagramStore } from '@/store/diagramStore'
 import { buildSvg, type ExportEnv } from './svg'
 
 // A fixed palette so output is predictable; every token gets a distinct colour.
@@ -126,5 +128,18 @@ describe('buildSvg with layers', () => {
     const { svg } = buildSvg(layered(), env, { includeHidden: true })
     // The note (top layer) is drawn after the client (Base).
     expect(svg.indexOf('Review access')).toBeGreaterThan(svg.indexOf('>Client<'))
+  })
+})
+
+describe('search highlight', () => {
+  it('never reaches an export: it is view state, and the document is unchanged', () => {
+    useDiagramStore.getState().load(fixtures['web-architecture'], { undoable: false })
+    const before = buildSvg(useDiagramStore.getState().diagram, env).svg
+    useSearchStore.getState().openSearch()
+    useSearchStore.getState().setQuery('a')
+    expect(useSearchStore.getState().result.hits.length).toBeGreaterThan(0)
+    expect(buildSvg(useDiagramStore.getState().diagram, env).svg).toBe(before)
+    expect(before).not.toContain('found')
+    useSearchStore.getState().close()
   })
 })

@@ -20,6 +20,9 @@
   /* Smart guides while dragging or resizing, and the outline on aligned shapes. */
   --cl-guide: #c2185b;
   --cl-guide-subtle: #c2185b66;
+  /* Find in diagram: the current result (strong) and the other matches (subtle). View only, never exported. */
+  --cl-found: #985700;
+  --cl-found-subtle: #e8a33d38;
   --cl-surface: #ffffff;
   --cl-surface-muted: #efeee9;
   --cl-border: #dcd9d0;
@@ -77,6 +80,8 @@
   --cl-grid-line: #252f34;
   --cl-guide: #f48fbe;
   --cl-guide-subtle: #f48fbe66;
+  --cl-found: #f0b45c;
+  --cl-found-subtle: #f0b45c33;
   --cl-surface: #1f282d;
   --cl-surface-muted: #28333a;
   --cl-border: #334047;
@@ -186,6 +191,8 @@
   /* Help: a full-height sheet on phones (a sliver of the page shows above), a side panel from tablet up. */
   --cl-full-sheet-height: calc(100dvh - max(var(--cl-gutter), env(safe-area-inset-top)));
   --cl-help-width: 400px;
+  /* Find in diagram: the compact bar on tablet and desktop (narrow enough to clear the tablet minimap). */
+  --cl-search-bar-width: 340px;
   /* "What's new" dot on the help button. */
   --cl-badge-dot: 8px;
   /* Stencil and template previews in the palette and pickers. */

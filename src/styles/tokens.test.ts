@@ -71,6 +71,10 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['guide', 'canvas', TEXT],
   ['guide', 'node-fill', TEXT],
   ['guide', 'group-header', UI],
+  // The search highlight rings shapes on the canvas and collapsed group headers.
+  ['found', 'canvas', UI],
+  ['found', 'node-fill', UI],
+  ['found', 'group-header', UI],
 ]
 
 // Diagram presets are used as text and borders on any fill, so hold them to text contrast.

@@ -3,7 +3,7 @@ import { APP_VERSION } from '@/version'
 import { hasUnseenChanges, markSeen, readLastSeen } from './whatsNew'
 
 /** A page of the help sheet. */
-export type HelpView = { kind: 'home' } | { kind: 'topic'; id: string } | { kind: 'whats-new' } | { kind: 'about' }
+export type HelpView = { kind: 'home' } | { kind: 'topic'; id: string } | { kind: 'whats-new' } | { kind: 'about' } | { kind: 'shortcuts' }
 
 const HOME: HelpView = { kind: 'home' }
 

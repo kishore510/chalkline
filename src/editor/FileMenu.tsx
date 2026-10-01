@@ -1,4 +1,4 @@
-import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Sparkles } from 'lucide-react'
+import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Search, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { fixtures } from '@/fixtures'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { UnseenDot } from '@/help/HelpEntry'
 import { useHelpStore } from '@/help/helpStore'
+import { useSearchStore } from '@/search/searchStore'
 import { cn } from '@/lib/utils'
 import { serializeDiagram, fileNameFor } from '@/persistence/serialize'
 import { safeParseDiagram } from '@/schema/diagram'
@@ -167,6 +168,10 @@ export function FileMenu({ layout }: { layout: Layout }) {
           <Divider />
           {layout === 'phone' && (
             <>
+              <Item icon={<Search />} onClick={run(() => useSearchStore.getState().openSearch())}>
+                Find in diagram
+              </Item>
+              <Divider />
               <section aria-label="View">
                 <h3 className="px-3 pt-2 text-xs font-semibold tracking-wide text-text-muted uppercase">View</h3>
                 <ViewOptions layout={layout} />
