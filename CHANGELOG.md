@@ -2,6 +2,15 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.21.1] - 2026-10-01
+
+### Added
+- Three new shapes in **AI & ML**: **MCP client**, **MCP server** and **Tool / plugin**, for drawing how agents reach tools over the Model Context Protocol. Search finds them by words like *mcp*, *plugin* or *function calling*.
+
+### Changed
+- Every shape now has a short description of what it stands for, shown in the shapes reference in Help and matched by palette search. The microservice description is clearer about what sets it apart.
+- The every-shape and label-cases test diagrams include the new shapes, so their saved export checks were updated. Existing shapes export exactly as before.
+
 ## [0.21.0] - 2026-10-01
 
 ### Added

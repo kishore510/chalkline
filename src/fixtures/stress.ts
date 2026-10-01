@@ -24,13 +24,20 @@ function random(seed: number) {
 
 const WORDS = ['Orders', 'Payments', 'Gateway', 'Ledger', 'Cache', 'Queue', 'Search', 'Auth', 'Billing', 'Reports', 'Inventory', 'Users', 'Events', 'Mail', 'Files']
 
+/**
+ * Shapes added to the registry after export/golden.json was made. Left out so
+ * the stress diagrams, and the hashes that guard their output, stay the same
+ * as the registry grows.
+ */
+const ADDED_SINCE_GOLDEN = new Set(['mcp-client', 'mcp-server', 'tool'])
+
 export const STRESS_SIZES = [300, 1000] as const
 
 export function stressDiagram(count: number, seed = 1): Diagram {
   const rand = random(seed + count)
   const pick = <T,>(items: readonly T[]) => items[Math.floor(rand() * items.length)]!
   const cols = Math.ceil(Math.sqrt(count))
-  const shapes = SHAPES.filter((s) => !s.keepAspect)
+  const shapes = SHAPES.filter((s) => !s.keepAspect && !ADDED_SINCE_GOLDEN.has(s.id))
   const at = '2026-01-01T00:00:00.000Z'
   const layers = [
     { id: DEFAULT_LAYER_ID, name: 'Base', visible: true, locked: false },

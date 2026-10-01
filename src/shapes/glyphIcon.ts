@@ -14,6 +14,7 @@ export function penAt(x: number, y: number, s: number): Pen {
   return {
     p: (u, v) => `${n(x + u * s)} ${n(y + v * s)}`,
     c: (u, v, r) => circle(x + u * s, y + v * s, r * s),
+    l: (d) => `${n(d * s)}`,
   }
 }
 

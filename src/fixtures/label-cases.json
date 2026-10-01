@@ -176,7 +176,22 @@
     {"id": "prompt_template_word", "type": "prompt-template", "position": {"x": 260, "y": 7480}, "size": {"width": 140, "height": 120}, "label": "Customer"},
     {"id": "prompt_template_multi", "type": "prompt-template", "position": {"x": 520, "y": 7480}, "size": {"width": 140, "height": 120}, "label": "Payment gateway service"},
     {"id": "prompt_template_long", "type": "prompt-template", "position": {"x": 780, "y": 7480}, "size": {"width": 140, "height": 120}, "label": "Customer identity verification and onboarding service with fraud checks"},
-    {"id": "prompt_template_longword", "type": "prompt-template", "position": {"x": 1040, "y": 7480}, "size": {"width": 140, "height": 120}, "label": "Supercalifragilisticexpialidocious"}
+    {"id": "prompt_template_longword", "type": "prompt-template", "position": {"x": 1040, "y": 7480}, "size": {"width": 140, "height": 120}, "label": "Supercalifragilisticexpialidocious"},
+    {"id": "mcp_client_short", "type": "mcp-client", "position": {"x": 0, "y": 7700}, "size": {"width": 160, "height": 100}, "label": "API"},
+    {"id": "mcp_client_word", "type": "mcp-client", "position": {"x": 260, "y": 7700}, "size": {"width": 160, "height": 100}, "label": "Customer"},
+    {"id": "mcp_client_multi", "type": "mcp-client", "position": {"x": 520, "y": 7700}, "size": {"width": 160, "height": 100}, "label": "Payment gateway service"},
+    {"id": "mcp_client_long", "type": "mcp-client", "position": {"x": 780, "y": 7700}, "size": {"width": 160, "height": 100}, "label": "Customer identity verification and onboarding service with fraud checks"},
+    {"id": "mcp_client_longword", "type": "mcp-client", "position": {"x": 1040, "y": 7700}, "size": {"width": 160, "height": 100}, "label": "Supercalifragilisticexpialidocious"},
+    {"id": "mcp_server_short", "type": "mcp-server", "position": {"x": 0, "y": 7920}, "size": {"width": 160, "height": 100}, "label": "API"},
+    {"id": "mcp_server_word", "type": "mcp-server", "position": {"x": 260, "y": 7920}, "size": {"width": 160, "height": 100}, "label": "Customer"},
+    {"id": "mcp_server_multi", "type": "mcp-server", "position": {"x": 520, "y": 7920}, "size": {"width": 160, "height": 100}, "label": "Payment gateway service"},
+    {"id": "mcp_server_long", "type": "mcp-server", "position": {"x": 780, "y": 7920}, "size": {"width": 160, "height": 100}, "label": "Customer identity verification and onboarding service with fraud checks"},
+    {"id": "mcp_server_longword", "type": "mcp-server", "position": {"x": 1040, "y": 7920}, "size": {"width": 160, "height": 100}, "label": "Supercalifragilisticexpialidocious"},
+    {"id": "tool_short", "type": "tool", "position": {"x": 0, "y": 8140}, "size": {"width": 140, "height": 100}, "label": "API"},
+    {"id": "tool_word", "type": "tool", "position": {"x": 260, "y": 8140}, "size": {"width": 140, "height": 100}, "label": "Customer"},
+    {"id": "tool_multi", "type": "tool", "position": {"x": 520, "y": 8140}, "size": {"width": 140, "height": 100}, "label": "Payment gateway service"},
+    {"id": "tool_long", "type": "tool", "position": {"x": 780, "y": 8140}, "size": {"width": 140, "height": 100}, "label": "Customer identity verification and onboarding service with fraud checks"},
+    {"id": "tool_longword", "type": "tool", "position": {"x": 1040, "y": 8140}, "size": {"width": 140, "height": 100}, "label": "Supercalifragilisticexpialidocious"}
   ],
   "edges": []
 }

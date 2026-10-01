@@ -56,8 +56,7 @@ export function shapeReferenceMarkdown(): string {
     const items = shapes.map((s) => {
       const size = `${s.defaultSize.width} × ${s.defaultSize.height}`
       const label = s.defaultLabel ? `starts as “${s.defaultLabel}”` : 'starts with no label'
-      const what = s.description ? `${s.description}; ` : ''
-      return `- **${s.name}**: ${what}${label}, ${size}${s.keepAspect ? ', keeps its proportions when resized' : ''}.`
+      return `- **${s.name}**: ${s.description}; ${label}, ${size}${s.keepAspect ? ', keeps its proportions when resized' : ''}.`
     })
     return `### ${category.name}\n\n${items.join('\n')}`
   })

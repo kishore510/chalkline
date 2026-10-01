@@ -45,10 +45,11 @@ export interface LabelLayout {
   align: 'center' | 'start'
 }
 
-/** Draws in a unit square: `p(u, v)` is a point, `c(u, v, r)` a circle, both scaled to the glyph box. */
+/** Draws in a unit square: `p(u, v)` is a point, `c(u, v, r)` a circle and `l(d)` a length, all scaled to the glyph box. */
 export interface Pen {
   p: (u: number, v: number) => string
   c: (u: number, v: number, r: number) => string
+  l: (d: number) => string
 }
 
 /** A small stroke-only mark drawn inside a shape, as a list of SVG paths. */
@@ -69,10 +70,14 @@ export interface ShapeDefinition {
   icon: ShapeIconComponent
   /** The mark drawn inside the shape on the canvas (and in exports), if any. */
   glyph?: Glyph
-  /** What it stands for, in a few words (help reference and palette search). */
-  description?: string
+  /**
+   * What it stands for, in one short sentence without a capital or full stop
+   * (it follows the name in the help reference). Palette search and the AI's
+   * shape choice read it, so it should set the shape apart from similar ones.
+   */
+  description: string
   /** Extra search words, so similar shapes can be told apart. */
-  keywords?: readonly string[]
+  keywords: readonly string[]
   defaultSize: Size
   minSize: Size
   /** Resize keeps the width:height ratio. */
