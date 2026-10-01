@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { getSettings, updateSettings } from '@/settings/settingsStore'
+import { useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
+import { useUiStore } from '@/store/uiStore'
 import { foundSavedWork, shouldWelcome, type StartupLoad } from './firstRun'
 
 /*
@@ -28,8 +30,10 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
   },
   startTour() {
     get().dismissWelcome()
-    // The mode switch must be visible: the phone hides the toolbar while something is selected.
+    // The mode switch must be visible: the phone hides the toolbar while something is selected, searching, or adding shapes.
     useDiagramStore.getState().setSelection([])
+    useSearchStore.getState().close()
+    useUiStore.getState().setPaletteOpen(false)
     set({ tourOpen: true })
   },
   closeTour(finished) {

@@ -199,6 +199,15 @@
   /* Help: a full-height sheet on phones (a sliver of the page shows above), a side panel from tablet up. */
   --cl-full-sheet-height: calc(100dvh - max(var(--cl-gutter), env(safe-area-inset-top)));
   --cl-help-width: 400px;
+  /* Settings: same shape as help. */
+  --cl-settings-width: var(--cl-help-width);
+  /* Problem banner at the top of the canvas (autosave failures). */
+  --cl-banner-width: 560px;
+  /* The tour's step card, and the ring around the part of the screen it points at. */
+  --cl-tour-width: 320px;
+  --cl-tour-max-width: calc(100vw - 2 * var(--cl-gutter));
+  --cl-tour-ring-width: 3px;
+  --cl-tour-ring-offset: 4px;
   /* Find in diagram: the compact bar on tablet and desktop (narrow enough to clear the tablet minimap). */
   --cl-search-bar-width: 340px;
   /* "What's new" dot on the help button. */

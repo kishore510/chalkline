@@ -17,9 +17,18 @@ const DEBOUNCE_MS = 400
  * not copied aside), and before clearing data or restoring a backup.
  */
 let paused = false
-export const pauseAutosave = () => {
+/** Pauses autosave. Returns a function that undoes this pause (if it was the one that paused it). */
+export const pauseAutosave = (): (() => void) => {
+  if (paused) return () => {}
   paused = true
+  const status = useUiStore.getState().saveStatus
   useUiStore.getState().setSaveStatus('off')
+  return () => {
+    paused = false
+    useUiStore.getState().setSaveStatus(status)
+    // Anything changed meanwhile is written now.
+    flushPending(true)
+  }
 }
 export const isAutosavePaused = () => paused
 
@@ -63,7 +72,7 @@ export function restoreAutosave(): AutosaveLoad {
 }
 
 /** Set while autosave runs: writes any pending change now. */
-let flushPending = () => {}
+let flushPending = (_force?: boolean) => {}
 
 /** Writes any pending change now (before a backup is made, for example). */
 export const flushAutosave = () => flushPending()
@@ -101,9 +110,9 @@ export function startAutosave(): () => void {
   let timer: number | undefined
   let pending = false
 
-  const flush = () => {
+  const flush = (force = false) => {
     window.clearTimeout(timer)
-    if (!pending || paused) return
+    if (!(pending || force) || paused) return
     pending = false
     reportSaveResult(saveAutosave(useDiagramStore.getState().diagram))
   }
@@ -113,10 +122,11 @@ export function startAutosave(): () => void {
     if (state.diagram === previous.diagram) return
     pending = true
     window.clearTimeout(timer)
-    timer = window.setTimeout(flush, DEBOUNCE_MS)
+    timer = window.setTimeout(() => flush(), DEBOUNCE_MS)
   })
   const onHide = () => document.visibilityState === 'hidden' && flush()
-  window.addEventListener('pagehide', flush)
+  const onPageHide = () => flush()
+  window.addEventListener('pagehide', onPageHide)
   document.addEventListener('visibilitychange', onHide)
   if (!paused) useUiStore.getState().setSaveStatus('saved')
 
@@ -124,7 +134,7 @@ export function startAutosave(): () => void {
     flush()
     flushPending = () => {}
     unsubscribe()
-    window.removeEventListener('pagehide', flush)
+    window.removeEventListener('pagehide', onPageHide)
     document.removeEventListener('visibilitychange', onHide)
   }
 }

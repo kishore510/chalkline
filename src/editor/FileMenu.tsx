@@ -1,4 +1,4 @@
-import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Search, Sparkles } from 'lucide-react'
+import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Search, Settings, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import type { Layout } from '@/hooks/useMediaQuery'
 import { UnseenDot } from '@/help/HelpEntry'
 import { useHelpStore } from '@/help/helpStore'
 import { useSearchStore } from '@/search/searchStore'
+import { openSettings } from '@/settings/SettingsEntry'
 import { cn } from '@/lib/utils'
 import { friendlyError } from '@/errors/friendly'
 import { showError } from '@/errors/errorStore'
@@ -188,6 +189,9 @@ export function FileMenu({ layout }: { layout: Layout }) {
           {layout === 'phone' && (
             <>
               <Divider />
+              <Item icon={<Settings />} onClick={run(() => openSettings())}>
+                Settings
+              </Item>
               <Item icon={<CircleHelp />} hint={unseen ? 'New' : undefined} onClick={run(() => openHelp())}>
                 Help and what’s new
               </Item>

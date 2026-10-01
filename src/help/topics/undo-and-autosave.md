@@ -14,6 +14,8 @@ keywords: undo, redo, history, autosave, save, restore, lost
 Your diagram saves in this browser shortly after every change, and again when you leave the page. It comes back when you return.
 
 - The menu shows whether autosave is working.
+- If saving fails (storage full, or blocked in a private window), a banner at the top says so. Choose **Export JSON now** to keep a copy. Chalkline tries again on your next change, and the banner goes once saving works.
 - Autosave is per browser and per device. Nothing is uploaded.
+- To move everything (diagram, stencils and settings) to another browser, use **Export everything** in [Settings](help:settings-and-backup).
 
 > Keep a copy with **Save as JSON** in the menu, especially before clearing browser data. See [Saving, opening and exporting](help:saving-and-exporting).

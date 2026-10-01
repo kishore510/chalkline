@@ -12,4 +12,5 @@ export const HELP_AREAS = {
 export const LEARN_MORE = {
   linkMode: 'connectors',
   connectorProperties: 'connectors',
+  settings: 'settings-and-backup',
 } as const

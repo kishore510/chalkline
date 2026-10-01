@@ -2,6 +2,23 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.20.0] - 2026-10-01
+
+### Added
+- **Settings**: theme, snap to grid, smart guides, grid display, the arrowhead for new connectors, and the font and label size new diagrams start with. Open it from the gear at the top, or from the menu on a phone. Changes apply straight away.
+- **Export everything**: one backup file with your diagram, stencil library and settings. **Import backup** checks the file and shows what it will replace before anything changes.
+- **Clear local data**: removes everything Chalkline keeps in this browser, after offering to export a backup first.
+- Settings also shows roughly how much browser storage Chalkline uses.
+- A welcome on your first visit, with a template or a sample diagram to start from, and a short tour of the Select, Pan and Link modes. Replay the tour from Settings or Help.
+- A Help topic on settings, backup and the tour, and more troubleshooting help.
+
+### Changed
+- Clearer messages when something goes wrong, each with what to do next and a **Details** toggle. A file that won't open never replaces your current diagram, and a diagram from a newer version is refused rather than half-loaded.
+- If autosave fails because storage is full or blocked, a banner says so and offers **Export JSON now**. Chalkline tries again on your next change.
+- An autosave that can't be read is kept aside, so you can export it, instead of being lost. One from a newer version is left untouched.
+- If a diagram can't be drawn, you get a way out (export it, or start a new one) instead of a blank screen.
+- Your existing theme, view, panel and arrange choices move into the new settings automatically.
+
 ## [0.19.1] - 2026-10-01
 
 ### Fixed

@@ -3,6 +3,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { HelpButton } from '@/help/HelpEntry'
 import { SearchButton } from '@/search/SearchPanel'
+import { SettingsButton } from '@/settings/SettingsEntry'
 import { FileMenu } from './FileMenu'
 import { LayersButton } from './LayersPanel'
 import { TidyMenu } from './TidyMenu'
@@ -29,6 +30,7 @@ export function TopBar({ layout }: { layout: Layout }) {
           {layout !== 'phone' && <SearchButton />}
           <FileMenu layout={layout} />
           {layout !== 'phone' && <HelpButton />}
+          {layout !== 'phone' && <SettingsButton />}
           <ThemeToggle />
         </div>
       </div>

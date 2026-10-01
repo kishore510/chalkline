@@ -6,7 +6,12 @@ import { useCanvasKeyboard } from '@/canvas/useCanvasKeyboard'
 import { loadSample } from '@/fixtures/load'
 import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
+import { ErrorBanner, ErrorDialog, RenderErrorBoundary } from '@/errors/ErrorViews'
 import { HelpSheetHost, VersionTag } from '@/help/HelpEntry'
+import { TourHost } from '@/onboarding/OnboardingEntry'
+import { saveJson } from '@/persistence/download'
+import { createNewDiagram } from '@/settings/newDiagram'
+import { SettingsSheetHost } from '@/settings/SettingsEntry'
 import { cn } from '@/lib/utils'
 import { SearchBar, SearchSheet } from '@/search/SearchPanel'
 import { useSearchStore } from '@/search/searchStore'
@@ -50,10 +55,13 @@ function EditorLayout() {
         {layout === 'desktop' && <PalettePanel />}
         {layout === 'tablet' && <PaletteRail />}
         <main className="relative min-w-0 flex-1 overflow-hidden">
-          <Canvas minimap={layout === 'phone' ? 'none' : layout === 'desktop' ? 'bottom-right' : 'top-right'} />
-          <EmptyCanvas layout={layout} />
+          <RenderErrorBoundary actions={RECOVERY}>
+            <Canvas minimap={layout === 'phone' ? 'none' : layout === 'desktop' ? 'bottom-right' : 'top-right'} />
+            <EmptyCanvas layout={layout} />
+          </RenderErrorBoundary>
           {/* One column at the top, so these never overlap. Phone sits lower, clear of the corner credit. */}
           <div className={cn('pointer-events-none absolute inset-x-0 z-10 flex flex-col items-center gap-2 px-4', layout === 'phone' ? 'top-10' : 'top-3')}>
+            <ErrorBanner />
             {layout !== 'phone' && <SearchBar />}
             {layout === 'desktop' && <ArrangeBar />}
             <LinkHint />
@@ -84,9 +92,18 @@ function EditorLayout() {
       <ContextMenu />
       <StencilDialogs />
       <HelpSheetHost />
+      <SettingsSheetHost />
+      <ErrorDialog />
+      <TourHost />
     </div>
   )
 }
+
+/** Ways out when the canvas can't draw the diagram: keep the data, or start over (undo brings it back). */
+const RECOVERY = [
+  { label: 'Export JSON', run: () => void saveJson(), primary: true },
+  { label: 'Start a new diagram', run: () => useDiagramStore.getState().load(createNewDiagram()) },
+]
 
 /** First Tab stop on the page (shown when focused): straight to the canvas, past the top bar and palette. */
 function SkipToCanvas() {

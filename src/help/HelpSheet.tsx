@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Check, ChevronRight, Copy, Hand, Info, Keyboard, Rocket, Search, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, ChevronRight, Copy, Hand, Info, Keyboard, PlayCircle, Rocket, Search, Settings, Sparkles, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { formatBytes, storageUsed } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import { MEDIA } from '@/styles/breakpoints'
+import { useOnboardingStore } from '@/onboarding/onboardingStore'
+import { openSettings } from '@/settings/SettingsEntry'
 import { cheatSheet } from '@/editor/shortcuts'
 import { formatVersionDetails, VERSION_INFO } from '@/version'
 import { CHANGELOG, CHANGELOG_TEXT, HELP_TOPICS, topicById } from './content'
@@ -105,6 +107,24 @@ function Home({ go, autoFocusSearch, query, setQuery }: { go: (view: HelpView) =
           <section aria-label="More" className="flex flex-col gap-1">
             <SectionTitle>More</SectionTitle>
             <ul className="flex flex-col">
+              <NavRow
+                icon={<PlayCircle />}
+                title="Take the tour"
+                detail="The Select, Pan and Link modes, in four steps"
+                onClick={() => {
+                  useHelpStore.getState().closeHelp()
+                  useOnboardingStore.getState().startTour()
+                }}
+              />
+              <NavRow
+                icon={<Settings />}
+                title="Settings"
+                detail="Theme, canvas and text defaults, backup and restore"
+                onClick={() => {
+                  useHelpStore.getState().closeHelp()
+                  openSettings()
+                }}
+              />
               {gestures && <NavRow icon={<Hand />} title={gestures.title} detail="Touch, mouse and keyboard" onClick={() => topic(gestures.id)} />}
               <NavRow icon={<Keyboard />} title="Keyboard shortcuts" detail="Every shortcut, for Mac and Windows / Linux" onClick={() => go({ kind: 'shortcuts' })} />
               <NavRow icon={<Sparkles />} title="What’s new" detail={`Version ${VERSION_INFO.version}`} badge={unseen ? 'New' : undefined} onClick={() => go({ kind: 'whats-new' })} />
