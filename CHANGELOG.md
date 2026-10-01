@@ -2,6 +2,19 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.22.0] - 2026-10-01
+
+### Added
+- **Generate a diagram from a description**, with your own Anthropic API key. Choose **AI** in the top bar (on a phone, **Generate with AI…** in the menu), describe the diagram, check what will be sent, and look at a preview before anything is added.
+- Only your description is sent, with Chalkline's list of shapes and colours. Nothing from your current diagram goes with it. The check step shows the model (Claude Sonnet 5.5) and the estimated size of everything sent.
+- The preview lays the diagram out left to right and lists anything that had to be fixed, such as a shape Chalkline doesn't have (drawn as a rounded box) or a connector to a missing shape (left out).
+- **Add to canvas** puts the new shapes in empty space beside your diagram, on the layer you're adding to, and selects them. One **Undo** removes them all. It never changes or removes anything already there.
+- **Regenerate**, **Edit description**, **Cancel** while waiting, and an optional **Include short notes**.
+- A Help topic on generating diagrams: writing good descriptions, what's sent, the preview, cost and limits.
+
+### Changed
+- The AI help topic covers generating diagrams and where your key does and doesn't go.
+
 ## [0.21.1] - 2026-10-01
 
 ### Added

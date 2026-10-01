@@ -58,6 +58,9 @@ function createEnv(fontData?: ReadonlyMap<string, string>): ExportEnv {
   }
 }
 
+/** For an on-screen preview: real sizes and text measuring, colours left as var(--cl-…) for the caller to resolve. */
+export const screenEnv = (): ExportEnv => ({ ...createEnv(), colour: (token) => `var(--cl-${token})` })
+
 /**
  * Loads the faces (so text is measured with them) and reads their data for
  * embedding. A face that can't be read is left out of the map.

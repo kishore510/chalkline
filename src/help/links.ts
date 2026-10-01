@@ -14,4 +14,5 @@ export const LEARN_MORE = {
   connectorProperties: 'connectors',
   settings: 'settings-and-backup',
   ai: 'ai-features',
+  generate: 'generating-diagrams',
 } as const

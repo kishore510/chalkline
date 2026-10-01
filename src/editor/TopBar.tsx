@@ -1,3 +1,4 @@
+import { AiButton } from '@/ai/GenerateEntry'
 import { Logo, LogoMark } from '@/components/Logo'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Layout } from '@/hooks/useMediaQuery'
@@ -27,6 +28,7 @@ export function TopBar({ layout }: { layout: Layout }) {
         {layout === 'desktop' && <CanvasToolbar layout={layout} />}
         <div className="flex items-center gap-(--cl-toolbar-gap)">
           {/* Phone: no room at 360px, so find, help and About live in the file menu. */}
+          {layout !== 'phone' && <AiButton />}
           {layout !== 'phone' && <SearchButton />}
           <FileMenu layout={layout} />
           {layout !== 'phone' && <HelpButton />}

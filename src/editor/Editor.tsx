@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect } from 'react'
 import { LiveRegion } from '@/a11y/LiveRegion'
+import { GenerateSheetHost } from '@/ai/GenerateEntry'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { useCanvasKeyboard } from '@/canvas/useCanvasKeyboard'
 import { loadSample } from '@/fixtures/load'
@@ -93,6 +94,7 @@ function EditorLayout() {
       <StencilDialogs />
       <HelpSheetHost />
       <SettingsSheetHost />
+      <GenerateSheetHost />
       <ErrorDialog />
       <TourHost />
     </div>

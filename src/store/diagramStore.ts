@@ -26,6 +26,7 @@ import type { StencilContent } from '@/stencils/format'
 import * as groups from './groups'
 import * as layers from './layers'
 import * as ops from './ops'
+import { placeInFreeSpace } from './placement'
 
 /** Undo steps kept. */
 export const HISTORY_LIMIT = 100
@@ -160,6 +161,15 @@ export interface DiagramState {
    * new ids, or null if the active layer is hidden or locked.
    */
   insertStencil: (content: StencilContent, center: Position, grid?: number) => string[] | null
+
+  /* Generated diagrams (AI) */
+  /**
+   * Adds a generated, laid-out diagram (top-left at 0,0) in free space: beside
+   * the existing content, nearer `viewCentre`, or centred on it when the
+   * diagram is empty. Active layer, fresh ids, selected. One undo step; never
+   * changes anything already there. Null if the active layer is hidden or locked.
+   */
+  insertGenerated: (content: StencilContent, viewCentre: Position, grid?: number) => string[] | null
 
   /* Layers. Add, rename, reorder, delete and move-to-layer are undo steps; visibility and locks are view state (saved, not undoable). */
   /** Where new items go. Not part of the document. */
@@ -644,6 +654,18 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const active = usableActive()
       if (!active) return null
       const { diagram, ids } = placeStencil(get().diagram, content, center, active, grid)
+      commit(diagram, { extra: { selection: ids } })
+      return ids
+    },
+
+    insertGenerated(content, viewCentre, grid = 0) {
+      const active = usableActive()
+      if (!active) return null
+      const current = get().diagram
+      const bounds = fragmentBounds(content)
+      const corner = placeInFreeSpace(current, bounds, viewCentre, grid)
+      const centre = { x: corner.x + bounds.width / 2, y: corner.y + bounds.height / 2 }
+      const { diagram, ids } = placeStencil(current, content, centre, active)
       commit(diagram, { extra: { selection: ids } })
       return ids
     },
