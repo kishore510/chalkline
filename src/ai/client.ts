@@ -59,14 +59,26 @@ export interface MessageInput {
   /** The person's request plus any diagram payload, as one user message. */
   prompt: string
   maxTokens: number
+  /** Mark the system prompt cacheable: it's the same on every request of an action, so a retry soon after reads it from the cache. */
+  cacheSystem?: boolean
+  /** Structured output: the answer is JSON matching this schema (output_config.format). */
+  outputSchema?: Record<string, unknown>
+  /** How much effort (and thinking) the model spends; missing means the model's default. */
+  effort?: 'low' | 'medium' | 'high'
 }
 
 /** POST /v1/messages: one user turn, no tools, thinking left at the model's default. */
 export function buildMessagesRequest(key: string, input: MessageInput): ApiRequest {
+  const system = input.system && (input.cacheSystem ? [{ type: 'text', text: input.system, cache_control: { type: 'ephemeral' } }] : input.system)
+  const outputConfig = {
+    ...(input.effort && { effort: input.effort }),
+    ...(input.outputSchema && { format: { type: 'json_schema', schema: input.outputSchema } }),
+  }
   return request('/messages', key, {
     model: input.model.id,
     max_tokens: input.maxTokens,
-    ...(input.system && { system: input.system }),
+    ...(system && { system }),
+    ...(Object.keys(outputConfig).length > 0 && { output_config: outputConfig }),
     messages: [{ role: 'user', content: input.prompt }],
   })
 }
@@ -94,6 +106,10 @@ export type FailureReason =
   | 'blocked'
   | 'cancelled'
   | 'unexpected'
+  /* Answers that arrived but can't be used (Generate diagram). */
+  | 'malformed'
+  | 'refused'
+  | 'truncated'
 
 export type Failure = {
   ok: false
@@ -122,6 +138,9 @@ const KIND: Record<FailureReason, AiErrorKind> = {
   blocked: 'ai-blocked',
   cancelled: 'ai-cancelled',
   unexpected: 'ai-unexpected',
+  malformed: 'ai-malformed',
+  refused: 'ai-refused',
+  truncated: 'ai-truncated',
 }
 
 export function failure(reason: FailureReason, detail?: string, extra: { status?: number; retryAfter?: number } = {}): Failure {
@@ -239,14 +258,18 @@ export async function testKey(key: string, model: AiModel, options: SendOptions 
 export interface MessageResult {
   text: string
   stopReason: string | null
-  usage: { inputTokens: number; outputTokens: number }
+  usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number }
 }
 
 /** One Messages call, for the AI actions in later releases. The answer is returned, never applied. */
 export async function sendMessage(key: string, input: MessageInput, options: SendOptions = {}): Promise<Outcome<MessageResult>> {
   const outcome = await send(buildMessagesRequest(key, input), options)
   if (!outcome.ok) return outcome
-  const body = outcome.value as { content?: { type?: string; text?: string }[]; stop_reason?: string | null; usage?: { input_tokens?: number; output_tokens?: number } } | null
+  const body = outcome.value as {
+    content?: { type?: string; text?: string }[]
+    stop_reason?: string | null
+    usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number }
+  } | null
   if (!body || !Array.isArray(body.content)) return failure('unexpected', 'No content in the answer.')
   const text = body.content
     .filter((b) => b.type === 'text' && typeof b.text === 'string')
@@ -254,7 +277,15 @@ export async function sendMessage(key: string, input: MessageInput, options: Sen
     .join('')
   return {
     ok: true,
-    value: { text, stopReason: body.stop_reason ?? null, usage: { inputTokens: body.usage?.input_tokens ?? 0, outputTokens: body.usage?.output_tokens ?? 0 } },
+    value: {
+      text,
+      stopReason: body.stop_reason ?? null,
+      usage: {
+        inputTokens: body.usage?.input_tokens ?? 0,
+        outputTokens: body.usage?.output_tokens ?? 0,
+        cacheReadTokens: body.usage?.cache_read_input_tokens ?? 0,
+      },
+    },
     requestId: outcome.requestId,
   }
 }

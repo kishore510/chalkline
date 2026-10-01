@@ -56,6 +56,23 @@ describe('request builder', () => {
     expect(API_VERSION).toBe('2023-06-01')
   })
 
+  it('marks the system prompt cacheable and asks for structured output when told to', () => {
+    const schema = { type: 'object', properties: { a: { type: 'string' } }, required: ['a'], additionalProperties: false }
+    const r = buildMessagesRequest(FAKE, { model: AI_MODELS.large, system: 'Rules', prompt: 'Go', maxTokens: 100, cacheSystem: true, outputSchema: schema, effort: 'medium' })
+    const body = JSON.parse(r.init.body)
+    expect(body.system).toEqual([{ type: 'text', text: 'Rules', cache_control: { type: 'ephemeral' } }])
+    expect(body.output_config).toEqual({ effort: 'medium', format: { type: 'json_schema', schema } })
+    // Structured output, not forced tool use: the large model rejects tool_choice "any" and "tool".
+    expect(body.tools).toBeUndefined()
+    expect(body.tool_choice).toBeUndefined()
+  })
+
+  it('leaves the system prompt plain and adds no output_config by default', () => {
+    const body = JSON.parse(buildMessagesRequest(FAKE, { model, system: 'Be brief', prompt: 'Hello', maxTokens: 100 }).init.body)
+    expect(body.system).toBe('Be brief')
+    expect(body.output_config).toBeUndefined()
+  })
+
   it('never puts the key in the URL or the body', () => {
     const r = buildMessagesRequest(FAKE, { model, system: 'Be brief', prompt: 'Hello', maxTokens: 100 })
     expect(r.url).toBe('https://api.anthropic.com/v1/messages')
@@ -205,6 +222,6 @@ describe('messages', () => {
       json(200, { content: [{ type: 'text', text: 'Hello ' }, { type: 'text', text: 'there' }], stop_reason: 'end_turn', usage: { input_tokens: 9, output_tokens: 3 } }, { 'request-id': 'req_ok' }),
     )
     const outcome = await sendMessage(FAKE, { model: AI_MODELS.large, prompt: 'Hi', maxTokens: 64 }, { fetch, online: always })
-    expect(outcome).toEqual({ ok: true, value: { text: 'Hello there', stopReason: 'end_turn', usage: { inputTokens: 9, outputTokens: 3 } }, requestId: 'req_ok' })
+    expect(outcome).toEqual({ ok: true, value: { text: 'Hello there', stopReason: 'end_turn', usage: { inputTokens: 9, outputTokens: 3, cacheReadTokens: 0 } }, requestId: 'req_ok' })
   })
 })

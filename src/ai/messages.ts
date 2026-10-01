@@ -95,6 +95,21 @@ const AI_MESSAGES: MessageTable<AiErrorKind> = {
     message: `Chalkline couldn’t read the answer. ${NOT_SENT}`,
     next: 'Choose Retry. If it keeps happening, reload the page to get the latest Chalkline.',
   }),
+  'ai-malformed': () => ({
+    title: 'The answer couldn’t be turned into a diagram',
+    message: `The AI sent back something that wasn’t a diagram Chalkline could read. ${NOT_SENT}`,
+    next: 'Choose Retry to ask again, or reword your description. Each try is a new request.',
+  }),
+  'ai-refused': () => ({
+    title: 'The AI declined this request',
+    message: `The model chose not to answer this description. ${NOT_SENT}`,
+    next: 'Reword the description and try again.',
+  }),
+  'ai-truncated': () => ({
+    title: 'The answer was cut off',
+    message: `The diagram was too big to finish in one answer. ${NOT_SENT}`,
+    next: 'Ask for fewer shapes, or turn off notes, and try again.',
+  }),
 }
 
 /** The friendly message for an AI problem, with an optional (redacted) technical detail. */

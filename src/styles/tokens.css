@@ -216,6 +216,11 @@
   --cl-stencil-thumb-width: 64px;
   --cl-stencil-thumb-height: 48px;
   --cl-template-thumb-height: 112px;
+  /* Generate diagram (AI): same shape as settings; the preview's height range and the description box. */
+  --cl-ai-sheet-width: var(--cl-help-width);
+  --cl-ai-preview-min-height: 160px;
+  --cl-ai-preview-max-height: 45dvh;
+  --cl-ai-description-height: 160px;
   --cl-content-max: 1200px;
 }
 

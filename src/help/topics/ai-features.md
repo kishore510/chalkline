@@ -1,11 +1,11 @@
 ---
 title: AI features and your API key
 order: 21
-keywords: ai, claude, anthropic, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
+keywords: ai, claude, anthropic, generate, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
 ---
 Chalkline's AI features use **your own Anthropic API key**. You pay Anthropic for what you use, through your own account. Chalkline has no server: requests go straight from this browser to Anthropic's API (`api.anthropic.com`).
 
-This release adds the key and a key test. AI actions on diagrams come in later releases.
+With a key you can [generate a diagram from a description](help:generating-diagrams). More AI actions come in later releases.
 
 ## Add your key
 
@@ -32,6 +32,8 @@ Choose **Remove key** in Settings, AI. **Clear local data** (Settings, Data) rem
 
 The key is never put in a backup (**Export everything**), a diagram file, a stencil export, a link or an error message. Error details hide anything that looks like a key.
 
+It is only ever sent to Anthropic, in the request's key header. It's never part of what the model reads (the prompt), never in a generated preview or diagram, and never written to the browser's console.
+
 ## What is sent
 
 Nothing is sent until you press **Send**. Before every AI request, Chalkline shows:
@@ -40,7 +42,9 @@ Nothing is sent until you press **Send**. Before every AI request, Chalkline sho
 - what's included (for diagrams: how many shapes, connectors and notes),
 - the estimated size, in characters and approximate tokens.
 
-For diagrams, only what the model needs is sent: ids, labels, shape types and connections. Notes are left out unless you turn on **Include notes**. Colours, styling, positions and images are never sent.
+**Generate diagram** sends only your description and Chalkline's instructions (the shapes and colours it can use). Nothing from your current diagram goes with it.
+
+For actions on an existing diagram, only what the model needs is sent: ids, labels, shape types and connections. Notes are left out unless you turn on **Include notes**. Colours, styling, positions and images are never sent.
 
 The first time, Chalkline also reminds you that what you send leaves this device. Check your own or your organisation's rules before sending anything sensitive.
 

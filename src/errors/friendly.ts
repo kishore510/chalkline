@@ -47,6 +47,9 @@ export type AiErrorKind =
   | 'ai-blocked'
   | 'ai-cancelled'
   | 'ai-unexpected'
+  | 'ai-malformed'
+  | 'ai-refused'
+  | 'ai-truncated'
 
 export type ErrorKind = CoreErrorKind | AiErrorKind
 
