@@ -1,4 +1,5 @@
-import { Info, Send } from 'lucide-react'
+import { Info, Send, TriangleAlert } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { ToggleField } from '@/editor/fields'
 import { sizeText, type SendPlan } from './plan'
@@ -18,6 +19,8 @@ export function ConfirmSend({
   onSend,
   onCancel,
   notes,
+  details = [],
+  limit,
 }: {
   plan: SendPlan
   needsNotice: boolean
@@ -25,6 +28,10 @@ export function ConfirmSend({
   onCancel: () => void
   /** The "include notes" toggle, for actions that send diagram content. */
   notes?: { include: boolean; onChange: (include: boolean) => void }
+  /** Extra rows after the model, e.g. the scope. */
+  details?: { term: string; value: ReactNode }[]
+  /** Why this can't be sent (over a size limit), with any ways out. Send is disabled. */
+  limit?: { message: string; actions?: ReactNode }
 }) {
   return (
     <div className="flex flex-col gap-4 text-sm text-text">
@@ -45,6 +52,12 @@ export function ConfirmSend({
             <span className="font-medium">{plan.model.name}</span> <span className="font-mono text-xs break-all text-text-muted">({plan.model.id})</span>
           </dd>
         </div>
+        {details.map((d) => (
+          <div key={d.term} className="flex flex-col gap-0.5">
+            <dt className="text-text-muted">{d.term}</dt>
+            <dd>{d.value}</dd>
+          </div>
+        ))}
         <div className="flex flex-col gap-0.5">
           <dt className="text-text-muted">What’s sent</dt>
           <dd>
@@ -62,8 +75,17 @@ export function ConfirmSend({
       </dl>
       {notes && <ToggleField label="Include notes" pressed={notes.include} onChange={notes.onChange} />}
       <p className="text-text-muted">It goes straight from this browser to api.anthropic.com. Chalkline has no server of its own.</p>
+      {limit && (
+        <div role="alert" className="flex flex-col gap-2 rounded-md border border-danger p-3">
+          <p className="flex gap-2">
+            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-danger" />
+            <span>{limit.message}</span>
+          </p>
+          {limit.actions}
+        </div>
+      )}
       <div className="flex flex-col gap-2">
-        <Button variant="primary" className="justify-start" onClick={onSend}>
+        <Button variant="primary" className="justify-start" onClick={onSend} disabled={Boolean(limit)}>
           <Send />
           Send
         </Button>

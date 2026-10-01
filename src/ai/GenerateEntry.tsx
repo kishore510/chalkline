@@ -4,42 +4,60 @@ import { create } from 'zustand'
 import { Button } from '@/components/ui/button'
 
 /*
- * The small, always-loaded parts of Generate diagram: whether its sheet is
- * open, the top-bar button and the host. The sheet, the request code and ELK
- * load on first open.
+ * The small, always-loaded parts of the AI sheet (Generate and Summarise):
+ * whether it's open and in which mode, the top-bar button and the host. The
+ * sheet, the request code and ELK load on first open.
  */
 
-interface GenerateSheetState {
+export type AiMode = 'generate' | 'summarise'
+
+interface AiSheetState {
   open: boolean
+  /** Kept between openings, so the AI button reopens the last mode. */
+  mode: AiMode
   openGenerate: () => void
+  openSummarise: () => void
+  /** Opens in the last mode used. */
+  openAi: () => void
+  setMode: (mode: AiMode) => void
   closeGenerate: () => void
 }
 
-export const useGenerateSheet = create<GenerateSheetState>()((set) => ({
+export const useAiSheet = create<AiSheetState>()((set) => ({
   open: false,
-  openGenerate: () => set({ open: true }),
+  mode: 'generate',
+  openGenerate: () => set({ open: true, mode: 'generate' }),
+  openSummarise: () => set({ open: true, mode: 'summarise' }),
+  openAi: () => set({ open: true }),
+  setMode: (mode) => set({ mode }),
   closeGenerate: () => set({ open: false }),
 }))
 
-export const openGenerate = () => useGenerateSheet.getState().openGenerate()
+/** The same store, by its 6b name. */
+export const useGenerateSheet = useAiSheet
 
-const GenerateSheet = lazy(() => import('./GenerateSheet'))
+export const openGenerate = () => useAiSheet.getState().openGenerate()
+export const openSummarise = () => useAiSheet.getState().openSummarise()
 
-/** Renders the Generate diagram sheet while it's open. Inside the canvas provider: Add to canvas uses the view. */
+const AiSheet = lazy(() => import('./AiSheet'))
+
+/** Renders the AI sheet while it's open. Inside the canvas provider: Add to canvas uses the view. */
 export function GenerateSheetHost() {
-  const open = useGenerateSheet((s) => s.open)
+  const open = useAiSheet((s) => s.open)
   if (!open) return null
   return (
     <Suspense fallback={null}>
-      <GenerateSheet />
+      <AiSheet />
     </Suspense>
   )
 }
 
+export const AI_BUTTON_LABEL = 'Generate or summarise with AI'
+
 /** Top-bar button (tablet and desktop; phones use the ☰ menu). */
 export function AiButton() {
   return (
-    <Button variant="ghost" aria-label="Generate a diagram with AI" title="Generate a diagram with AI" aria-haspopup="dialog" onClick={openGenerate} className="px-2">
+    <Button variant="ghost" aria-label={AI_BUTTON_LABEL} title={AI_BUTTON_LABEL} aria-haspopup="dialog" onClick={() => useAiSheet.getState().openAi()} className="px-2">
       <WandSparkles />
       <span aria-hidden="true">AI</span>
     </Button>

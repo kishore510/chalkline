@@ -15,4 +15,5 @@ export const LEARN_MORE = {
   settings: 'settings-and-backup',
   ai: 'ai-features',
   generate: 'generating-diagrams',
+  summarise: 'summarising-diagrams',
 } as const

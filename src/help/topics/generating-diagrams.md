@@ -7,7 +7,7 @@ Describe a diagram in plain words and Chalkline asks Claude to draw it. You see 
 
 ## Generate a diagram
 
-1. Choose **AI** in the top bar. On a phone, open the **☰** menu and choose **Generate with AI…**
+1. Choose **AI** in the top bar, then **Generate**. On a phone, open the **☰** menu and choose **Generate with AI…**
 2. Describe the diagram, or start from one of the examples.
 3. Choose **Generate**. A check step shows the model, what will be sent and its estimated size. Choose **Send**.
 4. Wait for the preview. **Cancel** stops the request.
@@ -52,7 +52,7 @@ Generating never changes, moves or deletes anything already in your diagram. If 
 
 ## Cost
 
-Each **Generate** or **Regenerate** is one request to Claude Sonnet 5.5, paid from your Anthropic account. The check step shows the estimated size of what's sent (mostly the instructions). The answer adds to the cost too: a bigger diagram, or notes, costs more. Asking again within a few minutes reuses the instructions from Anthropic's prompt cache, which costs less.
+Each **Generate** or **Regenerate** is one request to Claude Sonnet 5.5, paid from your Anthropic account. After the request, the sheet shows the tokens Anthropic reported for it. The check step shows the estimated size of what's sent (mostly the instructions). The answer adds to the cost too: a bigger diagram, or notes, costs more. Asking again within a few minutes reuses the instructions from Anthropic's prompt cache, which costs less.
 
 ## When it doesn't work
 

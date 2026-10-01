@@ -1,11 +1,9 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { ArrowLeft, Layers, Loader2, Pencil, Plus, RotateCcw, Settings as SettingsIcon, TriangleAlert, WandSparkles, X } from 'lucide-react'
+import { Layers, Loader2, Pencil, Plus, RotateCcw, Settings as SettingsIcon, TriangleAlert, WandSparkles, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 import { announce } from '@/a11y/announce'
 import { revealViewport } from '@/canvas/floating'
 import { Button } from '@/components/ui/button'
-import { useFocusTrap } from '@/components/ui/useFocusTrap'
 import { explainBlockedAdd, switchToUsableLayer } from '@/editor/layerNotices'
 import { ToggleField } from '@/editor/fields'
 import { useThemeName } from '@/editor/stencils/Thumbnail'
@@ -15,10 +13,8 @@ import { buildSvg } from '@/export/svg'
 import { screenEnv } from '@/export/browser'
 import { LearnMore } from '@/help/HelpEntry'
 import { LEARN_MORE } from '@/help/links'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { readToken } from '@/lib/cssVar'
 import { motionMs } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import type { Diagram } from '@/schema/diagram'
 import { openSettings } from '@/settings/SettingsEntry'
 import { getSettings, updateSettings, useSettingsStore } from '@/settings/settingsStore'
@@ -26,7 +22,7 @@ import { resolveTokenColours } from '@/stencils/thumbnail'
 import { useDiagramStore } from '@/store/diagramStore'
 import { unionBox } from '@/store/groups'
 import { useUiStore } from '@/store/uiStore'
-import { MEDIA } from '@/styles/breakpoints'
+import { AiSheetFrame, ModeSwitch, UsageLine, usePageFocus, WRAP } from './AiSheetFrame'
 import { ConfirmSend } from './ConfirmSend'
 import type { Generation } from './generate'
 import { CAPS } from './generated'
@@ -35,13 +31,14 @@ import { useGenerateSheet } from './GenerateEntry'
 import { getApiKey, useKeyStatus } from './keyStore'
 import { aiError } from './messages'
 import { AI_MODELS } from './models'
+import { useUsageStore } from './usage'
 
 /*
  * Generate diagram: describe it, check what will be sent, wait (or cancel),
  * look at the preview, then Add to canvas. Nothing touches the diagram until
  * Add, which is one undo step. Everything here is view state: the
  * description, the preview and its warnings are never saved or exported.
- * A bottom sheet on phones, a side sheet from tablet up (like Settings).
+ * One of the AI sheet's two modes (see AiSheet).
  */
 
 type Page = 'compose' | 'confirm' | 'sending' | 'preview'
@@ -118,12 +115,8 @@ function ItemList({ g }: { g: Generation }) {
   )
 }
 
-/** Long labels wrap instead of being cut off at large text sizes. */
-const WRAP = 'h-auto min-h-touch justify-start py-2 text-left whitespace-normal'
-
-export default function GenerateSheet() {
+export function GeneratePanel({ active }: { active: boolean }) {
   const close = useGenerateSheet((s) => s.closeGenerate)
-  const side = useMediaQuery(MEDIA.tablet)
   const hasKey = useKeyStatus((s) => s.place !== null)
   const needsNotice = useSettingsStore((s) => !s.settings.ai.noticeAcknowledged)
   const flow = useReactFlow()
@@ -137,10 +130,8 @@ export default function GenerateSheet() {
   const [generation, setGeneration] = useState<Generation | null>(null)
   const controller = useRef<AbortController | null>(null)
 
-  const ref = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const titleId = useId()
   const countId = useId()
   const fieldId = useId()
 
@@ -156,18 +147,7 @@ export default function GenerateSheet() {
   useEffect(() => () => controller.current?.abort(), [])
 
   const back = page === 'confirm' ? () => setPage(generation ? 'preview' : 'compose') : page === 'preview' ? () => setPage('compose') : undefined
-  useFocusTrap(ref, () => (page === 'sending' ? cancel() : back ? back() : shut()))
-
-  // New page: back to the top, and focus its first control (or its title) so it is announced.
-  const first = useRef(true)
-  useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
-    bodyRef.current?.scrollTo({ top: 0 })
-    ;(bodyRef.current?.querySelector<HTMLElement>('[data-autofocus]') ?? titleRef.current)?.focus()
-  }, [page])
+  usePageFocus(page, bodyRef, titleRef)
 
   async function run() {
     const key = getApiKey()
@@ -191,6 +171,7 @@ export default function GenerateSheet() {
         grid: ui.snapToGrid ? readToken('--cl-grid-gap', 20) : 0,
         arrowhead: getSettings().canvas.arrowhead,
       })
+      useUsageStore.getState().record(AI_MODELS.large, outcome.ok ? outcome.value.usage : outcome.usage)
       // Closed meanwhile: the request was stopped and there's nothing to show.
       if (!useGenerateSheet.getState().open) return
       if (!outcome.ok && outcome.reason === 'cancelled') {
@@ -265,6 +246,7 @@ export default function GenerateSheet() {
   if (!hasKey) {
     body = (
       <div className="flex flex-col gap-3 pt-4 text-sm text-text">
+        <ModeSwitch />
         <p className="font-semibold">Add your API key first</p>
         <p>Generate diagram uses your own Anthropic API key, and you pay Anthropic for what it uses. Nothing is sent until you check and press Send.</p>
         <Button
@@ -285,6 +267,7 @@ export default function GenerateSheet() {
   } else if (page === 'compose') {
     body = (
       <div className="flex flex-col gap-4 pt-4">
+        <ModeSwitch />
         <div className="flex flex-col gap-1">
           <label htmlFor={fieldId} className="text-sm font-medium text-text">
             Describe the diagram
@@ -339,6 +322,7 @@ export default function GenerateSheet() {
           <WandSparkles />
           Generate
         </Button>
+        <UsageLine />
         <LearnMore topic={LEARN_MORE.generate} className="self-start px-0" />
       </div>
     )
@@ -423,45 +407,24 @@ export default function GenerateSheet() {
             Cancel
           </Button>
         </div>
+        <UsageLine />
       </div>
     )
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end bg-overlay md:items-stretch md:justify-end" onPointerDown={(e) => e.target === e.currentTarget && page !== 'sending' && shut()}>
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-busy={page === 'sending'}
-        className={cn(
-          'flex w-full flex-col border-border bg-surface text-text shadow-lg',
-          side ? 'cl-safe-top h-full max-w-(--cl-ai-sheet-width) border-l' : 'h-(--cl-full-sheet-height) rounded-t-lg border-t',
-        )}
-      >
-        <div className="flex min-h-touch shrink-0 items-center gap-1 border-b border-border px-1">
-          {back && hasKey ? (
-            <Button variant="ghost" size="icon" aria-label="Back" title="Back" onClick={back}>
-              <ArrowLeft />
-            </Button>
-          ) : (
-            <span aria-hidden="true" className="flex size-touch items-center justify-center text-text-muted [&_svg]:size-5">
-              <WandSparkles />
-            </span>
-          )}
-          <h2 ref={titleRef} id={titleId} tabIndex={-1} className="min-w-0 flex-1 truncate text-sm font-semibold outline-none">
-            {hasKey ? TITLES[page] : TITLES.compose}
-          </h2>
-          <Button variant="ghost" size="icon" aria-label="Close" title="Close (Esc)" onClick={shut}>
-            <X />
-          </Button>
-        </div>
-        <div ref={bodyRef} className="cl-safe-bottom flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pt-0 pb-4">
-          {body}
-        </div>
-      </div>
-    </div>,
-    document.body,
+  if (!active) return null
+  return (
+    <AiSheetFrame
+      title={hasKey ? TITLES[page] : TITLES.compose}
+      icon={<WandSparkles />}
+      back={hasKey ? back : undefined}
+      busy={page === 'sending'}
+      onEscape={() => (page === 'sending' ? cancel() : back ? back() : shut())}
+      onClose={shut}
+      bodyRef={bodyRef}
+      titleRef={titleRef}
+    >
+      {body}
+    </AiSheetFrame>
   )
 }

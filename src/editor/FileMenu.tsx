@@ -1,6 +1,6 @@
-import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, Search, Settings, Sparkles, WandSparkles } from 'lucide-react'
+import { CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, Menu, PenTool, ScrollText, Search, Settings, Sparkles, WandSparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { openGenerate } from '@/ai/GenerateEntry'
+import { openGenerate, openSummarise } from '@/ai/GenerateEntry'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -175,6 +175,9 @@ export function FileMenu({ layout }: { layout: Layout }) {
             <>
               <Item icon={<WandSparkles />} onClick={run(openGenerate)}>
                 Generate with AI…
+              </Item>
+              <Item icon={<ScrollText />} onClick={run(openSummarise)}>
+                Summarise with AI…
               </Item>
               <Item icon={<Search />} onClick={run(() => useSearchStore.getState().openSearch())}>
                 Find in diagram
