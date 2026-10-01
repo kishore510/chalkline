@@ -115,6 +115,11 @@ const AI_MESSAGES: MessageTable<AiErrorKind> = {
     message: `The AI sent back something that wasn’t a list of findings Chalkline could read. ${NOT_SENT}`,
     next: 'Choose Retry to ask again. Each try is a new request.',
   }),
+  'ai-notes-malformed': () => ({
+    title: 'The suggestions couldn’t be read',
+    message: `The AI sent back something that wasn’t a list of notes Chalkline could read. ${NOT_SENT}`,
+    next: 'Choose Retry to ask again. Each try is a new request.',
+  }),
 }
 
 /** The friendly message for an AI problem, with an optional (redacted) technical detail. */
