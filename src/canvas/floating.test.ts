@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
-import { floatingEndpoints, revealViewport, selectionBounds } from './floating'
+import { centreViewport, floatingEndpoints, focusZoom, revealViewport, selectionBounds } from './floating'
 
 const box = (x: number, y: number, width = 160, height = 80) => ({ x, y, width, height })
 
@@ -51,6 +51,20 @@ describe('revealViewport', () => {
 
   it('treats the margin as part of visibility', () => {
     expect(revealViewport(box(0, 0, 100, 50), { x: 8, y: 50, zoom: 1 }, visible, margin)).not.toBeNull()
+  })
+})
+
+describe('centreViewport and focusZoom', () => {
+  const visible = { width: 400, height: 300 }
+
+  it('centres an item even when it is already visible', () => {
+    expect(centreViewport(box(0, 0, 100, 50), 1, visible)).toEqual({ x: 150, y: 125, zoom: 1 })
+  })
+
+  it('keeps the zoom, raises it to the minimum, and lowers it to fit', () => {
+    expect(focusZoom(box(0, 0, 100, 50), 1.5, visible, 16, 0.75)).toBe(1.5)
+    expect(focusZoom(box(0, 0, 100, 50), 0.2, visible, 16, 0.75)).toBe(0.75)
+    expect(focusZoom(box(0, 0, 2000, 50), 1, visible, 16, 0.75)).toBeCloseTo(368 / 2000)
   })
 })
 

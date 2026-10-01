@@ -79,7 +79,7 @@ function useArrangeState() {
 
 const DISTRIBUTE_HINT = 'Select 3 or more shapes to distribute.'
 
-/** Desktop: a compact contextual bar floating at the top of the canvas: arrange (2+ shapes) and Save as stencil. */
+/** Desktop: a compact contextual bar floating at the top of the canvas (see CanvasTopStack): arrange (2+ shapes) and Save as stencil. */
 export function ArrangeBar() {
   const { visible, canDistribute } = useArrangeState()
   const saveable = useSelectionSaveable()
@@ -96,21 +96,19 @@ export function ArrangeBar() {
     </div>
   )
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center px-4">
-      <Panel role="toolbar" aria-label="Selection" className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-x-1 p-1 shadow-lg">
-        {visible && (
-          <>
-            {group('Align', ALIGN)}
-            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-            {group('Distribute', DISTRIBUTE, !canDistribute, DISTRIBUTE_HINT)}
-            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-            {group('Match size', MATCH)}
-            <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-          </>
-        )}
-        <SaveStencilButton variant="ghost" />
-      </Panel>
-    </div>
+    <Panel role="toolbar" aria-label="Selection" className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-x-1 p-1 shadow-lg">
+      {visible && (
+        <>
+          {group('Align', ALIGN)}
+          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+          {group('Distribute', DISTRIBUTE, !canDistribute, DISTRIBUTE_HINT)}
+          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+          {group('Match size', MATCH)}
+          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+        </>
+      )}
+      <SaveStencilButton variant="ghost" />
+    </Panel>
   )
 }
 

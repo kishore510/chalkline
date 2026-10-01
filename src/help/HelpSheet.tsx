@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Check, ChevronRight, Copy, Hand, Info, Rocket, Search, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, ChevronRight, Copy, Hand, Info, Keyboard, Rocket, Search, Sparkles, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { formatBytes, storageUsed } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import { MEDIA } from '@/styles/breakpoints'
+import { cheatSheet } from '@/editor/shortcuts'
 import { formatVersionDetails, VERSION_INFO } from '@/version'
 import { CHANGELOG, CHANGELOG_TEXT, HELP_TOPICS, topicById } from './content'
 import { CREDITS, creditFor, HIGHLIGHTS } from './credits'
@@ -22,8 +23,8 @@ import { searchTopics } from './topics'
  * inside, Escape to close and Back to the previous page.
  */
 
-const titleOf = (view: HelpView) =>
-  view.kind === 'topic' ? (topicById(view.id)?.title ?? 'Help') : view.kind === 'whats-new' ? 'What’s new' : view.kind === 'about' ? 'About Chalkline' : 'Help'
+const TITLES: Record<Exclude<HelpView['kind'], 'topic'>, string> = { home: 'Help', 'whats-new': 'What’s new', about: 'About Chalkline', shortcuts: 'Keyboard shortcuts' }
+const titleOf = (view: HelpView) => (view.kind === 'topic' ? (topicById(view.id)?.title ?? 'Help') : TITLES[view.kind])
 
 /** A full-width row that opens another page. */
 function NavRow({ icon, title, detail, onClick, badge }: { icon?: ReactNode; title: string; detail?: string; onClick: () => void; badge?: string }) {
@@ -105,6 +106,7 @@ function Home({ go, autoFocusSearch, query, setQuery }: { go: (view: HelpView) =
             <SectionTitle>More</SectionTitle>
             <ul className="flex flex-col">
               {gestures && <NavRow icon={<Hand />} title={gestures.title} detail="Touch, mouse and keyboard" onClick={() => topic(gestures.id)} />}
+              <NavRow icon={<Keyboard />} title="Keyboard shortcuts" detail="Every shortcut, for Mac and Windows / Linux" onClick={() => go({ kind: 'shortcuts' })} />
               <NavRow icon={<Sparkles />} title="What’s new" detail={`Version ${VERSION_INFO.version}`} badge={unseen ? 'New' : undefined} onClick={() => go({ kind: 'whats-new' })} />
               <NavRow icon={<Info />} title="About" detail="Version, storage and credits" onClick={() => go({ kind: 'about' })} />
             </ul>
@@ -119,6 +121,72 @@ function TopicPage({ id, go }: { id: string; go: (view: HelpView) => void }) {
   const topic = topicById(id)
   if (!topic) return <p className="text-sm text-text-muted">This topic isn’t available.</p>
   return <Markdown blocks={topic.blocks} onTopic={(next) => go({ kind: 'topic', id: next })} />
+}
+
+/** Key caps for each way to press a shortcut, e.g. "Ctrl Shift Z" or "Ctrl Y". */
+function Keys({ combos }: { combos: string[][] }) {
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {combos.map((caps, i) => (
+        <span key={i} className="inline-flex flex-wrap items-center gap-1">
+          {i > 0 && <span className="text-xs text-text-muted">or</span>}
+          {caps.map((cap, j) => (
+            <kbd key={j} className="rounded-sm border border-border-strong bg-surface-muted px-1.5 font-sans text-xs font-medium text-text">
+              {cap}
+            </kbd>
+          ))}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** The cheat sheet (also opened with ?), from the same table the shortcuts run from. */
+function Shortcuts({ go }: { go: (view: HelpView) => void }) {
+  return (
+    <div className="flex flex-col gap-5 text-sm text-text">
+      <p className="text-text-muted">
+        Every action also has a button or menu item; shortcuts are only quicker.{' '}
+        <button type="button" className="inline-flex min-h-touch items-center font-medium text-accent underline-offset-2 hover:underline" onClick={() => go({ kind: 'topic', id: HELP_AREAS.gestures })}>
+          Touch and mouse gestures
+        </button>
+      </p>
+      {cheatSheet().map((section) => (
+        <table key={section.area} className="w-full border-collapse text-left">
+          <caption className="pb-1 text-left text-xs font-semibold tracking-wide text-text-muted uppercase">{section.area}</caption>
+          <thead className="text-xs text-text-muted">
+            <tr>
+              <th scope="col" className="pb-1 font-normal">
+                <span className="sr-only">Action</span>
+              </th>
+              <th scope="col" className="pb-1 pr-2 font-normal">
+                Windows / Linux
+              </th>
+              <th scope="col" className="pb-1 font-normal">
+                Mac
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {section.rows.map((row) => (
+              <tr key={row.label} className="border-t border-border align-top">
+                <th scope="row" className="py-2 pr-2 font-normal">
+                  {row.label}
+                </th>
+                <td className="py-2 pr-2">
+                  <Keys combos={row.other} />
+                </td>
+                <td className="py-2">
+                  <Keys combos={row.mac} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ))}
+      <p className="pb-4 text-xs text-text-muted">Shortcuts don’t apply while you’re typing in a field, the search box or a label.</p>
+    </div>
+  )
 }
 
 const formatDate = (iso: string) => {
@@ -324,6 +392,7 @@ export default function HelpSheet() {
           {view.kind === 'topic' && <TopicPage id={view.id} go={go} />}
           {view.kind === 'whats-new' && <WhatsNew />}
           {view.kind === 'about' && <About />}
+          {view.kind === 'shortcuts' && <Shortcuts go={go} />}
         </div>
       </div>
     </div>,

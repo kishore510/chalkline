@@ -5,6 +5,9 @@ import { fixtures } from '@/fixtures'
 import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
 import { HelpSheetHost, VersionTag } from '@/help/HelpEntry'
+import { cn } from '@/lib/utils'
+import { SearchBar, SearchSheet } from '@/search/SearchPanel'
+import { useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
 import { ArrangeBar } from './ArrangeControls'
@@ -44,9 +47,13 @@ function EditorLayout() {
         <main className="relative min-w-0 flex-1 overflow-hidden">
           <Canvas minimap={layout === 'phone' ? 'none' : layout === 'desktop' ? 'bottom-right' : 'top-right'} />
           <EmptyCanvas layout={layout} />
-          <LinkHint />
+          {/* One column at the top, so these never overlap. Phone sits lower, clear of the corner credit. */}
+          <div className={cn('pointer-events-none absolute inset-x-0 z-10 flex flex-col items-center gap-2 px-4', layout === 'phone' ? 'top-10' : 'top-3')}>
+            {layout !== 'phone' && <SearchBar />}
+            {layout === 'desktop' && <ArrangeBar />}
+            <LinkHint />
+          </div>
           <BusyIndicator />
-          {layout === 'desktop' && <ArrangeBar />}
           {layout === 'desktop' && (
             <div className="pointer-events-none absolute bottom-0 left-0 z-10 p-1">
               <VersionTag />
@@ -76,10 +83,12 @@ function EditorLayout() {
   )
 }
 
-/** Phone: the properties sheet replaces the toolbar while something is selected. */
+/** Phone: the properties sheet (while something is selected) or the search sheet replaces the toolbar. */
 function PhoneBottom() {
   const open = useDiagramStore((s) => s.selection.length > 0)
+  const searching = useSearchStore((s) => s.open)
   if (open) return <PropertiesSheet />
+  if (searching) return <SearchSheet />
   return (
     <div className="cl-safe-bottom px-4">
       <CanvasToolbar layout="phone" />

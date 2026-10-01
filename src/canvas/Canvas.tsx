@@ -39,7 +39,7 @@ import { EdgeGrips } from './EdgeGrips'
 import { FloatingEdge } from './FloatingEdge'
 import { GroupNode, type GroupFlowNode } from './GroupNode'
 import { GuideOverlay } from './GuideOverlay'
-import { beginGesture, endGesture, session, useGuideStore } from './guideSession'
+import { beginGesture, endGesture, keys, session, snapContext, useGuideStore, VIEW_MARGIN, visibleBox, type FlowView } from './guideSession'
 import { guideTargets, nearView, snapDrag, snapResize } from './guideTargets'
 import { buildRenderModel, type RenderModel } from './renderModel'
 import { createRouteCache } from './routing'
@@ -96,12 +96,6 @@ function endNodeDrag(dragged: CanvasNode[]) {
   diagramStore().endBatch()
 }
 
-/** Alt (Option) held: smart guides pause while dragging. Desktop only; touch has no Alt key. */
-let altHeld = false
-
-// Targets this far past the screen edge (screen px) still count, so guides don't pop in and out at the edge.
-const VIEW_MARGIN = 200
-
 type NodeSummary = ReturnType<typeof summariseNodeChanges>
 
 /**
@@ -112,14 +106,13 @@ type NodeSummary = ReturnType<typeof summariseNodeChanges>
 function snapGesture(
   d: Diagram,
   model: RenderModel,
-  flow: { transform: [number, number, number]; width: number; height: number },
+  flow: FlowView,
   grid: number,
   gesture: 'drag' | 'resize',
   { moves, resizes }: Pick<NodeSummary, 'moves' | 'resizes'>,
 ): Pick<NodeSummary, 'moves' | 'resizes'> {
-  const [tx, ty, zoom] = flow.transform
-  const ui = uiStore()
-  const ctx = { zoom, guides: ui.smartGuides && !altHeld, grid: ui.snapToGrid ? grid : 0 }
+  const zoom = flow.transform[2]
+  const ctx = snapContext(zoom, grid)
   const ids = gesture === 'drag' ? [...moves.keys()] : resizes.map((r) => r.id)
   if (ids.length === 0) return { moves, resizes }
   const key = ids.join('|')
@@ -127,8 +120,7 @@ function snapGesture(
     session.key = key
     session.targets = guideTargets(d, model, ids)
   }
-  const view: Box = { x: -tx / zoom, y: -ty / zoom, width: flow.width / zoom, height: flow.height / zoom }
-  const targets = nearView(session.targets, view, VIEW_MARGIN / zoom)
+  const targets = nearView(session.targets, visibleBox(flow), VIEW_MARGIN / zoom)
   const overlay = useGuideStore.getState().setOverlay
 
   if (gesture === 'drag') {
@@ -301,10 +293,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
   // Alt pauses guides; read from key and pointer events so it's current mid-drag.
   useEffect(() => {
     const track = (e: KeyboardEvent | PointerEvent) => {
-      altHeld = e.altKey
+      keys.altHeld = e.altKey
     }
     const release = () => {
-      altHeld = false
+      keys.altHeld = false
     }
     window.addEventListener('keydown', track, true)
     window.addEventListener('keyup', track, true)
@@ -407,7 +399,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         minZoom={0.1}
         maxZoom={4}
         // During a drag or resize the canvas snaps (guides first, then the grid; see snapGesture).
-        // React Flow's snap stays on otherwise, e.g. for arrow-key nudges.
+        // Arrow-key nudges are the app's own (see useShortcuts and nudge.ts), snapped the same way.
         snapToGrid={snapToGrid && !gesture}
         snapGrid={[sizes.grid, sizes.grid]}
         // Deleting goes through the store's deleteSelection (see useShortcuts), so one delete

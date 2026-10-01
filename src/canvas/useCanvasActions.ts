@@ -1,17 +1,37 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
 import { useCallback, useMemo } from 'react'
 import { readToken } from '@/lib/cssVar'
-import type { NodeType, Orientation } from '@/schema/diagram'
+import type { NodeType, Orientation, Position } from '@/schema/diagram'
 import { MEDIA } from '@/styles/breakpoints'
 import { useDiagramStore } from '@/store/diagramStore'
 import { explainBlockedAdd } from '@/editor/layerNotices'
 import { useUiStore } from '@/store/uiStore'
 import type { StencilContent } from '@/stencils/format'
 import { unionBox } from '@/store/groups'
-import { revealViewport } from './floating'
+import { centreViewport, focusZoom, revealViewport } from './floating'
+import { snapContext, useGuideStore, VIEW_MARGIN, visibleBox } from './guideSession'
+import type { GuideResult } from './guides'
+import { guideTargets } from './guideTargets'
+import { nudgeItems, nudgeStep, planNudge } from './nudge'
+import { buildRenderModel, collapsedBox } from './renderModel'
 
 const duration = () => (window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200))
 const gridSize = () => (useUiStore.getState().snapToGrid ? readToken('--cl-grid-gap', 20) : 0)
+
+/** A found item is shown at least this zoom, so its label can be read. */
+const FOCUS_MIN_ZOOM = 0.75
+
+// Guides from a nudge stay up briefly after the last key press.
+let nudgeGuidesTimer: ReturnType<typeof setTimeout> | undefined
+function showNudgeGuides(guides: GuideResult | null) {
+  clearTimeout(nudgeGuidesTimer)
+  const { gesture, setOverlay } = useGuideStore.getState()
+  if (gesture) return
+  setOverlay(guides)
+  nudgeGuidesTimer = setTimeout(() => {
+    if (!useGuideStore.getState().gesture) setOverlay(null)
+  }, readToken('--cl-duration-slow', 400) * 2)
+}
 
 /** Canvas commands shared by the palette, toolbars and empty state. */
 export function useCanvasActions() {
@@ -77,12 +97,59 @@ export function useCanvasActions() {
     [flow],
   )
 
+  /**
+   * Nudges the selection one step (`direction` is a unit vector), snapped as a
+   * drag to the same spot would be. Locked and hidden items stay; if nothing
+   * can move, nothing happens. Returns false if nothing is selected.
+   */
+  const nudge = useCallback(
+    (direction: Position, far: boolean) => {
+      const { diagram, selection } = useDiagramStore.getState()
+      if (selection.length === 0) return false
+      const rf = rfStore.getState()
+      const zoom = rf.transform[2]
+      const ctx = snapContext(zoom, readToken('--cl-grid-gap', 20))
+      const step = nudgeStep(ctx.grid, far)
+      const model = buildRenderModel(diagram)
+      const items = nudgeItems(diagram, model, selection)
+      const targets = guideTargets(diagram, model, items, visibleBox(rf), VIEW_MARGIN / zoom)
+      const plan = planNudge(diagram, model, items, { x: direction.x * step, y: direction.y * step }, targets, ctx)
+      if (!plan) return true
+      useDiagramStore.getState().nudge(plan.moves)
+      showNudgeGuides(plan.guides)
+      return true
+    },
+    [rfStore],
+  )
+
+  /**
+   * Centres a shape or group in the visible part of the canvas (above
+   * `coveredBelow`, the screen y where a bottom sheet starts), zooming in to a
+   * readable size if needed.
+   */
+  const revealItem = useCallback(
+    (id: string, coveredBelow?: number) => {
+      const { diagram } = useDiagramStore.getState()
+      const group = diagram.groups.find((g) => g.id === id)
+      const node = diagram.nodes.find((n) => n.id === id)
+      const bounds = group ? (group.collapsed ? collapsedBox(group) : { ...group.position, ...group.size }) : node ? { ...node.position, ...node.size } : null
+      const rect = rfStore.getState().domNode?.getBoundingClientRect()
+      if (!bounds || !rect) return
+      const visible = { width: rect.width, height: coveredBelow === undefined ? rect.height : Math.max(0, Math.min(rect.height, coveredBelow - rect.top)) }
+      const zoom = focusZoom(bounds, flow.getViewport().zoom, visible, readToken('--cl-gutter', 16), FOCUS_MIN_ZOOM)
+      void flow.setViewport(centreViewport(bounds, zoom, visible), { duration: duration() })
+    },
+    [flow, rfStore],
+  )
+
   return useMemo(
     () => ({
       addAtCenter,
       addAtScreenPoint,
       addPoolAtCenter,
       insertStencilAtCenter,
+      nudge,
+      revealItem,
       zoomIn: () => void flow.zoomIn({ duration: duration() }),
       zoomOut: () => void flow.zoomOut({ duration: duration() }),
       fitView: () => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }),
@@ -92,6 +159,6 @@ export function useCanvasActions() {
         requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }))
       },
     }),
-    [flow, addAtCenter, addAtScreenPoint, addPoolAtCenter, insertStencilAtCenter],
+    [flow, addAtCenter, addAtScreenPoint, addPoolAtCenter, insertStencilAtCenter, nudge, revealItem],
   )
 }

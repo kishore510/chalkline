@@ -2,6 +2,17 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.17.0] - 2026-10-01
+
+### Added
+- Find in the diagram: search shape labels and notes from the magnifying glass in the top bar, or `Ctrl F` / `Cmd F`. On a phone, it's in the menu and opens as a sheet listing the matches. Step through matches with the arrows or `Enter`; the view centres on each one. Matches on hidden layers are counted, with a button to show them, and a match inside a collapsed group offers to expand it.
+- Arrow keys nudge the selection, with `Shift` for a bigger step. Nudges follow the same grid and smart guides as dragging, a held-down key is one undo step, and locked shapes stay put.
+- A keyboard shortcuts page in Help, grouped by area, with the keys for Mac and for Windows and Linux. Press `?` to open it.
+
+### Changed
+- `?` now opens the keyboard shortcuts page rather than the Help home page.
+- On a Mac, shortcuts use `Cmd` only, and elsewhere `Ctrl` only, so system shortcuts that use the other key are no longer intercepted.
+
 ## [0.16.0] - 2026-10-01
 
 ### Added

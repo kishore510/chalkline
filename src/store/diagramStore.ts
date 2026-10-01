@@ -53,6 +53,12 @@ export interface DiagramState {
   /** Adds a node centred on `center`, on the active layer, and selects it. Returns its id, or null if the active layer is hidden or locked. */
   addNode: (type: NodeType, center: Position, grid?: number) => string | null
   moveNodes: (moves: ReadonlyMap<string, Position>) => void
+  /**
+   * An arrow-key nudge (planned and snapped by canvas/nudge): moves shapes and
+   * containers, carrying a container's contents. Locked and hidden items stay.
+   * Repeats on the same items in quick succession (a held key) are one undo step.
+   */
+  nudge: (moves: ReadonlyMap<string, Position>) => void
   resizeNode: (id: string, size: Size, position?: Position) => void
   /** Grows a node's height so its label fits; never shrinks. Joins the previous undo step. */
   growNodeToFit: (id: string, minHeight: number) => void
@@ -393,6 +399,24 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     // Locked nodes (or nodes in locked groups) never move or resize.
     moveNodes: (moves) => apply((d) => ops.moveNodes(d, new Map([...moves].filter(([id]) => !nodeLocked(id))))),
+    nudge(moves) {
+      const d = get().diagram
+      let next = d
+      const carried = new Set<string>()
+      for (const [id, to] of moves) {
+        const group = groups.groupById(d, id)
+        if (!group || group.kind !== 'container' || groups.isGroupFixed(d, group)) continue
+        next = groups.moveGroupTo(next, id, to)
+        for (const sub of groups.subtreeIds(d, id)) carried.add(sub)
+      }
+      const nodeMoves = new Map(
+        [...moves].filter(([id]) => {
+          const node = d.nodes.find((n) => n.id === id)
+          return node && !groups.isNodeLocked(d, node) && !layers.isNodeHidden(d, node) && !carried.has(node.groupId ?? '')
+        }),
+      )
+      commit(ops.moveNodes(next, nodeMoves), { key: `nudge:${[...moves.keys()].sort().join()}` })
+    },
     resizeNode: (id, size, position) => {
       if (nodeLocked(id)) return
       const node = get().diagram.nodes.find((n) => n.id === id)

@@ -88,9 +88,24 @@ export function revealViewport(bounds: Box, viewport: Viewport, visible: { width
   const right = left + bounds.width * zoom
   const bottom = top + bounds.height * zoom
   if (left >= margin && top >= margin && right <= visible.width - margin && bottom <= visible.height - margin) return null
+  return centreViewport(bounds, zoom, visible)
+}
+
+/** Viewport at `zoom` with `bounds` (flow coordinates) in the middle of a visible area of the canvas. */
+export function centreViewport(bounds: Box, zoom: number, visible: { width: number; height: number }): Viewport {
   const cx = bounds.x + bounds.width / 2
   const cy = bounds.y + bounds.height / 2
   return { x: visible.width / 2 - cx * zoom, y: visible.height / 2 - cy * zoom, zoom }
+}
+
+/**
+ * Zoom for showing one item found by search: the current zoom, raised to at
+ * least `min` so it can be read, and lowered if the item wouldn't fit inside
+ * `visible` with `margin` to spare.
+ */
+export function focusZoom(bounds: Box, zoom: number, visible: { width: number; height: number }, margin: number, min: number): number {
+  const fit = Math.min((visible.width - 2 * margin) / Math.max(bounds.width, 1), (visible.height - 2 * margin) / Math.max(bounds.height, 1))
+  return Math.max(Math.min(Math.max(zoom, min), fit), 0.1)
 }
 
 /** Smallest box containing all of `boxes`. */

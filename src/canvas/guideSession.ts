@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { useDiagramStore } from '@/store/diagramStore'
 import type { Box } from '@/store/groups'
+import { useUiStore } from '@/store/uiStore'
 import type { GuideLine, GuideTarget, Measure } from './guides'
-import type { Targets } from './guideTargets'
+import type { SnapContext, Targets } from './guideTargets'
 
 /*
  * Live state of a drag or resize gesture: what the guide overlay draws, plus
@@ -65,4 +66,28 @@ export function startResize() {
 export function endResize() {
   endGesture()
   useDiagramStore.getState().endBatch()
+}
+
+/** Alt (Option) held: smart guides pause while dragging. Desktop only; touch has no Alt key. Kept current by the canvas. */
+export const keys = { altHeld: false }
+
+/** Targets this far past the screen edge (screen px) still count, so guides don't pop in and out at the edge. */
+export const VIEW_MARGIN = 200
+
+/** The React Flow viewport, as its store holds it. */
+export interface FlowView {
+  transform: [number, number, number]
+  width: number
+  height: number
+}
+
+/** The visible part of the canvas, in canvas coordinates. */
+export function visibleBox({ transform: [tx, ty, zoom], width, height }: FlowView): Box {
+  return { x: -tx / zoom, y: -ty / zoom, width: width / zoom, height: height / zoom }
+}
+
+/** How a drag (or a nudge) snaps right now: the zoom and the user's guide and grid choices. */
+export function snapContext(zoom: number, grid: number): SnapContext {
+  const ui = useUiStore.getState()
+  return { zoom, guides: ui.smartGuides && !keys.altHeld, grid: ui.snapToGrid ? grid : 0 }
 }
