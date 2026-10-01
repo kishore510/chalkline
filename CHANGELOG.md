@@ -2,6 +2,21 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.19.0] - 2026-10-01
+
+### Added
+- Keyboard use of the canvas. Tab and Shift+Tab move between shapes in reading order, then connectors, and on out of the canvas. Enter selects, then edits the label. Space adds to or takes out of the selection. P goes to the properties, and Shift+F10 (or the Menu key) opens a shape's menu. A **Skip to canvas** link is the first stop on the page.
+- Screen reader support: shapes and connectors have names, and the app announces the selection, mode changes, undo and redo, search results, and locked shapes that can't move.
+- A Help topic on keyboard and screen reader use.
+
+### Changed
+- Large diagrams are much faster: a 1,000-shape diagram first draws in a fraction of the time it took, and dragging is smoother.
+- The app downloads less up front: sample diagrams and the style sheet page load only when opened.
+- The keyboard focus ring on the canvas is now dashed, so it looks different from a selected shape.
+- With reduce motion turned on, nothing animates: the view jumps instead of gliding.
+- Slightly darker borders on fields in light mode, so they stand out on grey panels.
+- Closing search, the layers sheet, the shape drawer or a menu returns focus to where you were, and Escape closes them.
+
 ## [0.18.0] - 2026-10-01
 
 ### Added

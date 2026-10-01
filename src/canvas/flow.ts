@@ -2,6 +2,7 @@ import { MarkerType, type Edge, type EdgeChange, type EdgeMarker, type Node, typ
 import type { TextStyleFields } from '@/fonts/registry'
 import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType, Position, Size } from '@/schema/diagram'
 import { edgeAppearance } from './appearance'
+import { shapeName } from './focusOrder'
 import type { Route } from './routing'
 import type { Spread } from './spread'
 import { HANDLE_SIDES, type HandleSide } from './handles'
@@ -86,6 +87,9 @@ export function createNodeMapper() {
         selected: isSelected,
         draggable: canDrag,
         zIndex: z,
+        // Keyboard: the canvas is one Tab stop and moves focus between shapes itself (see focusOrder.ts).
+        ariaLabel: shapeName(node.label, node.type, isLocked),
+        domAttributes: OFF_TAB_ORDER,
         data: { type: node.type, label: node.label, style: node.style, hasNotes: node.notes.trim().length > 0, locked: isLocked },
       }
       cache.set(node.id, { source: node, selected: isSelected, locked: isLocked, z, flow })
@@ -95,6 +99,9 @@ export function createNodeMapper() {
     return out
   }
 }
+
+/** Shapes and connectors are focused by the canvas's own Tab handling, not the page's Tab order. */
+export const OFF_TAB_ORDER = { tabIndex: -1 } as const
 
 function marker(arrow: Arrowhead, colour: string): EdgeMarker | undefined {
   if (arrow === 'none') return undefined
@@ -120,7 +127,7 @@ function edgeText(style: EdgeStyle): TextStyleFields | undefined {
   return Object.values(text).some((v) => v !== undefined) ? text : undefined
 }
 
-export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread, zIndex = zForEdge(0)): Edge {
+export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread, zIndex = zForEdge(0), name?: string): Edge {
   const style = edge.style
   const text = edgeText(style)
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
@@ -161,6 +168,8 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
     labelBgPadding: [6, 3],
     // Wide invisible hit area so thin lines are easy to tap.
     interactionWidth: 24,
+    ...(name !== undefined && { ariaLabel: name }),
+    domAttributes: OFF_TAB_ORDER,
   }
 }
 
@@ -173,7 +182,7 @@ export function toFlowEdges(diagram: Diagram, selected: ReadonlySet<string>, def
  * edge, its selection and its route are unchanged, so React Flow skips it.
  */
 export function createEdgeMapper() {
-  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; spread: Spread | undefined; width: number; z: number; flow: Edge }>()
+  const cache = new Map<string, { source: DiagramEdge; selected: boolean; route: Route | undefined; spread: Spread | undefined; width: number; z: number; name: string | undefined; flow: Edge }>()
   /** `edges`: the visible edges (ends already moved onto collapsed groups). */
   return function toFlowEdgesCached(
     edges: readonly DiagramEdge[],
@@ -182,6 +191,8 @@ export function createEdgeMapper() {
     defaultWidth = DEFAULT_EDGE_WIDTH,
     spreads: ReadonlyMap<string, Spread> = new Map(),
     zOf: (edge: DiagramEdge) => number = () => zForEdge(0),
+    /** Accessible name (it names the shapes at each end, so it can change without the edge changing). */
+    nameOf?: (edge: DiagramEdge) => string,
   ): Edge[] {
     const seen = new Set<string>()
     const out = edges.map((edge) => {
@@ -190,10 +201,11 @@ export function createEdgeMapper() {
       const route = routes.get(edge.id)
       const spread = spreads.get(edge.id)
       const z = zOf(edge)
+      const name = nameOf?.(edge)
       const hit = cache.get(edge.id)
-      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.spread === spread && hit.width === defaultWidth && hit.z === z) return hit.flow
-      const flow = toFlowEdge(edge, isSelected, defaultWidth, route, spread, z)
-      cache.set(edge.id, { source: edge, selected: isSelected, route, spread, width: defaultWidth, z, flow })
+      if (hit && hit.source === edge && hit.selected === isSelected && hit.route === route && hit.spread === spread && hit.width === defaultWidth && hit.z === z && hit.name === name) return hit.flow
+      const flow = toFlowEdge(edge, isSelected, defaultWidth, route, spread, z, name)
+      cache.set(edge.id, { source: edge, selected: isSelected, route, spread, width: defaultWidth, z, name, flow })
       return flow
     })
     for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id)

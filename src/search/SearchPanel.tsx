@@ -4,6 +4,7 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Panel } from '@/components/ui/panel'
+import { useSheetFocus } from '@/components/ui/useSheetFocus'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import type { SearchHit } from './search'
@@ -206,8 +207,11 @@ export function SearchBar() {
 
 function SearchBarBody() {
   const box = useSearchBox(() => undefined)
+  const ref = useRef<HTMLDivElement>(null)
+  // Escape closes; focus returns to whatever opened search.
+  useSheetFocus(ref, true, () => useSearchStore.getState().close())
   return (
-    <Panel role="search" aria-label="Find in diagram" className="pointer-events-auto flex w-(--cl-search-bar-width) max-w-full flex-col p-1 shadow-lg">
+    <Panel ref={ref} role="search" aria-label="Find in diagram" className="pointer-events-auto flex w-(--cl-search-bar-width) max-w-full flex-col p-1 shadow-lg">
       <div className="flex items-center gap-1">
         <SearchInput box={box} />
         <StepButtons />
@@ -226,6 +230,7 @@ function hitLabel(hit: SearchHit, labels: ReadonlyMap<string, string>) {
 export function SearchSheet() {
   const ref = useRef<HTMLElement>(null)
   const box = useSearchBox(() => ref.current?.getBoundingClientRect().top)
+  useSheetFocus(ref, true, () => useSearchStore.getState().close())
   return (
     <section
       ref={ref}

@@ -1,6 +1,8 @@
-import { useSyncExternalStore } from 'react'
+import { lazy, Suspense, useSyncExternalStore } from 'react'
 import { Editor } from '@/editor/Editor'
-import { StyleSheetPage } from '@/pages/StyleSheetPage'
+
+// The style sheet page is a design reference, not part of the editor: loaded only when opened.
+const StyleSheetPage = lazy(() => import('@/pages/StyleSheetPage').then((m) => ({ default: m.StyleSheetPage })))
 
 // Hash routing keeps the app host-agnostic: no server rewrites needed.
 function useHash() {
@@ -14,5 +16,11 @@ function useHash() {
 }
 
 export function App() {
-  return useHash() === '#/styles' ? <StyleSheetPage /> : <Editor />
+  return useHash() === '#/styles' ? (
+    <Suspense fallback={null}>
+      <StyleSheetPage />
+    </Suspense>
+  ) : (
+    <Editor />
+  )
 }

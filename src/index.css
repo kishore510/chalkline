@@ -137,10 +137,23 @@
   display: block;
 }
 
-.react-flow__node:focus-visible {
+/* Keyboard focus on the canvas: a dashed ring set further out, so it reads
+   differently from selection (a solid accent outline and resize handles). */
+.react-flow:focus-visible {
   outline: var(--cl-focus-ring-width) solid var(--cl-focus);
-  outline-offset: var(--cl-focus-ring-offset);
+  outline-offset: calc(-1 * var(--cl-focus-ring-width));
+}
+
+.react-flow__node:focus-visible {
+  outline: var(--cl-focus-ring-width) dashed var(--cl-focus);
+  outline-offset: var(--cl-canvas-focus-offset);
   border-radius: var(--radius-sm);
+}
+
+/* A focused connector: a soft band along its (wide, invisible) hit path. */
+.react-flow__edge:focus-visible .react-flow__edge-interaction {
+  stroke: var(--cl-focus-halo);
+  stroke-opacity: 1;
 }
 
 /* Connection handles: hidden until the node is selected or a connector is being drawn. */

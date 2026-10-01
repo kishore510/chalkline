@@ -6,6 +6,7 @@ import type { Layout } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { DEFAULT_LAYER_ID, MAX_LAYERS, type DiagramLayer } from '@/schema/diagram'
 import { useShallow } from 'zustand/react/shallow'
+import { useSheetFocus } from '@/components/ui/useSheetFocus'
 import { useDiagramStore } from '@/store/diagramStore'
 import { layerCounts, layerIdOf } from '@/store/layers'
 import { useUiStore } from '@/store/uiStore'
@@ -305,10 +306,18 @@ export function LayersButton({ layout, className }: { layout: Layout; className?
 /** Phone and tablet: the layers panel as a bottom sheet. */
 export function LayersSheet() {
   const open = useUiStore((s) => s.layersOpen)
-  const setOpen = useUiStore((s) => s.setLayersOpen)
   if (!open) return null
+  return <LayersSheetBody />
+}
+
+function LayersSheetBody() {
+  const setOpen = useUiStore((s) => s.setLayersOpen)
+  const ref = useRef<HTMLDivElement>(null)
+  // Focus moves in, Escape closes, and focus goes back to the Layers button.
+  useSheetFocus(ref, true, () => setOpen(false))
   return (
     <Panel
+      ref={ref}
       role="dialog"
       aria-label="Layers"
       className="cl-safe-bottom pointer-events-auto fixed inset-x-0 bottom-0 z-40 max-h-(--cl-drawer-max-height) overflow-y-auto rounded-b-none px-3 shadow-lg"

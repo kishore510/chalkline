@@ -85,3 +85,29 @@ describe('drag frame cost (1000 shapes)', () => {
     expect(perFrame).toBeLessThan(30)
   })
 })
+
+describe('bulk actions on 1000 shapes', () => {
+  it('search, align and distribute stay quick; auto-arrange finishes', { timeout: 120_000 }, async () => {
+    const { searchDiagram } = await import('@/search/search')
+    const { computeLayout } = await import('@/layout/computeLayout')
+    const { default: ELK } = await import('elkjs/lib/elk.bundled.js')
+    useDiagramStore.getState().load(stressDiagram(1000), { undoable: false })
+    const d = useDiagramStore.getState().diagram
+    const time = async (f: () => unknown) => {
+      const t = performance.now()
+      await f()
+      return performance.now() - t
+    }
+    const search = await time(() => searchDiagram(d, 'orders'))
+    useDiagramStore.getState().setSelection(d.nodes.slice(0, 1000).map((n) => n.id))
+    const align = await time(() => useDiagramStore.getState().alignSelection('left'))
+    useDiagramStore.getState().undo()
+    const distribute = await time(() => useDiagramStore.getState().distributeSelection('horizontal'))
+    useDiagramStore.getState().undo()
+    const arrange = await time(() => computeLayout(d, { direction: 'right', spacing: 'normal' }, new ELK()))
+    console.log('1000 shapes, ms:', { search: Math.round(search), align: Math.round(align), distribute: Math.round(distribute), autoArrange: Math.round(arrange) })
+    expect(search).toBeLessThan(200)
+    expect(align).toBeLessThan(1000)
+    expect(distribute).toBeLessThan(1000)
+  })
+})

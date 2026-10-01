@@ -8,6 +8,7 @@ import { useUiStore } from '@/store/uiStore'
 import { explainBlockedAdd } from './layerNotices'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { saveJson } from './FileMenu'
+import { focusProperties } from '@/canvas/useCanvasKeyboard'
 import { isMacPlatform, isTypingTarget, nudgeOf, resolveShortcut, type ShortcutId } from './shortcuts'
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && isTypingTarget(target)
@@ -132,6 +133,8 @@ export function useShortcuts() {
         case 'shortcuts':
           useHelpStore.getState().openHelp({ kind: 'shortcuts' })
           return true
+        case 'focus-properties':
+          return diagram.selection.length > 0 && focusProperties()
         default: {
           const nudge = nudgeOf(id)
           return nudge ? actions.nudge(nudge.direction, nudge.far) : false

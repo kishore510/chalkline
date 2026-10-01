@@ -1,7 +1,7 @@
 {
   "name": "chalkline",
   "private": true,
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Chalkline: ideas to diagrams.",
   "type": "module",
   "scripts": {

@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import type { Layout } from '@/hooks/useMediaQuery'
-import { fixtures } from '@/fixtures'
+import { loadSample } from '@/fixtures/load'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { useStencilStore } from '@/stencils/stencilStore'
@@ -31,7 +31,7 @@ export function EmptyCanvas({ layout }: { layout: Layout }) {
                 <LayoutTemplate />
                 Start from a template
               </Button>
-              <Button variant="secondary" onClick={() => actions.load(fixtures['web-architecture'])}>
+              <Button variant="secondary" onClick={() => void loadSample('web-architecture').then((d) => d && actions.load(d))}>
                 <Sparkles />
                 Load an example
               </Button>

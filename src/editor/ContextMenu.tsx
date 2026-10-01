@@ -7,6 +7,7 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { explainBlockedAdd } from './layerNotices'
 import { saveSelectionAsStencil } from './stencils/actions'
+import { useSheetFocus } from '@/components/ui/useSheetFocus'
 
 /** Right-click (mouse) or long-press (touch) menu for a node, an edge, a connector grip or empty canvas. */
 export function ContextMenu() {
@@ -16,6 +17,8 @@ export function ContextMenu() {
   const { screenToFlowPosition } = useReactFlow()
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  // Focus goes back to the shape (or button) it was opened from when it closes.
+  useSheetFocus(ref, menu !== null, close)
 
   // Keep the menu fully on screen.
   useLayoutEffect(() => {

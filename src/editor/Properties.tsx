@@ -9,6 +9,7 @@ import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { readToken } from '@/lib/cssVar'
+import { motionMs } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import type { DiagramEdge, DiagramGroup, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
@@ -20,7 +21,6 @@ import { useUiStore } from '@/store/uiStore'
 import { LearnMore } from '@/help/HelpEntry'
 import { LEARN_MORE } from '@/help/links'
 import { explainBlockedAdd } from './layerNotices'
-import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
 import { LayersContent } from './LayersPanel'
@@ -592,7 +592,8 @@ function useSelectionSummary(): Summary {
 /** `arrange`: show align/distribute buttons for multi-selections (phone and tablet; desktop has its bar). */
 function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrange?: boolean }) {
   return (
-    <div className="flex flex-col gap-4 pb-4">
+    // data-properties: where P (go to properties) puts focus.
+    <div data-properties className="flex flex-col gap-4 pb-4">
       {arrange && (summary.kind === 'nodes' || summary.kind === 'mixed') && <ArrangeSection />}
       {summary.kind !== 'none' && <LayerField />}
       {summary.kind === 'none' && <DiagramProperties />}
@@ -763,7 +764,7 @@ function useRevealAboveSheet(sheet: React.RefObject<HTMLElement | null>) {
       if (!canvas || !bounds) return
       const visible = { width: canvas.width, height: Math.max(0, el.getBoundingClientRect().top - canvas.top) }
       const next = revealViewport(bounds, flow.getViewport(), visible, readToken('--cl-gutter', 16))
-      const duration = window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200)
+      const duration = motionMs('--cl-duration-base')
       if (next) void flow.setViewport(next, { duration })
     }
     reveal()

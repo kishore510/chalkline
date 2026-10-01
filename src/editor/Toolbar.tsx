@@ -18,6 +18,8 @@ const TOOL_OPTIONS: { value: Tool; label: string; icon: React.ReactNode }[] = [
   { value: 'link', label: 'Link: tap source, then target (L)', icon: <Link2 /> },
 ]
 
+const TOOL_NAMES: Record<Tool, string> = { select: 'Select', pan: 'Pan', link: 'Link' }
+
 export function HistoryButtons({ className }: { className?: string }) {
   const canUndo = useDiagramStore((s) => s.canUndo)
   const canRedo = useDiagramStore((s) => s.canRedo)
@@ -55,10 +57,10 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
       {layout !== 'phone' && (
         <>
           <HistoryButtons className={round} />
-          <div aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border" />
+          <div aria-hidden="true" className="mx-(--cl-toolbar-gap) h-6 w-px shrink-0 bg-border" />
         </>
       )}
-      <Segmented label="Canvas mode" options={TOOL_OPTIONS} value={tool} onChange={setTool} className={round} />
+      <Segmented label={`Canvas mode: ${TOOL_NAMES[tool]}`} options={TOOL_OPTIONS} value={tool} onChange={setTool} className={round} />
       {layout === 'phone' && (
         <Button variant="primary" size="icon" aria-label="Add shape" className="rounded-full" onClick={() => openPalette(true)}>
           <Plus />
@@ -80,7 +82,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
       </Button>
       {layout !== 'phone' && <TidyMenu layout={layout} className={round} />}
       {layout !== 'phone' && <LayersButton layout={layout} className={round} />}
-      <div aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border" />
+      <div aria-hidden="true" className="mx-(--cl-toolbar-gap) h-6 w-px shrink-0 bg-border" />
       <Button
         variant="ghost"
         size="icon"
@@ -103,7 +105,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
     )
   }
   return (
-    <Panel role="toolbar" aria-label="Canvas" className="pointer-events-auto flex items-center gap-1 rounded-full p-1 shadow-lg">
+    <Panel role="toolbar" aria-label="Canvas" className="pointer-events-auto flex items-center gap-(--cl-toolbar-gap) rounded-full p-(--cl-toolbar-gap) shadow-lg">
       {content}
     </Panel>
   )

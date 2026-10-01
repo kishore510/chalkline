@@ -2,7 +2,8 @@ import { useReactFlow, useStoreApi } from '@xyflow/react'
 import { useCallback, useMemo } from 'react'
 import { readToken } from '@/lib/cssVar'
 import type { NodeType, Orientation, Position } from '@/schema/diagram'
-import { MEDIA } from '@/styles/breakpoints'
+import { announce, LOCKED_MESSAGE } from '@/a11y/announce'
+import { motionMs } from '@/lib/motion'
 import { useDiagramStore } from '@/store/diagramStore'
 import { explainBlockedAdd } from '@/editor/layerNotices'
 import { useUiStore } from '@/store/uiStore'
@@ -15,7 +16,7 @@ import { guideTargets } from './guideTargets'
 import { nudgeItems, nudgeStep, planNudge } from './nudge'
 import { buildRenderModel, collapsedBox } from './renderModel'
 
-const duration = () => (window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200))
+const duration = () => motionMs('--cl-duration-base')
 const gridSize = () => (useUiStore.getState().snapToGrid ? readToken('--cl-grid-gap', 20) : 0)
 
 /** A found item is shown at least this zoom, so its label can be read. */
@@ -114,7 +115,11 @@ export function useCanvasActions() {
       const items = nudgeItems(diagram, model, selection)
       const targets = guideTargets(diagram, model, items, visibleBox(rf), VIEW_MARGIN / zoom)
       const plan = planNudge(diagram, model, items, { x: direction.x * step, y: direction.y * step }, targets, ctx)
-      if (!plan) return true
+      // Nothing can move: say why to screen readers only (sighted users see the padlocks).
+      if (!plan) {
+        if (items.length === 0 && selection.some((id) => diagram.nodes.some((n) => n.id === id) || diagram.groups.some((g) => g.id === id))) announce(LOCKED_MESSAGE)
+        return true
+      }
       useDiagramStore.getState().nudge(plan.moves)
       showNudgeGuides(plan.guides)
       return true

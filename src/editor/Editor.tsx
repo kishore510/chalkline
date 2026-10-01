@@ -1,7 +1,9 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect } from 'react'
+import { LiveRegion } from '@/a11y/LiveRegion'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
-import { fixtures } from '@/fixtures'
+import { useCanvasKeyboard } from '@/canvas/useCanvasKeyboard'
+import { loadSample } from '@/fixtures/load'
 import { Canvas } from '@/canvas/Canvas'
 import { useMediaQuery, type Layout } from '@/hooks/useMediaQuery'
 import { HelpSheetHost, VersionTag } from '@/help/HelpEntry'
@@ -36,10 +38,13 @@ function EditorLayout() {
   const desktop = useMediaQuery(MEDIA.desktop)
   const layout: Layout = desktop ? 'desktop' : tablet ? 'tablet' : 'phone'
   useShortcuts()
+  useCanvasKeyboard()
   useFixtureFromHash()
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-text">
+      <SkipToCanvas />
+      <LiveRegion />
       <TopBar layout={layout} />
       <div className="relative flex min-h-0 flex-1">
         {layout === 'desktop' && <PalettePanel />}
@@ -83,6 +88,22 @@ function EditorLayout() {
   )
 }
 
+/** First Tab stop on the page (shown when focused): straight to the canvas, past the top bar and palette. */
+function SkipToCanvas() {
+  return (
+    <a
+      href="#canvas"
+      onClick={(e) => {
+        e.preventDefault()
+        document.querySelector<HTMLElement>('.react-flow')?.focus()
+      }}
+      className="sr-only z-50 rounded-md bg-surface px-4 text-sm font-medium text-text shadow-lg focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:flex focus:min-h-touch focus:items-center"
+    >
+      Skip to canvas
+    </a>
+  )
+}
+
 /** Phone: the properties sheet (while something is selected) or the search sheet replaces the toolbar. */
 function PhoneBottom() {
   const open = useDiagramStore((s) => s.selection.length > 0)
@@ -90,19 +111,27 @@ function PhoneBottom() {
   if (open) return <PropertiesSheet />
   if (searching) return <SearchSheet />
   return (
-    <div className="cl-safe-bottom px-4">
+    <div className="cl-safe-bottom px-(--cl-gutter)">
       <CanvasToolbar layout="phone" />
     </div>
   )
 }
 
-/** `#/fixture/<name>` opens a sample diagram, e.g. #/fixture/label-cases for checking label layout. */
+/**
+ * `#/fixture/<name>` opens a sample diagram, e.g. #/fixture/label-cases for
+ * checking label layout, or #/fixture/stress-1000 for a generated 1000-shape
+ * diagram. Samples load on demand, so they aren't part of the app download.
+ */
 function useFixtureFromHash() {
   const actions = useCanvasActions()
   useEffect(() => {
     const name = window.location.hash.match(/^#\/fixture\/([\w-]+)$/)?.[1]
-    const fixture = name ? fixtures[name] : undefined
-    if (fixture) actions.load(fixture)
+    if (!name) return
+    let live = true
+    void loadSample(name).then((diagram) => live && diagram && actions.load(diagram))
+    return () => {
+      live = false
+    }
   }, [actions])
 }
 

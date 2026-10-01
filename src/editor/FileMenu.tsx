@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
-import { fixtures } from '@/fixtures'
+import { loadSample } from '@/fixtures/load'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { UnseenDot } from '@/help/HelpEntry'
 import { useHelpStore } from '@/help/helpStore'
@@ -179,7 +179,7 @@ export function FileMenu({ layout }: { layout: Layout }) {
               <Divider />
             </>
           )}
-          <Item icon={<Sparkles />} onClick={run(() => actions.load(fixtures['web-architecture']))}>
+          <Item icon={<Sparkles />} onClick={run(() => void loadSample('web-architecture').then((d) => d && actions.load(d)))}>
             Load example
           </Item>
           {layout === 'phone' && (

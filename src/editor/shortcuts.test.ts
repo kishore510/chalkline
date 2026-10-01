@@ -50,12 +50,19 @@ describe('resolveShortcut', () => {
     expect(resolveShortcut(press('?', { shiftKey: true }), false)).toBe('shortcuts')
   })
 
+  it('canvas keys are listed but left to the canvas, so Tab and Space work normally elsewhere', () => {
+    expect(resolveShortcut(press('Tab'), false)).toBeNull()
+    expect(resolveShortcut(press('Tab', { shiftKey: true }), false)).toBeNull()
+    expect(resolveShortcut(press(' '), false)).toBeNull()
+    expect(resolveShortcut(press('p'), false)).toBe('focus-properties')
+    expect(formatCombo({ key: ' ' }, true)).toEqual(['Space'])
+  })
+
   it('leaves Alt combinations and unknown keys alone', () => {
     // Alt+Left is browser Back.
     expect(resolveShortcut(press('ArrowLeft', { altKey: true }), false)).toBeNull()
     expect(resolveShortcut(press('z', { ctrlKey: true, altKey: true }), false)).toBeNull()
     expect(resolveShortcut(press('q'), false)).toBeNull()
-    expect(resolveShortcut(press('Tab'), false)).toBeNull()
   })
 
   it('has no two shortcuts on the same keys', () => {
@@ -104,7 +111,7 @@ describe('cheat sheet', () => {
 
   it('groups listed shortcuts by area, each with both key sets, nudges once', () => {
     const sheet = cheatSheet()
-    expect(sheet.map((s) => s.area)).toEqual(['Edit', 'Arrange', 'View', 'Modes', 'Find and help'])
+    expect(sheet.map((s) => s.area)).toEqual(['Canvas', 'Edit', 'Arrange', 'View', 'Modes', 'Find and help'])
     const rows = sheet.flatMap((s) => s.rows)
     for (const row of rows) {
       expect(row.label.length).toBeGreaterThan(0)
