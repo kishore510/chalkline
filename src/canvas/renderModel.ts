@@ -1,6 +1,6 @@
 import type { Diagram, DiagramEdge, DiagramGroup, DiagramNode } from '@/schema/diagram'
 import { ancestors, depth, headerSide, headerSize, isGroupFixed, isPool, parentsFirst, type Box } from '@/store/groups'
-import { isEdgeHidden, isGroupFrameHidden, isNodeHidden, layerIdOf, layerIndex } from '@/store/layers'
+import { isGroupFrameHidden, isLayerHidden, isNodeHidden, layerIdOf, layerIndex } from '@/store/layers'
 import type { RoutableNode } from './routing'
 
 /*
@@ -124,9 +124,14 @@ export function buildRenderModel(diagram: Diagram, { includeHidden = false }: { 
     }
   }
 
+  // Hidden connectors: on a hidden layer, or touching a node on one (as isEdgeHidden, without a node search per edge).
+  const onHiddenLayer = new Set<string>()
+  if (!includeHidden) for (const node of diagram.nodes) if (isNodeHidden(diagram, node)) onHiddenLayer.add(node.id)
+  const edgeHidden = (edge: DiagramEdge) => isLayerHidden(diagram, layerIdOf(edge)) || onHiddenLayer.has(edge.source) || onHiddenLayer.has(edge.target)
+
   const edges: DiagramEdge[] = []
   for (const edge of diagram.edges) {
-    if (!includeHidden && isEdgeHidden(diagram, edge)) continue
+    if (!includeHidden && edgeHidden(edge)) continue
     const source = endpoint.get(edge.source) ?? edge.source
     const target = endpoint.get(edge.target) ?? edge.target
     // Both ends inside the same collapsed group: nothing to draw.

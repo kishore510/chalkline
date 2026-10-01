@@ -5,6 +5,7 @@ import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { readToken } from '@/lib/cssVar'
+import { useSheetFocus } from '@/components/ui/useSheetFocus'
 import { cn } from '@/lib/utils'
 import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
@@ -585,9 +586,12 @@ export function PaletteDrawer() {
   const shown = open && !dragging
   const tab = open ? 0 : -1
   const results = searchShapes(query)
+  const ref = useRef<HTMLDivElement>(null)
+  useSheetFocus(ref, open, () => setOpen(false))
 
   return (
     <div
+      ref={ref}
       role="dialog"
       aria-label="Add a shape"
       aria-hidden={!open}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { FOCUSABLE, tabTarget, trapFocus } from './focusTrap'
+import { FOCUSABLE, sheetFocus, tabTarget, trapFocus } from './focusTrap'
 
 /** A tiny stand-in for the DOM: elements that record focus into a shared document. */
 function setup(names: string[], autofocus?: string) {
@@ -64,5 +64,56 @@ describe('trapFocus', () => {
     const t = setup(['close', 'search'], 'search')
     trapFocus(t.container, t.doc, () => undefined)
     expect(t.active()).toBe('search')
+  })
+})
+
+describe('sheetFocus (non-modal sheets)', () => {
+  function sheet(names: string[], autofocus?: string) {
+    const base = setup(names, autofocus)
+    const inside = new Set(names)
+    const keyListeners = new Set<(e: KeyboardEvent) => void>()
+    const container = {
+      ...base.container,
+      contains: (node: never) => inside.has((node as { name?: string } | null)?.name ?? ''),
+      addEventListener: (_: string, l: (e: KeyboardEvent) => void) => void keyListeners.add(l),
+      removeEventListener: (_: string, l: (e: KeyboardEvent) => void) => void keyListeners.delete(l),
+    }
+    const press = (key: string) => {
+      const e = { key, stopPropagation: vi.fn() }
+      for (const l of keyListeners) l(e as never)
+      return e
+    }
+    return { ...base, container, press, keyListeners }
+  }
+
+  it('moves focus in on open, to the autofocus element if any', () => {
+    const s = sheet(['close', 'input'], 'input')
+    s.outside.focus()
+    sheetFocus(s.container, s.doc, () => undefined)
+    expect(s.active()).toBe('input')
+  })
+
+  it('closes on Escape, and returns focus to the opener on release', () => {
+    const s = sheet(['close', 'input'])
+    s.outside.focus()
+    const onEscape = vi.fn()
+    const release = sheetFocus(s.container, s.doc, onEscape)
+    expect(s.press('Escape').stopPropagation).toHaveBeenCalled()
+    expect(onEscape).toHaveBeenCalledOnce()
+    release()
+    expect(s.active()).toBe('outside')
+    expect(s.keyListeners.size).toBe(0)
+  })
+
+  it('does not trap Tab, and leaves focus alone if the user has moved on', () => {
+    const s = sheet(['close', 'input'])
+    const opener = { name: 'opener', focus: () => void (s.doc.activeElement = opener) }
+    opener.focus()
+    const release = sheetFocus(s.container, s.doc, () => undefined)
+    expect(s.press('Tab').stopPropagation).not.toHaveBeenCalled()
+    // Focus went elsewhere on the page (not in the sheet): don't pull it back.
+    s.outside.focus()
+    release()
+    expect(s.active()).toBe('outside')
   })
 })

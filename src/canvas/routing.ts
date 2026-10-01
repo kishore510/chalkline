@@ -121,18 +121,64 @@ export function segmentHitsBox(a: Point, b: Point, box: Box): boolean {
   return true
 }
 
-function hits(points: Point[], obstacles: readonly RoutableNode[], padding: number): string[] {
-  const ids: string[] = []
-  for (const node of obstacles) {
-    const box = pad(boxOf(node), padding)
+/** A node's box with the clearance added, worked out once per routing pass rather than per test. */
+interface Obstacle {
+  node: RoutableNode
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+  box: Box
+}
+
+// Padded boxes per node list (the same list serves every edge in a pass) and padding.
+const obstacleCache = new WeakMap<readonly RoutableNode[], Map<number, Obstacle[]>>()
+
+function obstaclesOf(nodes: readonly RoutableNode[], padding: number): Obstacle[] {
+  let byPadding = obstacleCache.get(nodes)
+  if (!byPadding) obstacleCache.set(nodes, (byPadding = new Map()))
+  let list = byPadding.get(padding)
+  if (!list) {
+    list = nodes.map((node) => {
+      const box = pad(boxOf(node), padding)
+      return { node, box, x0: box.x, y0: box.y, x1: box.x + box.width, y1: box.y + box.height }
+    })
+    byPadding.set(padding, list)
+  }
+  return list
+}
+
+/**
+ * Ids of the obstacles any segment of `points` passes through, in obstacle
+ * order. Boxes clear of the path's bounding box are skipped without the
+ * segment test (same result, far fewer tests on big diagrams).
+ */
+function hitObstacles(points: Point[], obstacles: readonly Obstacle[]): Obstacle[] {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const p of points) {
+    if (p.x < minX) minX = p.x
+    if (p.x > maxX) maxX = p.x
+    if (p.y < minY) minY = p.y
+    if (p.y > maxY) maxY = p.y
+  }
+  const out: Obstacle[] = []
+  for (const o of obstacles) {
+    if (o.x0 > maxX || o.x1 < minX || o.y0 > maxY || o.y1 < minY) continue
     for (let i = 0; i < points.length - 1; i++) {
-      if (segmentHitsBox(points[i]!, points[i + 1]!, box)) {
-        ids.push(node.id)
+      if (segmentHitsBox(points[i]!, points[i + 1]!, o.box)) {
+        out.push(o)
         break
       }
     }
   }
-  return ids
+  return out
+}
+
+function hits(points: Point[], obstacles: readonly RoutableNode[], padding: number): string[] {
+  return hitObstacles(points, obstaclesOf(obstacles, padding)).map((o) => o.node.id)
 }
 
 export function pathIsClear(points: Point[], obstacles: readonly RoutableNode[], padding: number): boolean {
@@ -160,7 +206,7 @@ const OPPOSITE: Record<HandleSide, HandleSide> = { top: 'bottom', bottom: 'top',
  * pairs, left/right for vertical ones). The lane widens to take in anything
  * else it runs into, a few times over.
  */
-function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: readonly RoutableNode[], o: RouteOptions): Point[][] {
+function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: readonly Obstacle[], o: RouteOptions): Point[][] {
   if (OPPOSITE[s] !== t) return []
   const p1 = stub(sp, s, o.gap)
   const p2 = stub(tp, t, o.gap)
@@ -174,7 +220,7 @@ function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: 
           : [sp, p1, { x: lane, y: p1.y }, { x: lane, y: p2.y }, p2, tp],
       )
     const base = across ? [sp, p1, { x: p2.x, y: p1.y }, p2, tp] : [sp, p1, { x: p1.x, y: p2.y }, p2, tp]
-    let inTheWay = obstacles.filter((n) => hits(base, [n], o.padding).length > 0)
+    let inTheWay = hitObstacles(base, obstacles).map((x) => x.node)
     if (inTheWay.length === 0) continue
     for (let attempt = 0; attempt < 4; attempt++) {
       const boxes = inTheWay.map(boxOf)
@@ -186,7 +232,7 @@ function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: 
           ? Math.min(...boxes.map((b) => b.x), sp.x, tp.x) - o.padding - o.gap
           : Math.max(...boxes.map((b) => b.x + b.width), sp.x, tp.x) + o.padding + o.gap
       const points = build(lane)
-      const blocking = obstacles.filter((n) => hits(points, [n], o.padding).length > 0)
+      const blocking = hitObstacles(points, obstacles).map((x) => x.node)
       if (blocking.length === 0) {
         results.push(points)
         break
@@ -195,6 +241,19 @@ function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: 
     }
   }
   return results
+}
+
+// Id lookups per node list, built once per routing pass.
+const indexCache = new WeakMap<readonly RoutableNode[], Map<string, RoutableNode>>()
+function nodeById(nodes: readonly RoutableNode[], id: string): RoutableNode | undefined {
+  let index = indexCache.get(nodes)
+  if (!index) {
+    index = new Map()
+    // First wins, as Array.find did.
+    for (const n of nodes) if (!index.has(n.id)) index.set(n.id, n)
+    indexCache.set(nodes, index)
+  }
+  return index.get(id)
 }
 
 /**
@@ -206,8 +265,8 @@ function detours(sp: Point, s: HandleSide, tp: Point, t: HandleSide, obstacles: 
  * Pinned ends keep their side; an edge with both ends pinned is left as is.
  */
 export function routeEdge(nodes: readonly RoutableNode[], edge: RoutableEdge, options: RouteOptions = DEFAULT_ROUTE_OPTIONS): Route {
-  const source = nodes.find((n) => n.id === edge.source)
-  const target = nodes.find((n) => n.id === edge.target)
+  const source = nodeById(nodes, edge.source)
+  const target = nodeById(nodes, edge.target)
   const fixedSource = isSide(edge.sourceHandle) ? edge.sourceHandle : undefined
   const fixedTarget = isSide(edge.targetHandle) ? edge.targetHandle : undefined
   const straight = edge.style.lineType === 'straight'
@@ -228,8 +287,8 @@ export function routeEdge(nodes: readonly RoutableNode[], edge: RoutableEdge, op
   const base: Route = { sourceSide: nearest.sourceSide, targetSide: nearest.targetSide, kind: 'direct', points: basePoints, clear: true, blockers: [], basePoints }
   if (fixedSource && fixedTarget) return base
 
-  const obstacles = nodes.filter((n) => n.id !== edge.source && n.id !== edge.target)
-  const blockers = hits(basePoints, obstacles, options.padding)
+  const obstacles = obstaclesOf(nodes, options.padding).filter((o) => o.node.id !== edge.source && o.node.id !== edge.target)
+  const blockers = hitObstacles(basePoints, obstacles).map((o) => o.node.id)
   if (blockers.length === 0) return base
 
   const candidates: Candidate[] = []
@@ -248,7 +307,7 @@ export function routeEdge(nodes: readonly RoutableNode[], edge: RoutableEdge, op
   }
 
   const clear = candidates
-    .filter((c) => pathIsClear(c.points, obstacles, options.padding))
+    .filter((c) => hitObstacles(c.points, obstacles).length === 0)
     .map((c, order) => ({ c, bends: c.points.length - 2, length: length(c.points), order }))
     .sort((a, b) => a.bends - b.bends || a.length - b.length || a.order - b.order)
   const best = clear[0]?.c

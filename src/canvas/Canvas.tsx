@@ -27,6 +27,7 @@ import { useUiStore } from '@/store/uiStore'
 import {
   applySelection,
   createEdgeMapper,
+  OFF_TAB_ORDER,
   createNodeMapper,
   summariseEdgeChanges,
   summariseNodeChanges,
@@ -37,6 +38,7 @@ import {
 } from './flow'
 import { EdgeGrips } from './EdgeGrips'
 import { FloatingEdge } from './FloatingEdge'
+import { connectorName } from './focusOrder'
 import { GroupNode, type GroupFlowNode } from './GroupNode'
 import { GuideOverlay } from './GuideOverlay'
 import { beginGesture, endGesture, keys, session, snapContext, useGuideStore, VIEW_MARGIN, visibleBox, type FlowView } from './guideSession'
@@ -198,7 +200,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
           // Selected through the header (see GroupNode), never by box-select or body clicks.
           selectable: false,
           connectable: false,
-          focusable: false,
+          // A keyboard stop like shapes (see focusOrder.ts), outside the page's Tab order.
+          focusable: true,
+          ariaLabel: `${view.group.label.trim() || 'Untitled'}, ${view.group.kind === 'lane' ? 'lane' : view.pool ? 'pool' : 'group'}${view.group.collapsed ? ', collapsed' : ''}${view.locked ? ', locked' : ''}`,
+          domAttributes: OFF_TAB_ORDER,
           // Lanes move only with their pool (and reorder via move up/down).
           draggable: selectTool && !view.locked && view.group.kind === 'container',
           dragHandle: '.cl-group-drag',
@@ -221,9 +226,14 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
     lastSpread.current = next
     return next
   }, [model, routes])
+  // Connector names say which shapes they join, so they follow label edits too.
+  const labels = useMemo(() => new Map([...diagram.nodes, ...diagram.groups].map((i) => [i.id, i.label])), [diagram])
   const edges = useMemo(
-    () => mapEdges(model.edges, selected, routes, sizes.edgeWidth, spreads, (e) => zForEdge(layerIndex(diagram, layerIdOf(e)))),
-    [mapEdges, model, selected, routes, sizes.edgeWidth, spreads, diagram],
+    () =>
+      mapEdges(model.edges, selected, routes, sizes.edgeWidth, spreads, (e) => zForEdge(layerIndex(diagram, layerIdOf(e))), (e) =>
+        connectorName(labels.get(e.source) ?? '', labels.get(e.target) ?? '', e.label),
+      ),
+    [mapEdges, model, selected, routes, sizes.edgeWidth, spreads, diagram, labels],
   )
 
   // The latest render model, for snapping inside React Flow's change callbacks.
@@ -406,6 +416,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         // is one undoable action; React Flow's own key handling splits nodes and edges.
         deleteKeyCode={null}
         attributionPosition="top-left"
+        // The canvas is one Tab stop; Tab from here moves through shapes and connectors (useCanvasKeyboard).
+        tabIndex={0}
+        aria-label="Diagram canvas"
+        aria-describedby="cl-canvas-help"
         // Frame a restored or opened diagram when the canvas first appears.
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1.5 }}
@@ -415,6 +429,9 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         {gridDisplay === 'lines' && (
           <Background variant={BackgroundVariant.Lines} gap={sizes.grid} lineWidth={sizes.gridLine} color="var(--cl-grid-line)" />
         )}
+        <span id="cl-canvas-help" className="sr-only">
+          Tab and Shift Tab move between shapes, then connectors. Enter selects, or edits the label of a selected shape. Space adds to or removes from the selection. Arrow keys move the selection. P goes to its properties. Escape clears the selection.
+        </span>
         <EdgeGrips />
         <GuideOverlay />
         {minimap !== 'none' && (

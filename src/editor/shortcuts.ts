@@ -35,8 +35,12 @@ export type ShortcutId =
   | 'tool-link'
   | 'search'
   | 'shortcuts'
+  | 'focus-properties'
+  | 'canvas-tab'
+  | 'canvas-space'
+  | 'canvas-menu'
 
-export type ShortcutArea = 'Edit' | 'Arrange' | 'View' | 'Modes' | 'Find and help'
+export type ShortcutArea = 'Canvas' | 'Edit' | 'Arrange' | 'View' | 'Modes' | 'Find and help'
 
 /** A key combination. `mod` is Cmd on a Mac and Ctrl elsewhere. `shift: undefined` means either. */
 export interface KeyCombo {
@@ -53,6 +57,8 @@ export interface Shortcut {
   combos: KeyCombo[]
   /** Listed in the cheat sheet (the far nudges are folded into the plain ones). */
   listed?: boolean
+  /** Handled by the canvas while it (or a shape on it) has focus, not as a page-wide shortcut (useCanvasKeyboard). */
+  canvasOnly?: boolean
 }
 
 const letter = (key: string, mod = false, shift = false): KeyCombo => ({ key, mod, shift })
@@ -60,6 +66,10 @@ const letter = (key: string, mod = false, shift = false): KeyCombo => ({ key, mo
 const symbol = (key: string): KeyCombo => ({ key, mod: false })
 
 export const SHORTCUTS: readonly Shortcut[] = [
+  { id: 'canvas-tab', area: 'Canvas', label: 'Move between shapes in reading order, then connectors (on the canvas)', combos: [{ key: 'Tab', mod: false, shift: false }, { key: 'Tab', mod: false, shift: true }], canvasOnly: true },
+  { id: 'canvas-space', area: 'Canvas', label: 'Add the focused shape to the selection, or take it out', combos: [{ key: ' ', mod: false }], canvasOnly: true },
+  { id: 'canvas-menu', area: 'Canvas', label: 'Open the focused shape’s menu', combos: [{ key: 'F10', mod: false, shift: true }, { key: 'ContextMenu', mod: false }], canvasOnly: true },
+  { id: 'focus-properties', area: 'Canvas', label: 'Go to the selection’s properties', combos: [letter('p')] },
   { id: 'undo', area: 'Edit', label: 'Undo', combos: [letter('z', true)] },
   { id: 'redo', area: 'Edit', label: 'Redo', combos: [letter('z', true, true), letter('y', true)] },
   { id: 'copy', area: 'Edit', label: 'Copy', combos: [letter('c', true)] },
@@ -68,7 +78,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'duplicate', area: 'Edit', label: 'Duplicate', combos: [letter('d', true)] },
   { id: 'delete', area: 'Edit', label: 'Delete the selection', combos: [{ key: 'Delete', mod: false }, { key: 'Backspace', mod: false }] },
   { id: 'select-all', area: 'Edit', label: 'Select everything', combos: [letter('a', true)] },
-  { id: 'edit-label', area: 'Edit', label: 'Edit the selected shape’s label', combos: [{ key: 'Enter', mod: false, shift: false }] },
+  { id: 'edit-label', area: 'Edit', label: 'Select the focused shape; on a selected shape, edit its label', combos: [{ key: 'Enter', mod: false, shift: false }] },
   { id: 'clear', area: 'Edit', label: 'Clear the selection, close menus and search', combos: [{ key: 'Escape', mod: false }] },
   { id: 'save', area: 'Edit', label: 'Save as JSON', combos: [letter('s', true)] },
 
@@ -117,6 +127,7 @@ export function resolveShortcut(e: KeyInput, mac: boolean): ShortcutId | null {
   const other = mac ? e.ctrlKey : e.metaKey
   if (other) return null
   for (const s of SHORTCUTS) {
+    if (s.canvasOnly) continue
     for (const c of s.combos) {
       if (Boolean(c.mod) !== mod || !sameKey(c.key, e.key)) continue
       if (c.shift !== undefined && c.shift !== e.shiftKey) continue
@@ -154,13 +165,14 @@ export function nudgeOf(id: ShortcutId): { direction: { x: number; y: number }; 
   return direction ? { direction, far: Boolean(match?.[2]) } : null
 }
 
+const SHARED_NAMES: Record<string, string> = { ' ': 'Space', Tab: 'Tab', ContextMenu: 'Menu key' }
 const MAC_NAMES: Record<string, string> = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Backspace: 'Delete ⌫', Delete: 'Fwd Del ⌦', Escape: 'Esc', Enter: 'Return' }
 const PC_NAMES: Record<string, string> = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Escape: 'Esc' }
 
 /** Key caps for one combination, e.g. ['⌘', '⇧', 'Z'] on a Mac or ['Ctrl', 'Shift', 'Z'] elsewhere. */
 export function formatCombo(c: KeyCombo, mac: boolean): string[] {
   const names = mac ? MAC_NAMES : PC_NAMES
-  const key = names[c.key] ?? (c.key.length === 1 ? c.key.toUpperCase() : c.key)
+  const key = names[c.key] ?? SHARED_NAMES[c.key] ?? (c.key.length === 1 ? c.key.toUpperCase() : c.key)
   const caps: string[] = []
   if (c.mod) caps.push(mac ? '⌘' : 'Ctrl')
   if (c.shift) caps.push(mac ? '⇧' : 'Shift')

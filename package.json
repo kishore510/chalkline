@@ -1,7 +1,7 @@
 {
   "name": "chalkline",
   "private": true,
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "Chalkline: ideas to diagrams.",
   "type": "module",
   "scripts": {
@@ -35,6 +35,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "happy-dom": "^20.14.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",

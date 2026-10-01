@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { readToken } from '@/lib/cssVar'
-import { MEDIA } from '@/styles/breakpoints'
+import { motionMs } from '@/lib/motion'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 
@@ -36,10 +36,9 @@ export function useTidy() {
       if (useDiagramStore.getState().diagram !== diagram) {
         return ui.notify('The diagram changed while arranging, so nothing was applied. Try again.')
       }
-      const reduced = window.matchMedia(MEDIA.reducedMotion).matches
-      if (!reduced) ui.setAnimating(true)
+      const duration = motionMs('--cl-duration-slow')
+      if (duration > 0) ui.setAnimating(true)
       const changed = useDiagramStore.getState().applyLayout(result)
-      const duration = reduced ? 0 : readToken('--cl-duration-slow', 400)
       window.setTimeout(() => {
         useUiStore.getState().setAnimating(false)
         actions.fitView()

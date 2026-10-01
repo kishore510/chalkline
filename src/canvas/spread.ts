@@ -45,7 +45,10 @@ export function spreadAttachments(
       const side = end === 'source' ? route.sourceSide : route.targetSide
       const other = centre(end === 'source' ? edge.target : edge.source)
       const slot = `${nodeId}|${side}`
-      sides.set(slot, [...(sides.get(slot) ?? []), { edge: edge.id, end, key: other[along(side)] }])
+      const list = sides.get(slot)
+      const entry = { edge: edge.id, end, key: other[along(side)] }
+      if (list) list.push(entry)
+      else sides.set(slot, [entry])
     }
   }
 

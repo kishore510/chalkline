@@ -65,6 +65,8 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['focus', 'canvas', UI],
   ['border-strong', 'surface', UI],
   ['border-strong', 'bg', UI],
+  // Fields inside muted panels (e.g. the layer delete panel).
+  ['border-strong', 'surface-muted', UI],
   ['text', 'group-header', TEXT],
   ['text-muted', 'group-header', TEXT],
   // Guides and their labels are drawn over the canvas and over shapes.
@@ -76,6 +78,31 @@ const PAIRS: [foreground: string, background: string, min: number][] = [
   ['found', 'node-fill', UI],
   ['found', 'group-header', UI],
 ]
+
+/**
+ * Translucent colours, blended over what they sit on first. [foreground,
+ * translucent layer, base, minimum]; foreground 'self' checks the layer
+ * itself as an indicator against the base.
+ */
+const COMPOSITES: [foreground: string, overlay: string, base: string, min: number][] = [
+  // Selected toggles and list rows: accent icons and text on the subtle accent fill.
+  ['accent', 'accent-subtle', 'surface', UI],
+  ['text', 'accent-subtle', 'surface', TEXT],
+  ['text-muted', 'accent-subtle', 'surface', TEXT],
+  // Search matches keep their labels readable.
+  ['node-text', 'found-subtle', 'canvas', TEXT],
+  ['node-text', 'found-subtle', 'node-fill', TEXT],
+  // A focused connector's band is a focus indicator: 3:1 against the canvas.
+  ['self', 'focus-halo', 'canvas', UI],
+  ['self', 'focus-halo', 'node-fill', UI],
+]
+
+/** `top` (#rrggbbaa or #rrggbb) blended over the opaque `base`. */
+function composite(top: string, base: string): string {
+  const alpha = top.length === 9 ? parseInt(top.slice(7, 9), 16) / 255 : 1
+  const channel = (i: number) => Math.round(parseInt(top.slice(i, i + 2), 16) * alpha + parseInt(base.slice(i, i + 2), 16) * (1 - alpha))
+  return `#${[1, 3, 5].map((i) => channel(i).toString(16).padStart(2, '0')).join('')}`
+}
 
 // Diagram presets are used as text and borders on any fill, so hold them to text contrast.
 for (const name of COLOUR_PRESETS) {
@@ -99,6 +126,14 @@ describe.each<Theme>(['light', 'dark'])('%s theme', (theme) => {
     expect(colours[fg], `--cl-${fg} missing`).toMatch(/^#[0-9a-f]{6}$/)
     expect(colours[bg], `--cl-${bg} missing`).toMatch(/^#[0-9a-f]{6}$/)
     expect(contrast(colours[fg]!, colours[bg]!)).toBeGreaterThanOrEqual(min)
+  })
+
+  it.each(COMPOSITES)('%s over %s (on %s) meets %s:1', (fg, overlay, base, min) => {
+    expect(colours[overlay], `--cl-${overlay} missing`).toMatch(/^#[0-9a-f]{6,8}$/)
+    const under = composite(colours[overlay]!, colours[base]!)
+    // fg 'self': the translucent layer itself, as an indicator, against what it sits on.
+    const ratio = fg === 'self' ? contrast(under, colours[base]!) : contrast(colours[fg]!, under)
+    expect(ratio, `${theme}: ${fg} over ${overlay} on ${base} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(min)
   })
 })
 

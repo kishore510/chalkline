@@ -1,6 +1,7 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, ChevronsLeft, ChevronsRight, CopyPlus, Group, Layers, LogOut, Pencil, RotateCcw, SlidersHorizontal, Trash2, Ungroup, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
 import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
@@ -8,6 +9,7 @@ import { ShapeIcon } from '@/components/shapes/ShapeIcon'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { readToken } from '@/lib/cssVar'
+import { motionMs } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import type { DiagramEdge, DiagramGroup, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
@@ -19,7 +21,6 @@ import { useUiStore } from '@/store/uiStore'
 import { LearnMore } from '@/help/HelpEntry'
 import { LEARN_MORE } from '@/help/links'
 import { explainBlockedAdd } from './layerNotices'
-import { MEDIA } from '@/styles/breakpoints'
 import { ColourField, Section, SelectField, shared, TextAreaField, ToggleField, type Option, type Shared } from './fields'
 import { ArrangeSection } from './ArrangeControls'
 import { LayersContent } from './LayersPanel'
@@ -253,12 +254,16 @@ function NodeProperties({ node }: { node: DiagramNode }) {
 
 /** Which layer the selection is on ("Mixed" if several), and a way to move it. One undo step. */
 function LayerField() {
-  const diagram = useDiagramStore((s) => s.diagram)
-  const selection = useDiagramStore((s) => s.selection)
-  const ids = new Set(selection)
-  const items = [...diagram.nodes, ...diagram.edges, ...diagram.groups].filter((i) => ids.has(i.id))
-  if (items.length === 0) return null
-  const current = shared(items, (i) => layerIdOf(i))
+  // Just the selected items' layers (and the layer list), so moving other shapes doesn't re-render this.
+  const itemLayers = useDiagramStore(
+    useShallow((s) => {
+      const ids = new Set(s.selection)
+      return [...s.diagram.nodes, ...s.diagram.edges, ...s.diagram.groups].filter((i) => ids.has(i.id)).map((i) => layerIdOf(i))
+    }),
+  )
+  const layers = useDiagramStore((s) => s.diagram.layers)
+  if (itemLayers.length === 0) return null
+  const current = shared(itemLayers, (id) => id)
   return (
     <Label>
       Layer
@@ -276,7 +281,7 @@ function LayerField() {
             Mixed
           </option>
         )}
-        {[...diagram.layers].reverse().map((l) => (
+        {[...layers].reverse().map((l) => (
           <option key={l.id} value={l.id}>
             {l.name || 'Untitled layer'}
             {!l.visible ? ' (hidden)' : ''}
@@ -346,9 +351,12 @@ function LockField({ ids, locked, inherited }: { ids: string[]; locked: boolean;
 
 /** A shape's group, with a way out that doesn't depend on a precise drag, plus locking and grouping. */
 function GroupMembership({ node }: { node: DiagramNode }) {
-  const diagram = useDiagramStore((s) => s.diagram)
-  const group = groupById(diagram, node.groupId)
-  const lockedByGroup = isGroupLocked(diagram, group)
+  const [group, lockedByGroup, nodeLocked] = useDiagramStore(
+    useShallow((s) => {
+      const g = groupById(s.diagram, node.groupId)
+      return [g, isGroupLocked(s.diagram, g), isNodeLocked(s.diagram, node)] as const
+    }),
+  )
   return (
     <Section title="Group and lock">
       {group ? (
@@ -356,7 +364,7 @@ function GroupMembership({ node }: { node: DiagramNode }) {
           <span className="min-w-0 truncate">
             In <span className="font-medium">{group.label || (group.kind === 'lane' ? 'a lane' : 'a group')}</span>
           </span>
-          <Button variant="secondary" disabled={isNodeLocked(diagram, node)} onClick={() => store().removeFromGroup([node.id])}>
+          <Button variant="secondary" disabled={nodeLocked} onClick={() => store().removeFromGroup([node.id])}>
             <LogOut />
             Remove from group
           </Button>
@@ -385,17 +393,19 @@ function GroupButton() {
 }
 
 function GroupProperties({ group }: { group: DiagramGroup }) {
-  const diagram = useDiagramStore((s) => s.diagram)
-  const pool = isPool(diagram, group)
-  const locked = isGroupLocked(diagram, group)
-  const lanes = pool ? laneOrder(diagram, group.id) : []
+  const [pool, locked, lastLane] = useDiagramStore(
+    useShallow((s) => {
+      const isAPool = isPool(s.diagram, group)
+      return [isAPool, isGroupLocked(s.diagram, group), isAPool ? laneOrder(s.diagram, group.id).at(-1)?.id : undefined] as const
+    }),
+  )
   return (
     <>
       <TextAreaField label="Name" value={group.label} rows={1} onChange={(label) => store().setGroupLabel(group.id, label)} />
       <ToggleField label="Collapsed" pressed={group.collapsed} onChange={(collapsed) => store().setCollapsed(group.id, collapsed)} />
       <LockField ids={[group.id]} locked={group.locked} inherited={locked && !group.locked} />
-      {pool && lanes.at(-1) && (
-        <Button variant="secondary" className="self-start" disabled={locked} onClick={() => store().addLane(lanes.at(-1)!.id, 'after')}>
+      {pool && lastLane && (
+        <Button variant="secondary" className="self-start" disabled={locked} onClick={() => store().addLane(lastLane, 'after')}>
           <BetweenHorizontalEnd />
           Add lane
         </Button>
@@ -418,11 +428,13 @@ function GroupProperties({ group }: { group: DiagramGroup }) {
 }
 
 function LaneProperties({ lane }: { lane: DiagramGroup }) {
-  const diagram = useDiagramStore((s) => s.diagram)
-  const locked = isGroupLocked(diagram, lane)
+  const [locked, index, count] = useDiagramStore(
+    useShallow((s) => {
+      const order = lane.parentId ? laneOrder(s.diagram, lane.parentId) : []
+      return [isGroupLocked(s.diagram, lane), order.findIndex((l) => l.id === lane.id), order.length] as const
+    }),
+  )
   const horizontal = (lane.orientation ?? 'horizontal') === 'horizontal'
-  const order = lane.parentId ? laneOrder(diagram, lane.parentId) : []
-  const index = order.findIndex((l) => l.id === lane.id)
   const thickness = horizontal ? lane.size.height : lane.size.width
   return (
     <>
@@ -445,7 +457,7 @@ function LaneProperties({ lane }: { lane: DiagramGroup }) {
             {horizontal ? <ArrowUp /> : <ArrowLeft />}
             {horizontal ? 'Move up' : 'Move left'}
           </Button>
-          <Button variant="secondary" disabled={locked || index === order.length - 1} onClick={() => store().moveLane(lane.id, 1)}>
+          <Button variant="secondary" disabled={locked || index === count - 1} onClick={() => store().moveLane(lane.id, 1)}>
             {horizontal ? <ArrowDown /> : <ArrowRight />}
             {horizontal ? 'Move down' : 'Move right'}
           </Button>
@@ -545,16 +557,28 @@ type Summary =
   | { kind: 'group'; title: string; group: DiagramGroup }
   | { kind: 'mixed'; title: string }
 
+/** The selected items only (each kept while unchanged), so edits elsewhere don't re-render the panel. */
+function useSelectedItems() {
+  return useDiagramStore(
+    useShallow((s) => {
+      const ids = new Set(s.selection)
+      const nodes = s.diagram.nodes.filter((n) => ids.has(n.id))
+      const edges = s.diagram.edges.filter((e) => ids.has(e.id))
+      const groups = s.diagram.groups.filter((g) => ids.has(g.id))
+      const pool = groups.length === 1 && isPool(s.diagram, groups[0]!)
+      return [nodes.length, edges.length, pool, ...nodes, ...edges, ...groups] as const
+    }),
+  )
+}
+
 function useSelectionSummary(): Summary {
-  const selection = useDiagramStore((s) => s.selection)
-  const diagram = useDiagramStore((s) => s.diagram)
-  const ids = new Set(selection)
-  const nodes = diagram.nodes.filter((n) => ids.has(n.id))
-  const edges = diagram.edges.filter((e) => ids.has(e.id))
-  const groups = diagram.groups.filter((g) => ids.has(g.id))
+  const [nodeCount, edgeCount, pool, ...items] = useSelectedItems()
+  const nodes = items.slice(0, nodeCount) as DiagramNode[]
+  const edges = items.slice(nodeCount, nodeCount + edgeCount) as DiagramEdge[]
+  const groups = items.slice(nodeCount + edgeCount) as DiagramGroup[]
   if (groups.length === 1 && nodes.length + edges.length === 0) {
     const group = groups[0]!
-    return { kind: 'group', title: group.kind === 'lane' ? 'Lane' : isPool(diagram, group) ? 'Pool' : 'Group', group }
+    return { kind: 'group', title: group.kind === 'lane' ? 'Lane' : pool ? 'Pool' : 'Group', group }
   }
   if (groups.length > 0) return { kind: 'mixed', title: `${nodes.length + edges.length + groups.length} selected` }
   if (nodes.length + edges.length === 0) return { kind: 'none', title: 'Diagram' }
@@ -568,7 +592,8 @@ function useSelectionSummary(): Summary {
 /** `arrange`: show align/distribute buttons for multi-selections (phone and tablet; desktop has its bar). */
 function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrange?: boolean }) {
   return (
-    <div className="flex flex-col gap-4 pb-4">
+    // data-properties: where P (go to properties) puts focus.
+    <div data-properties className="flex flex-col gap-4 pb-4">
       {arrange && (summary.kind === 'nodes' || summary.kind === 'mixed') && <ArrangeSection />}
       {summary.kind !== 'none' && <LayerField />}
       {summary.kind === 'none' && <DiagramProperties />}
@@ -739,7 +764,7 @@ function useRevealAboveSheet(sheet: React.RefObject<HTMLElement | null>) {
       if (!canvas || !bounds) return
       const visible = { width: canvas.width, height: Math.max(0, el.getBoundingClientRect().top - canvas.top) }
       const next = revealViewport(bounds, flow.getViewport(), visible, readToken('--cl-gutter', 16))
-      const duration = window.matchMedia(MEDIA.reducedMotion).matches ? 0 : readToken('--cl-duration-base', 200)
+      const duration = motionMs('--cl-duration-base')
       if (next) void flow.setViewport(next, { duration })
     }
     reveal()

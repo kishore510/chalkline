@@ -26,7 +26,7 @@
   --cl-surface: #ffffff;
   --cl-surface-muted: #efeee9;
   --cl-border: #dcd9d0;
-  --cl-border-strong: #858c91;
+  --cl-border-strong: #81888d;
 
   --cl-text: #1d2327;
   --cl-text-muted: #5a6368;
@@ -36,6 +36,8 @@
   --cl-accent-subtle: #1f6aa51f;
   --cl-on-accent: #ffffff;
   --cl-focus: #1f6aa5;
+  /* Band over a focused connector (translucent, 3:1 on the canvas). */
+  --cl-focus-halo: #1f6aa5b3;
 
   --cl-danger: #b3261e;
   --cl-on-danger: #ffffff;
@@ -95,6 +97,7 @@
   --cl-accent-subtle: #7cc0e626;
   --cl-on-accent: #0d1a22;
   --cl-focus: #7cc0e6;
+  --cl-focus-halo: #7cc0e699;
 
   --cl-danger: #f2877d;
   --cl-on-danger: #1a0b09;
@@ -159,6 +162,8 @@
   --cl-toast-duration: 5000ms;
   --cl-focus-ring-width: 2px;
   --cl-focus-ring-offset: 2px;
+  /* Keyboard focus around a shape on the canvas sits further out than elsewhere. */
+  --cl-canvas-focus-offset: 6px;
 
   /* Motion */
   --cl-duration-fast: 120ms;
@@ -173,6 +178,9 @@
 
   /* Layout */
   --cl-header-height: 56px;
+  /* Toolbars and the top bar: fixed in px so text zoom (200%) can't push them past a 360px screen. */
+  --cl-toolbar-gap: 4px;
+  --cl-logo-size: 28px;
   --cl-gutter: 16px;
   --cl-palette-width: 224px;
   /* Desktop palette: resizable between these; shape tiles never narrower than item-min. */
@@ -200,6 +208,15 @@
   --cl-stencil-thumb-height: 48px;
   --cl-template-thumb-height: 112px;
   --cl-content-max: 1200px;
+}
+
+/* Reduce motion: every animation length is 0 (JS reads these through src/lib/motion.ts). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --cl-duration-fast: 0ms;
+    --cl-duration-base: 0ms;
+    --cl-duration-slow: 0ms;
+  }
 }
 
 /* Touch screens: never render node labels below a readable size. */

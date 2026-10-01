@@ -61,3 +61,32 @@ export function trapFocus<T extends Focusable>(container: FocusContainer<T>, doc
     previous?.focus?.()
   }
 }
+
+export interface SheetContainer<T extends Focusable> extends FocusContainer<T> {
+  addEventListener(type: 'keydown', listener: (e: KeyboardEvent) => void): void
+  removeEventListener(type: 'keydown', listener: (e: KeyboardEvent) => void): void
+}
+
+/**
+ * Focus for a non-modal sheet or panel (layers, palette drawer, search):
+ * focus moves in on open (to `[data-autofocus]` if present, unless focus is
+ * already inside), Escape inside it closes it, and on release focus returns
+ * to where it was, if focus is still in the sheet or was dropped. No trap:
+ * Tab moves on to the rest of the page as usual.
+ */
+export function sheetFocus<T extends Focusable>(container: SheetContainer<T>, doc: Pick<FocusDocument, 'activeElement'> & { body?: unknown }, onEscape: () => void): () => void {
+  const previous = doc.activeElement as (Partial<Focusable> & { isConnected?: boolean }) | null
+  if (!container.contains(doc.activeElement as never)) (container.querySelector('[data-autofocus]') ?? container.querySelector(FOCUSABLE))?.focus()
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return
+    e.stopPropagation()
+    onEscape()
+  }
+  container.addEventListener('keydown', onKeyDown)
+  return () => {
+    container.removeEventListener('keydown', onKeyDown)
+    const active = doc.activeElement
+    const dropped = active === null || active === doc.body
+    if ((dropped || container.contains(active as never)) && previous?.isConnected !== false) previous?.focus?.()
+  }
+}
