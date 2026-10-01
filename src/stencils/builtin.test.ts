@@ -60,9 +60,9 @@ function checkRenders(d: Diagram) {
 const NAMED_VENDORS = /\b(aws|azure|gcp|google|amazon|microsoft|kafka|postgres|mysql|redis|kubernetes|docker|github|jenkins|oracle|ibm)\b/i
 
 describe('built-in stencils', () => {
-  it('has the seven expected stencils with unique ids', () => {
-    expect(BUILTIN_STENCILS).toHaveLength(7)
-    expect(new Set(BUILTIN_STENCILS.map((s) => s.id)).size).toBe(7)
+  it('has the eight expected stencils with unique ids', () => {
+    expect(BUILTIN_STENCILS).toHaveLength(8)
+    expect(new Set(BUILTIN_STENCILS.map((s) => s.id)).size).toBe(8)
     expect(BUILTIN_STENCILS.every((s) => isBuiltinId(s.id))).toBe(true)
   })
 
@@ -86,6 +86,38 @@ describe('built-in stencils', () => {
     expect(issues(diagram)).toEqual([])
     checkRenders(diagram)
     expect(stencilThumbnail(s.content, testThumbnailEnv)).toMatch(/^<svg/)
+  })
+})
+
+/** Product and organisation names the generic AI gateway must not mention. */
+const AI_VENDORS = /\b(openai|anthropic|claude|gpt|gemini|bard|copilot|bedrock|vertex|llama|meta|mistral|cohere|hugging ?face|okta|auth0|entra|kong|apigee|cloudflare|nvidia|langchain|lakera)\b/i
+
+describe('AI gateway stencil', () => {
+  const s = parseStencil(builtinStencilFiles['ai-gateway'])
+  const { nodes, edges } = s.content
+
+  it('documents every node and connects only real nodes', () => {
+    for (const n of nodes) expect(n.notes.trim(), `${n.label} has notes`).not.toBe('')
+    const ids = new Set(nodes.map((n) => n.id))
+    for (const e of edges) expect(ids.has(e.source) && ids.has(e.target), e.id).toBe(true)
+  })
+
+  it('has no overlapping nodes and starts at the origin on the grid', () => {
+    nodes.forEach((a, i) =>
+      nodes.slice(i + 1).forEach((b) => {
+        const apart = a.position.x + a.size.width <= b.position.x || b.position.x + b.size.width <= a.position.x || a.position.y + a.size.height <= b.position.y || b.position.y + b.size.height <= a.position.y
+        expect(apart, `${a.label} overlaps ${b.label}`).toBe(true)
+      }),
+    )
+    const items = [...nodes, ...s.content.groups]
+    expect(Math.min(...items.map((i) => i.position.x))).toBe(0)
+    expect(Math.min(...items.map((i) => i.position.y))).toBe(0)
+    for (const i of items) expect(i.position.x % 20 === 0 && i.position.y % 20 === 0, `${i.label} on the grid`).toBe(true)
+  })
+
+  it('names no vendors', () => {
+    for (const n of nodes) expect(n.label, n.label).not.toMatch(AI_VENDORS)
+    expect(JSON.stringify(s)).not.toMatch(AI_VENDORS)
   })
 })
 
