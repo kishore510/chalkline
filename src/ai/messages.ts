@@ -110,6 +110,11 @@ const AI_MESSAGES: MessageTable<AiErrorKind> = {
     message: `The diagram was too big to finish in one answer. ${NOT_SENT}`,
     next: 'Ask for fewer shapes, or turn off notes, and try again.',
   }),
+  'ai-review-malformed': () => ({
+    title: 'The review couldn’t be read',
+    message: `The AI sent back something that wasn’t a list of findings Chalkline could read. ${NOT_SENT}`,
+    next: 'Choose Retry to ask again. Each try is a new request.',
+  }),
 }
 
 /** The friendly message for an AI problem, with an optional (redacted) technical detail. */

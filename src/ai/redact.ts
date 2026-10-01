@@ -19,8 +19,8 @@ const MIN_SECRET = 8
 /** Anthropic keys (sk-ant-api03-…, sk-ant-admin01-…); anything after the prefix is hidden. */
 const KEY_SHAPE = /sk-ant-(?:[\w-])+/g
 
-/** "x-api-key: value", "x-api-key": "value", x-api-key=value. */
-const HEADER = /(x-api-key["']?\s*[:=]\s*["']?)[^\s"',;}]+/gi
+/** "x-api-key: value", "x-api-key": "value", x-api-key=value. A value already redacted is left as it is. */
+const HEADER = /(x-api-key["']?\s*[:=]\s*["']?)(?!\[API key removed\])[^\s"',;}]+/gi
 
 export function registerSecret(secret: string) {
   if (secret.length >= MIN_SECRET) known.add(secret)
