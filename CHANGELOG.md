@@ -2,6 +2,11 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.15.0] - 2026-10-01
+
+### Added
+- A built-in "AI gateway (generic)" stencil in a new AI governance category: consumers, the gateway stages (identity, policy, guardrails, routing), model, MCP and A2A adapters, and their destinations, with notes on every part.
+
 ## [0.14.0] - 2026-09-30
 
 ### Added

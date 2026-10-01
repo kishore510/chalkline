@@ -1,5 +1,6 @@
 import { parseStencil, type Stencil } from '../format'
 import { parseTemplate, type Template } from '../templates'
+import aiGatewayStencil from './stencils/ai-gateway.json'
 import apiGatewayStencil from './stencils/api-gateway.json'
 import decisionStencil from './stencils/decision.json'
 import loadBalancerStencil from './stencils/load-balancer.json'
@@ -23,6 +24,7 @@ import threeTierTemplate from './templates/three-tier.json'
 
 /** Raw files, exactly as stored (tests check each one). */
 export const builtinStencilFiles: Record<string, unknown> = {
+  'ai-gateway': aiGatewayStencil,
   'api-gateway': apiGatewayStencil,
   'decision': decisionStencil,
   'load-balancer': loadBalancerStencil,

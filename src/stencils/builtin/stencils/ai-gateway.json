@@ -1,0 +1,419 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 4,
+  "id": "builtin:ai-gateway",
+  "name": "AI gateway (generic)",
+  "category": "AI governance",
+  "tags": [
+    "ai",
+    "gateway",
+    "mcp",
+    "a2a",
+    "guardrails",
+    "policy",
+    "audit"
+  ],
+  "created": "2026-10-01T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "user",
+        "type": "actor",
+        "position": {
+          "x": 40,
+          "y": 220
+        },
+        "size": {
+          "width": 100,
+          "height": 120
+        },
+        "label": "User",
+        "notes": "A person using an AI-enabled application. Which identities and roles may reach which models and tools?",
+        "groupId": "consumers"
+      },
+      {
+        "id": "app",
+        "type": "rounded",
+        "position": {
+          "x": 20,
+          "y": 380
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Application",
+        "notes": "An application that calls AI services on behalf of its users. Does it pass the user’s identity through, or act under its own?",
+        "groupId": "consumers"
+      },
+      {
+        "id": "agent",
+        "type": "rounded",
+        "position": {
+          "x": 20,
+          "y": 480
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "AI agent",
+        "notes": "An autonomous agent that plans and calls models and tools itself. What can it do without a person in the loop?",
+        "groupId": "consumers"
+      },
+      {
+        "id": "identity",
+        "type": "rounded",
+        "position": {
+          "x": 260,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Identity check",
+        "notes": "Authenticates every caller, person or agent, before anything else runs. Are tokens short-lived and scoped to the request?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "policy",
+        "type": "rounded",
+        "position": {
+          "x": 440,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Policy enforcement",
+        "notes": "Decides whether this caller may use this model, tool or agent. Which actions need human approval?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "guardrails",
+        "type": "rounded",
+        "position": {
+          "x": 620,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Guardrails",
+        "notes": "Checks prompts and responses for sensitive data, unsafe content and injection attempts. Does it block, redact or only flag?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "route",
+        "type": "rounded",
+        "position": {
+          "x": 800,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Route and limit",
+        "notes": "Picks the destination and applies rate limits, quotas and cost budgets. What happens when a destination fails or a budget runs out?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "modelapi",
+        "type": "rounded",
+        "position": {
+          "x": 980,
+          "y": 220
+        },
+        "size": {
+          "width": 120,
+          "height": 80
+        },
+        "label": "Model API",
+        "notes": "A single model interface in front of one or more models. Are requests and responses logged in full or summarised?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "mcp",
+        "type": "rounded",
+        "position": {
+          "x": 980,
+          "y": 340
+        },
+        "size": {
+          "width": 120,
+          "height": 80
+        },
+        "label": "MCP",
+        "notes": "Exposes tool servers to callers over the Model Context Protocol. Which tools are allowed, and with what parameters?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "a2a",
+        "type": "rounded",
+        "position": {
+          "x": 980,
+          "y": 460
+        },
+        "size": {
+          "width": 120,
+          "height": 80
+        },
+        "label": "A2A",
+        "notes": "Brokers agent-to-agent calls using the A2A protocol. How is trust in another agent established and checked?",
+        "groupId": "gateway"
+      },
+      {
+        "id": "models",
+        "type": "cloud",
+        "position": {
+          "x": 1180,
+          "y": 220
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Models",
+        "notes": "Hosted or self-run language models. Where is data processed and kept?",
+        "groupId": "destinations"
+      },
+      {
+        "id": "tools",
+        "type": "server",
+        "position": {
+          "x": 1200,
+          "y": 340
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Tool servers",
+        "notes": "Services that let models read data or take actions. Which tools can change data, and are those calls reviewed?",
+        "groupId": "destinations"
+      },
+      {
+        "id": "agents",
+        "type": "user-group",
+        "position": {
+          "x": 1200,
+          "y": 460
+        },
+        "size": {
+          "width": 120,
+          "height": 120
+        },
+        "label": "Other agents",
+        "notes": "Agents run by other teams or partners. What may they receive, and is their output trusted?",
+        "groupId": "destinations"
+      },
+      {
+        "id": "idp",
+        "type": "rounded",
+        "position": {
+          "x": 260,
+          "y": 20
+        },
+        "size": {
+          "width": 140,
+          "height": 80
+        },
+        "label": "Identity provider",
+        "notes": "Issues and validates identities for people and agents. How are agent identities created, rotated and revoked?"
+      },
+      {
+        "id": "policystore",
+        "type": "database",
+        "position": {
+          "x": 440,
+          "y": 0
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Policy store",
+        "notes": "Holds the access and usage rules the gateway enforces. Who can change a rule, and is every change reviewed?"
+      },
+      {
+        "id": "approver",
+        "type": "actor",
+        "position": {
+          "x": 460,
+          "y": 640
+        },
+        "size": {
+          "width": 120,
+          "height": 140
+        },
+        "label": "Human approver",
+        "notes": "Reviews requests that policy escalates. What is the response time, and what happens if nobody answers?"
+      },
+      {
+        "id": "audit",
+        "type": "database",
+        "position": {
+          "x": 800,
+          "y": 640
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Audit log",
+        "notes": "Records who called what, when and with which outcome. How long is it kept, and is it tamper-evident?"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-user-app",
+        "source": "user",
+        "target": "app"
+      },
+      {
+        "id": "e-app-identity",
+        "source": "app",
+        "target": "identity",
+        "label": "Request"
+      },
+      {
+        "id": "e-agent-identity",
+        "source": "agent",
+        "target": "identity",
+        "label": "Request"
+      },
+      {
+        "id": "e-identity-policy",
+        "source": "identity",
+        "target": "policy"
+      },
+      {
+        "id": "e-policy-guardrails",
+        "source": "policy",
+        "target": "guardrails"
+      },
+      {
+        "id": "e-guardrails-route",
+        "source": "guardrails",
+        "target": "route"
+      },
+      {
+        "id": "e-route-modelapi",
+        "source": "route",
+        "target": "modelapi"
+      },
+      {
+        "id": "e-route-mcp",
+        "source": "route",
+        "target": "mcp"
+      },
+      {
+        "id": "e-route-a2a",
+        "source": "route",
+        "target": "a2a"
+      },
+      {
+        "id": "e-modelapi-models",
+        "source": "modelapi",
+        "target": "models"
+      },
+      {
+        "id": "e-mcp-tools",
+        "source": "mcp",
+        "target": "tools"
+      },
+      {
+        "id": "e-a2a-agents",
+        "source": "a2a",
+        "target": "agents"
+      },
+      {
+        "id": "e-idp-identity",
+        "source": "idp",
+        "target": "identity",
+        "label": "Validate token"
+      },
+      {
+        "id": "e-policystore-policy",
+        "source": "policystore",
+        "target": "policy",
+        "label": "Rules"
+      },
+      {
+        "id": "e-policy-approver",
+        "source": "policy",
+        "target": "approver",
+        "label": "Escalate",
+        "style": {
+          "dashed": true
+        }
+      },
+      {
+        "id": "e-route-audit",
+        "source": "route",
+        "target": "audit",
+        "label": "Audit events",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "consumers",
+        "label": "Consumers",
+        "kind": "container",
+        "position": {
+          "x": 0,
+          "y": 160
+        },
+        "size": {
+          "width": 180,
+          "height": 420
+        },
+        "style": {
+          "fill": "token:swatch-blue-soft",
+          "stroke": "token:swatch-blue"
+        }
+      },
+      {
+        "id": "gateway",
+        "label": "AI gateway",
+        "kind": "container",
+        "position": {
+          "x": 240,
+          "y": 160
+        },
+        "size": {
+          "width": 880,
+          "height": 400
+        },
+        "style": {
+          "fill": "token:swatch-purple-soft",
+          "stroke": "token:swatch-purple"
+        }
+      },
+      {
+        "id": "destinations",
+        "label": "Destinations",
+        "kind": "container",
+        "position": {
+          "x": 1160,
+          "y": 160
+        },
+        "size": {
+          "width": 200,
+          "height": 440
+        },
+        "style": {
+          "fill": "token:swatch-teal-soft",
+          "stroke": "token:swatch-teal"
+        }
+      }
+    ]
+  }
+}
