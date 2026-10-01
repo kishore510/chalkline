@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fixtures, invalidFixtures, legacyFixtures, stencilFixtures } from '@/fixtures'
-import { friendlyError, MAX_DETAIL, spokenError, type ErrorKind } from '@/errors/friendly'
+import { friendlyError, MAX_DETAIL, spokenError, type CoreErrorKind, type ErrorKind } from '@/errors/friendly'
 import { parseDiagram, SCHEMA_VERSION } from '@/schema/diagram'
 import { readDiagramFile } from './openFile'
 import { serializeDiagram } from './serialize'
@@ -56,7 +56,7 @@ describe('opening a diagram file', () => {
 
 describe('friendly messages', () => {
   it('every file error says the current diagram is unchanged and gives a next step', () => {
-    const kinds: ErrorKind[] = ['file-empty', 'file-type', 'file-not-json', 'file-not-diagram', 'file-is-backup', 'file-is-stencil', 'file-invalid', 'file-newer', 'file-unreadable']
+    const kinds: CoreErrorKind[] = ['file-empty', 'file-type', 'file-not-json', 'file-not-diagram', 'file-is-backup', 'file-is-stencil', 'file-invalid', 'file-newer', 'file-unreadable']
     for (const kind of kinds) {
       const e = friendlyError(kind)
       expect(e.message, kind).toMatch(/current diagram hasn’t changed/)
