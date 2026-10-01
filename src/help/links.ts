@@ -17,4 +17,5 @@ export const LEARN_MORE = {
   generate: 'generating-diagrams',
   summarise: 'summarising-diagrams',
   review: 'reviewing-diagrams',
+  notes: 'suggesting-notes',
 } as const

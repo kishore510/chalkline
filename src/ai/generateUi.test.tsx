@@ -8,7 +8,7 @@ import { parseDiagram } from '@/schema/diagram'
 import { updateSettings } from '@/settings/settingsStore'
 import { useSettingsSheet } from '@/settings/SettingsEntry'
 import { useDiagramStore } from '@/store/diagramStore'
-import { AiButton, GenerateSheetHost, useGenerateSheet } from './GenerateEntry'
+import { AI_BUTTON_LABEL, AiButton, GenerateSheetHost, useGenerateSheet } from './GenerateEntry'
 import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
 import { NOTICE_TITLE } from './ConfirmSend'
@@ -85,7 +85,7 @@ async function until(text: string) {
   for (let i = 0; i < 600 && !dialog()?.textContent?.includes(text); i++) await settle(1)
 }
 async function open() {
-  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate, summarise or review with AI"]')!.click())
+  await act(async () => document.querySelector<HTMLButtonElement>(`button[aria-label="${AI_BUTTON_LABEL}"]`)!.click())
   // The sheet loads on first open.
   for (let i = 0; i < 400 && !dialog(); i++) await settle(1)
   await settle(2)

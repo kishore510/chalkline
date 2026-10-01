@@ -4,12 +4,12 @@ import { create } from 'zustand'
 import { Button } from '@/components/ui/button'
 
 /*
- * The small, always-loaded parts of the AI sheet (Generate, Summarise and Review):
+ * The small, always-loaded parts of the AI sheet (Generate, Summarise, Review and Notes):
  * whether it's open and in which mode, the top-bar button and the host. The
  * sheet, the request code and ELK load on first open.
  */
 
-export type AiMode = 'generate' | 'summarise' | 'review'
+export type AiMode = 'generate' | 'summarise' | 'review' | 'notes'
 
 interface AiSheetState {
   open: boolean
@@ -18,6 +18,7 @@ interface AiSheetState {
   openGenerate: () => void
   openSummarise: () => void
   openReview: () => void
+  openNotes: () => void
   /** Opens in the last mode used. */
   openAi: () => void
   setMode: (mode: AiMode) => void
@@ -30,6 +31,7 @@ export const useAiSheet = create<AiSheetState>()((set) => ({
   openGenerate: () => set({ open: true, mode: 'generate' }),
   openSummarise: () => set({ open: true, mode: 'summarise' }),
   openReview: () => set({ open: true, mode: 'review' }),
+  openNotes: () => set({ open: true, mode: 'notes' }),
   openAi: () => set({ open: true }),
   setMode: (mode) => set({ mode }),
   closeGenerate: () => set({ open: false }),
@@ -41,6 +43,7 @@ export const useGenerateSheet = useAiSheet
 export const openGenerate = () => useAiSheet.getState().openGenerate()
 export const openSummarise = () => useAiSheet.getState().openSummarise()
 export const openReview = () => useAiSheet.getState().openReview()
+export const openNotes = () => useAiSheet.getState().openNotes()
 
 const AiSheet = lazy(() => import('./AiSheet'))
 
@@ -55,7 +58,7 @@ export function GenerateSheetHost() {
   )
 }
 
-export const AI_BUTTON_LABEL = 'Generate, summarise or review with AI'
+export const AI_BUTTON_LABEL = 'Generate, summarise, review or suggest notes with AI'
 
 /** Top-bar button (tablet and desktop; phones use the ☰ menu). */
 export function AiButton() {

@@ -113,12 +113,12 @@ afterEach(async () => {
 })
 
 describe('Review sheet', () => {
-  it('is a third mode of the AI sheet', async () => {
+  it('is one of the AI sheet modes', async () => {
     saveKey(FAKE, 'session')
     const { unmount } = await mount()
     await open()
     expect(text()).toContain('Review your diagram')
-    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review'])
+    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review', 'Notes'])
     expect(document.querySelector('[data-mode="review"]')!.getAttribute('aria-pressed')).toBe('true')
     await unmount()
   })

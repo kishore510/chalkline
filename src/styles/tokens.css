@@ -218,8 +218,8 @@
   --cl-template-thumb-height: 112px;
   /* Generate diagram (AI): same shape as settings; the preview's height range and the description box. */
   --cl-ai-sheet-width: var(--cl-help-width);
-  /* AI sheet mode buttons: side by side until each would be under 5.5rem, then wrapping (large text on phones). In rem so it follows the text size. */
-  --cl-ai-mode-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
+  /* AI sheet mode buttons (four): two by two, one per row once each would be under 9rem (large text on phones). In rem so it follows the text size. */
+  --cl-ai-mode-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   --cl-ai-preview-min-height: 160px;
   --cl-ai-preview-max-height: 45dvh;
   --cl-ai-description-height: 160px;
