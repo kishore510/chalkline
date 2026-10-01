@@ -2,6 +2,11 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.19.1] - 2026-10-01
+
+### Fixed
+- Shape icons in the palette now match the mark drawn inside the shape on the canvas. For example, Firewall shows its brick wall, Agent identity its ID card and Prompt template its braces, in the palette and the properties header alike. This covers the networking, architecture and AI & ML shapes added in Shapes pack 2.
+
 ## [0.19.0] - 2026-10-01
 
 ### Added

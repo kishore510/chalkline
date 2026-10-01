@@ -1,29 +1,9 @@
-import {
-  Binary,
-  Bot,
-  Boxes,
-  Component,
-  DatabaseZap,
-  DoorOpen,
-  FileCode2,
-  Filter,
-  FolderKanban,
-  GitFork,
-  Globe,
-  Network,
-  Radio,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Timer,
-  UserCheck,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react'
+import { FolderKanban, Radio, type LucideIcon } from 'lucide-react'
 import type { Size } from '@/schema/diagram'
 import { boxSidePoint, r2 as n, rectOutline, sampleCubic } from './outline'
-import { circle, cylinderRy, hexagonPoints, hexInset, polygon, roundedRect } from './paths'
-import { SIDES, type Box, type Point, type ShapeCategory, type ShapeDefinition, type Side } from './types'
+import { glyphIcon, penAt } from './glyphIcon'
+import { cylinderRy, hexagonPoints, hexInset, polygon, roundedRect } from './paths'
+import { SIDES, type Box, type Glyph, type Pen, type Point, type ShapeCategory, type ShapeDefinition, type Side } from './types'
 
 /*
  * Shapes pack 2: networking, more architecture, and AI & ML. Each is a frame
@@ -189,13 +169,6 @@ const pageFrame: Frame = {
 
 /* ---------- Glyphs ---------- */
 
-/** Draws in a unit square: `p(u, v)` is a point, `c(u, v, r)` a circle, both scaled to the glyph box. */
-interface Pen {
-  p: (u: number, v: number) => string
-  c: (u: number, v: number, r: number) => string
-}
-type Glyph = (pen: Pen) => string[]
-
 const line = (pen: Pen, ...points: [number, number][]) => 'M' + points.map(([u, v]) => pen.p(u, v)).join('L')
 const closed = (pen: Pen, ...points: [number, number][]) => line(pen, ...points) + 'Z'
 
@@ -306,22 +279,25 @@ function layout(frame: Frame, glyph: Glyph | undefined, { width: w, height: h }:
   return { inner, band, label: { x: inner.x, y: inner.y + band, width: inner.width, height: Math.max(0, inner.height - band) } }
 }
 
-interface Spec {
+interface BaseSpec {
   id: string
   name: string
   category: ShapeCategory
-  icon: LucideIcon
   description: string
   keywords: readonly string[]
   defaultSize: Size
   defaultLabel: string
   frame: Frame
-  glyph?: Glyph
 }
 
-function shape({ frame, glyph, ...spec }: Spec): ShapeDefinition {
+/** A shape with a glyph takes its palette icon from the glyph; only a shape without one names an icon. */
+type Spec = BaseSpec & ({ glyph: Glyph; icon?: never } | { glyph?: never; icon: LucideIcon })
+
+function shape({ frame, glyph, icon, ...spec }: Spec): ShapeDefinition {
   return {
     ...spec,
+    icon: glyph ? glyphIcon(glyph) : icon!,
+    glyph,
     minSize: { width: 60, height: 40 },
     keepAspect: false,
     defaultStyle: {},
@@ -333,11 +309,7 @@ function shape({ frame, glyph, ...spec }: Spec): ShapeDefinition {
         const s = band * 0.7
         const x = inner.x + (inner.width - s) / 2
         const y = inner.y + (band - s) / 2
-        const pen: Pen = {
-          p: (u, v) => `${n(x + u * s)} ${n(y + v * s)}`,
-          c: (u, v, r) => circle(x + u * s, y + v * s, r * s),
-        }
-        detail.push(...glyph(pen))
+        detail.push(...glyph(penAt(x, y, s)))
       }
       return { body: frame.body(w, h), detail, extent: whole(w, h) }
     },
@@ -356,33 +328,33 @@ const CYLINDER = { width: 120, height: 120 }
 /* ---------- Networking ---------- */
 
 export const NETWORKING: readonly ShapeDefinition[] = [
-  shape({ id: 'firewall', name: 'Firewall', category: 'networking', icon: ShieldCheck, description: 'filters traffic between network zones', keywords: ['security', 'waf', 'acl', 'boundary', 'perimeter'], defaultSize: SMALL_BOX, defaultLabel: 'Firewall', frame: rectFrame, glyph: GLYPHS.bricks }),
-  shape({ id: 'router', name: 'Router / switch', category: 'networking', icon: Network, description: 'forwards packets between networks or ports', keywords: ['switch', 'routing', 'lan', 'vlan', 'subnet'], defaultSize: SMALL_BOX, defaultLabel: 'Router', frame: roundedFrame, glyph: GLYPHS.crossArrows }),
-  shape({ id: 'load-balancer', name: 'Load balancer', category: 'networking', icon: GitFork, description: 'spreads requests across several instances', keywords: ['lb', 'balancing', 'traffic', 'reverse proxy', 'distribute'], defaultSize: BOX, defaultLabel: 'Load balancer', frame: roundedFrame, glyph: GLYPHS.fork }),
-  shape({ id: 'api-gateway', name: 'API gateway', category: 'networking', icon: DoorOpen, description: 'single entry point that authenticates, limits and routes API calls', keywords: ['api', 'ingress', 'rate limit', 'routing', 'entry point'], defaultSize: BOX, defaultLabel: 'API gateway', frame: hexFrame, glyph: GLYPHS.door }),
-  shape({ id: 'cdn', name: 'CDN / edge node', category: 'networking', icon: Globe, description: 'serves content from locations close to users', keywords: ['cdn', 'edge', 'pop', 'static content', 'content delivery'], defaultSize: SMALL_BOX, defaultLabel: 'CDN', frame: roundedFrame, glyph: GLYPHS.globe }),
+  shape({ id: 'firewall', name: 'Firewall', category: 'networking', description: 'filters traffic between network zones', keywords: ['security', 'waf', 'acl', 'boundary', 'perimeter'], defaultSize: SMALL_BOX, defaultLabel: 'Firewall', frame: rectFrame, glyph: GLYPHS.bricks }),
+  shape({ id: 'router', name: 'Router / switch', category: 'networking', description: 'forwards packets between networks or ports', keywords: ['switch', 'routing', 'lan', 'vlan', 'subnet'], defaultSize: SMALL_BOX, defaultLabel: 'Router', frame: roundedFrame, glyph: GLYPHS.crossArrows }),
+  shape({ id: 'load-balancer', name: 'Load balancer', category: 'networking', description: 'spreads requests across several instances', keywords: ['lb', 'balancing', 'traffic', 'reverse proxy', 'distribute'], defaultSize: BOX, defaultLabel: 'Load balancer', frame: roundedFrame, glyph: GLYPHS.fork }),
+  shape({ id: 'api-gateway', name: 'API gateway', category: 'networking', description: 'single entry point that authenticates, limits and routes API calls', keywords: ['api', 'ingress', 'rate limit', 'routing', 'entry point'], defaultSize: BOX, defaultLabel: 'API gateway', frame: hexFrame, glyph: GLYPHS.door }),
+  shape({ id: 'cdn', name: 'CDN / edge node', category: 'networking', description: 'serves content from locations close to users', keywords: ['cdn', 'edge', 'pop', 'static content', 'content delivery'], defaultSize: SMALL_BOX, defaultLabel: 'CDN', frame: roundedFrame, glyph: GLYPHS.globe }),
 ]
 
 /* ---------- Architecture ---------- */
 
 export const ARCHITECTURE: readonly ShapeDefinition[] = [
-  shape({ id: 'cache', name: 'Cache store', category: 'architecture', icon: Zap, description: 'fast in-memory key-value store in front of slower storage', keywords: ['cache', 'redis', 'memcached', 'in-memory', 'key-value'], defaultSize: CYLINDER, defaultLabel: 'Cache', frame: cylinderFrame, glyph: GLYPHS.bolt }),
+  shape({ id: 'cache', name: 'Cache store', category: 'architecture', description: 'fast in-memory key-value store in front of slower storage', keywords: ['cache', 'redis', 'memcached', 'in-memory', 'key-value'], defaultSize: CYLINDER, defaultLabel: 'Cache', frame: cylinderFrame, glyph: GLYPHS.bolt }),
   shape({ id: 'message-bus', name: 'Message bus / pub-sub', category: 'architecture', icon: Radio, description: 'publishes events to many subscribers', keywords: ['pub-sub', 'pubsub', 'event bus', 'topic', 'broker', 'kafka', 'events', 'streaming'], defaultSize: { width: 220, height: 60 }, defaultLabel: 'Event bus', frame: busFrame }),
-  shape({ id: 'microservice', name: 'Microservice', category: 'architecture', icon: Component, description: 'small independently deployed service', keywords: ['service', 'component', 'container', 'module'], defaultSize: SMALL_BOX, defaultLabel: 'Service', frame: roundedFrame, glyph: GLYPHS.cube }),
+  shape({ id: 'microservice', name: 'Microservice', category: 'architecture', description: 'small independently deployed service', keywords: ['service', 'component', 'container', 'module'], defaultSize: SMALL_BOX, defaultLabel: 'Service', frame: roundedFrame, glyph: GLYPHS.cube }),
   shape({ id: 'object-storage', name: 'Object storage / data lake', category: 'architecture', icon: FolderKanban, description: 'stores files and blobs at scale', keywords: ['blob', 'bucket', 's3', 'data lake', 'files', 'lake'], defaultSize: { width: 140, height: 120 }, defaultLabel: 'Object storage', frame: bucketFrame }),
-  shape({ id: 'worker', name: 'Worker / cron job', category: 'architecture', icon: Timer, description: 'background or scheduled processing', keywords: ['cron', 'job', 'batch', 'scheduled', 'background', 'timer'], defaultSize: SMALL_BOX, defaultLabel: 'Worker', frame: roundedFrame, glyph: GLYPHS.clock }),
+  shape({ id: 'worker', name: 'Worker / cron job', category: 'architecture', description: 'background or scheduled processing', keywords: ['cron', 'job', 'batch', 'scheduled', 'background', 'timer'], defaultSize: SMALL_BOX, defaultLabel: 'Worker', frame: roundedFrame, glyph: GLYPHS.clock }),
 ]
 
 /* ---------- AI & ML ---------- */
 
 export const AI: readonly ShapeDefinition[] = [
-  shape({ id: 'ai-gateway', name: 'AI gateway', category: 'ai', icon: ShieldAlert, description: 'one controlled entry point to models, tools and agents', keywords: ['llm proxy', 'model gateway', 'mcp', 'a2a', 'routing', 'policy'], defaultSize: BOX, defaultLabel: 'AI gateway', frame: hexFrame, glyph: GLYPHS.gatewaySpark }),
-  shape({ id: 'ai-guardrails', name: 'AI guardrails', category: 'ai', icon: Filter, description: 'checks prompts and responses for unsafe or sensitive content', keywords: ['safety', 'moderation', 'pii', 'redaction', 'prompt injection', 'filter'], defaultSize: { width: 120, height: 140 }, defaultLabel: 'Guardrails', frame: shieldFrame, glyph: GLYPHS.check }),
-  shape({ id: 'llm', name: 'Foundation model (LLM)', category: 'ai', icon: Sparkles, description: 'a large language or foundation model', keywords: ['llm', 'model', 'genai', 'language model', 'inference'], defaultSize: BOX, defaultLabel: 'LLM', frame: roundedFrame, glyph: GLYPHS.sparkle }),
-  shape({ id: 'vector-db', name: 'Vector database', category: 'ai', icon: Boxes, description: 'stores embeddings for similarity search', keywords: ['vector', 'embeddings', 'similarity', 'rag', 'retrieval', 'index'], defaultSize: CYLINDER, defaultLabel: 'Vector DB', frame: cylinderFrame, glyph: GLYPHS.vectors }),
-  shape({ id: 'embeddings', name: 'Embeddings engine', category: 'ai', icon: Binary, description: 'turns text or images into vectors', keywords: ['embedding', 'encoder', 'vectorise', 'vectorize', 'rag'], defaultSize: BOX, defaultLabel: 'Embeddings', frame: roundedFrame, glyph: GLYPHS.columnVector }),
-  shape({ id: 'semantic-cache', name: 'Semantic cache', category: 'ai', icon: DatabaseZap, description: 'reuses answers to similar prompts', keywords: ['semantic', 'similar prompts', 'llm cache', 'cost'], defaultSize: CYLINDER, defaultLabel: 'Semantic cache', frame: cylinderFrame, glyph: GLYPHS.boltSpark }),
-  shape({ id: 'ai-agent', name: 'AI agent / orchestrator', category: 'ai', icon: Bot, description: 'plans steps and calls models and tools', keywords: ['agent', 'orchestrator', 'planner', 'bot', 'autonomous', 'workflow'], defaultSize: BOX, defaultLabel: 'AI agent', frame: roundedFrame, glyph: GLYPHS.bot }),
-  shape({ id: 'agent-identity', name: 'Agent identity', category: 'ai', icon: UserCheck, description: 'credentials an agent acts under', keywords: ['identity', 'credential', 'service account', 'workload identity', 'oauth', 'token'], defaultSize: BOX, defaultLabel: 'Agent identity', frame: roundedFrame, glyph: GLYPHS.badge }),
-  shape({ id: 'prompt-template', name: 'Prompt template', category: 'ai', icon: FileCode2, description: 'reusable prompt with placeholders', keywords: ['prompt', 'template', 'system prompt', 'instructions'], defaultSize: { width: 140, height: 120 }, defaultLabel: 'Prompt', frame: pageFrame, glyph: GLYPHS.braces }),
+  shape({ id: 'ai-gateway', name: 'AI gateway', category: 'ai', description: 'one controlled entry point to models, tools and agents', keywords: ['llm proxy', 'model gateway', 'mcp', 'a2a', 'routing', 'policy'], defaultSize: BOX, defaultLabel: 'AI gateway', frame: hexFrame, glyph: GLYPHS.gatewaySpark }),
+  shape({ id: 'ai-guardrails', name: 'AI guardrails', category: 'ai', description: 'checks prompts and responses for unsafe or sensitive content', keywords: ['safety', 'moderation', 'pii', 'redaction', 'prompt injection', 'filter'], defaultSize: { width: 120, height: 140 }, defaultLabel: 'Guardrails', frame: shieldFrame, glyph: GLYPHS.check }),
+  shape({ id: 'llm', name: 'Foundation model (LLM)', category: 'ai', description: 'a large language or foundation model', keywords: ['llm', 'model', 'genai', 'language model', 'inference'], defaultSize: BOX, defaultLabel: 'LLM', frame: roundedFrame, glyph: GLYPHS.sparkle }),
+  shape({ id: 'vector-db', name: 'Vector database', category: 'ai', description: 'stores embeddings for similarity search', keywords: ['vector', 'embeddings', 'similarity', 'rag', 'retrieval', 'index'], defaultSize: CYLINDER, defaultLabel: 'Vector DB', frame: cylinderFrame, glyph: GLYPHS.vectors }),
+  shape({ id: 'embeddings', name: 'Embeddings engine', category: 'ai', description: 'turns text or images into vectors', keywords: ['embedding', 'encoder', 'vectorise', 'vectorize', 'rag'], defaultSize: BOX, defaultLabel: 'Embeddings', frame: roundedFrame, glyph: GLYPHS.columnVector }),
+  shape({ id: 'semantic-cache', name: 'Semantic cache', category: 'ai', description: 'reuses answers to similar prompts', keywords: ['semantic', 'similar prompts', 'llm cache', 'cost'], defaultSize: CYLINDER, defaultLabel: 'Semantic cache', frame: cylinderFrame, glyph: GLYPHS.boltSpark }),
+  shape({ id: 'ai-agent', name: 'AI agent / orchestrator', category: 'ai', description: 'plans steps and calls models and tools', keywords: ['agent', 'orchestrator', 'planner', 'bot', 'autonomous', 'workflow'], defaultSize: BOX, defaultLabel: 'AI agent', frame: roundedFrame, glyph: GLYPHS.bot }),
+  shape({ id: 'agent-identity', name: 'Agent identity', category: 'ai', description: 'credentials an agent acts under', keywords: ['identity', 'credential', 'service account', 'workload identity', 'oauth', 'token'], defaultSize: BOX, defaultLabel: 'Agent identity', frame: roundedFrame, glyph: GLYPHS.badge }),
+  shape({ id: 'prompt-template', name: 'Prompt template', category: 'ai', description: 'reusable prompt with placeholders', keywords: ['prompt', 'template', 'system prompt', 'instructions'], defaultSize: { width: 140, height: 120 }, defaultLabel: 'Prompt', frame: pageFrame, glyph: GLYPHS.braces }),
 ]

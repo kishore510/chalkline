@@ -29,7 +29,7 @@ describe('shapes pack 2', () => {
   it.each(Object.values(PACK).flat())('%s has an icon, sane sizes and search words', (id) => {
     const shape = getShape(id)
     expect(isKnownShape(id)).toBe(true)
-    expect(renderToStaticMarkup(createElement(shape.icon))).toMatch(/^<svg[^>]*lucide/)
+    expect(renderToStaticMarkup(createElement(shape.icon))).toMatch(/^<svg/)
     const { width, height } = shape.defaultSize
     expect(width).toBeGreaterThanOrEqual(100)
     expect(width).toBeLessThanOrEqual(240)

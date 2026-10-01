@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import type { ComponentType } from 'react'
 import type { NodeStyle, Size } from '@/schema/diagram'
 
 /*
@@ -45,13 +45,30 @@ export interface LabelLayout {
   align: 'center' | 'start'
 }
 
+/** Draws in a unit square: `p(u, v)` is a point, `c(u, v, r)` a circle, both scaled to the glyph box. */
+export interface Pen {
+  p: (u: number, v: number) => string
+  c: (u: number, v: number, r: number) => string
+}
+
+/** A small stroke-only mark drawn inside a shape, as a list of SVG paths. */
+export type Glyph = (pen: Pen) => string[]
+
+export type ShapeIconComponent = ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>
+
 export interface ShapeDefinition {
   /** Stable id stored in diagrams. Never rename one that has shipped. */
   id: string
   name: string
   category: ShapeCategory
-  /** Palette icon. */
-  icon: LucideIcon
+  /**
+   * Palette icon. For a shape with a glyph this is generated from the glyph
+   * (glyphIcon), so the palette and canvas always show the same mark; shapes
+   * without one use an icon of their outline.
+   */
+  icon: ShapeIconComponent
+  /** The mark drawn inside the shape on the canvas (and in exports), if any. */
+  glyph?: Glyph
   /** What it stands for, in a few words (help reference and palette search). */
   description?: string
   /** Extra search words, so similar shapes can be told apart. */
