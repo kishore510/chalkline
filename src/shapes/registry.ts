@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import type { Size } from '@/schema/diagram'
 import { boxSidePoint, extremePoint, r2, rectOutline, sampleCubic, sampleEllipse } from './outline'
+import { AI, ARCHITECTURE, NETWORKING } from './packs'
+import { circle, cylinderRy, hexagonPoints, hexInset, polygon, roundedRect } from './paths'
 import { SIDES, type Box, type Point, type ShapeCategory, type ShapeDefinition, type Side } from './types'
 
 /*
@@ -68,8 +70,6 @@ const rounded: ShapeDefinition = {
     return { body: [d], detail: [], extent: full(w, h) }
   },
 }
-
-const cylinderRy = (w: number, h: number) => n(Math.min(h * 0.12, w * 0.2))
 
 const database: ShapeDefinition = {
   ...rectangle,
@@ -233,8 +233,6 @@ const text: ShapeDefinition = {
 
 /* ---------- Process ---------- */
 
-const polygon = (points: Point[]) => `M${points.map((p) => `${n(p.x)} ${n(p.y)}`).join('L')}Z`
-
 const diamond: ShapeDefinition = {
   ...rectangle,
   id: 'diamond',
@@ -285,8 +283,6 @@ const ellipse: ShapeDefinition = {
   spreadSides: [],
 }
 
-const hexInset = (w: number, h: number) => Math.min(w / 4, h / 2)
-
 const hexagon: ShapeDefinition = {
   ...rectangle,
   id: 'hexagon',
@@ -305,18 +301,6 @@ const hexagon: ShapeDefinition = {
   // Flat top and bottom edges; pointed left and right vertices at mid-height.
   anchor: midpoints,
   spreadSides: ['top', 'bottom'],
-}
-
-function hexagonPoints(w: number, h: number): Point[] {
-  const i = hexInset(w, h)
-  return [
-    { x: i, y: 0 },
-    { x: w - i, y: 0 },
-    { x: w, y: h / 2 },
-    { x: w - i, y: h },
-    { x: i, y: h },
-    { x: 0, y: h / 2 },
-  ]
 }
 
 const skewOf = (w: number, h: number) => Math.min(w * 0.2, h * 0.6)
@@ -401,15 +385,6 @@ const documentShape: ShapeDefinition = {
 }
 
 /* ---------- Architecture ---------- */
-
-const circle = (cx: number, cy: number, r: number) => `M${n(cx - r)} ${n(cy)}A${n(r)} ${n(r)} 0 1 1 ${n(cx + r)} ${n(cy)}A${n(r)} ${n(r)} 0 1 1 ${n(cx - r)} ${n(cy)}Z`
-const roundedRect = (x: number, y: number, w: number, h: number, radius: number) => {
-  const r = Math.min(radius, w / 2, h / 2)
-  return (
-    `M${n(x + r)} ${n(y)}H${n(x + w - r)}A${n(r)} ${n(r)} 0 0 1 ${n(x + w)} ${n(y + r)}V${n(y + h - r)}A${n(r)} ${n(r)} 0 0 1 ${n(x + w - r)} ${n(y + h)}` +
-    `H${n(x + r)}A${n(r)} ${n(r)} 0 0 1 ${n(x)} ${n(y + h - r)}V${n(y + r)}A${n(r)} ${n(r)} 0 0 1 ${n(x + r)} ${n(y)}Z`
-  )
-}
 
 /** Share of a server's height taken by its rack units; the label goes below. */
 const RACK_RATIO = 0.6
@@ -619,6 +594,11 @@ export const SHAPES: readonly ShapeDefinition[] = [
   server,
   queue,
   userGroup,
+  ...ARCHITECTURE,
+  // Networking
+  ...NETWORKING,
+  // AI & ML
+  ...AI,
   // Annotation
   text,
   sticky,
@@ -633,6 +613,8 @@ export const CATEGORIES: readonly { id: ShapeCategory; name: string }[] = [
   { id: 'basic', name: 'Basic' },
   { id: 'process', name: 'Process' },
   { id: 'architecture', name: 'Architecture' },
+  { id: 'networking', name: 'Networking' },
+  { id: 'ai', name: 'AI & ML' },
   { id: 'annotation', name: 'Annotation' },
 ]
 

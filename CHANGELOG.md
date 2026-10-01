@@ -2,6 +2,12 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.16.0] - 2026-10-01
+
+### Added
+- 19 new shapes. A new **Networking** category: firewall, router / switch, load balancer, API gateway and CDN / edge node. In **Architecture**: cache store, message bus / pub-sub, microservice, object storage / data lake and worker / cron job. A new **AI & ML** category: AI gateway, AI guardrails, foundation model (LLM), vector database, embeddings engine, semantic cache, AI agent / orchestrator, agent identity and prompt template.
+- Palette search also matches what a shape is for, so words like "pub-sub", "llm" or "rag" find the right shape.
+
 ## [0.15.0] - 2026-10-01
 
 ### Added

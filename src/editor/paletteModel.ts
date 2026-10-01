@@ -7,12 +7,12 @@ export const MAX_RECENTS = 6
 
 const categoryName = new Map(CATEGORIES.map((c) => [c.id, c.name]))
 
-/** Shapes whose name, id or category contains every word of the query. */
+/** Shapes whose name, id, category, description or keywords contain every word of the query. */
 export function searchShapes(query: string, shapes: readonly ShapeDefinition[] = SHAPES): ShapeDefinition[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   if (words.length === 0) return [...shapes]
   return shapes.filter((s) => {
-    const haystack = `${s.name} ${s.id} ${categoryName.get(s.category) ?? s.category}`.toLowerCase()
+    const haystack = [s.name, s.id, categoryName.get(s.category) ?? s.category, s.description ?? '', ...(s.keywords ?? [])].join(' ').toLowerCase()
     return words.every((w) => haystack.includes(w))
   })
 }
