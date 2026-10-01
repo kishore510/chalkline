@@ -64,7 +64,7 @@ export function shapeReferenceMarkdown(): string {
     .join('\n\n')
 }
 
-const blockText = (b: Block) => (b.type === 'list' ? b.items.map(inlineText).join(' ') : inlineText(b.children))
+const blockText = (b: Block) => (b.type === 'list' ? b.items.map(inlineText).join(' ') : b.type === 'code' ? b.text : inlineText(b.children))
 
 /** Builds topics from `{ path: raw markdown }`, sorted by `order`. */
 export function buildTopics(files: Record<string, string>): HelpTopic[] {

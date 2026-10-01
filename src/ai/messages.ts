@@ -102,8 +102,8 @@ const AI_MESSAGES: MessageTable<AiErrorKind> = {
   }),
   'ai-refused': () => ({
     title: 'The AI declined this request',
-    message: `The model chose not to answer this description. ${NOT_SENT}`,
-    next: 'Reword the description and try again.',
+    message: `The model chose not to answer this request. ${NOT_SENT}`,
+    next: 'Reword the description, or summarise different shapes, and try again.',
   }),
   'ai-truncated': () => ({
     title: 'The answer was cut off',

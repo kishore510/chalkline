@@ -1,11 +1,11 @@
 ---
 title: AI features and your API key
 order: 21
-keywords: ai, claude, anthropic, generate, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
+keywords: ai, claude, anthropic, generate, summarise, summary, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
 ---
 Chalkline's AI features use **your own Anthropic API key**. You pay Anthropic for what you use, through your own account. Chalkline has no server: requests go straight from this browser to Anthropic's API (`api.anthropic.com`).
 
-With a key you can [generate a diagram from a description](help:generating-diagrams). More AI actions come in later releases.
+With a key you can [generate a diagram from a description](help:generating-diagrams) and [summarise a diagram in words](help:summarising-diagrams). Both are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate** or **Summarise**.
 
 ## Add your key
 
@@ -44,15 +44,21 @@ Nothing is sent until you press **Send**. Before every AI request, Chalkline sho
 
 **Generate diagram** sends only your description and Chalkline's instructions (the shapes and colours it can use). Nothing from your current diagram goes with it.
 
-For actions on an existing diagram, only what the model needs is sent: ids, labels, shape types and connections. Notes are left out unless you turn on **Include notes**. Colours, styling, positions and images are never sent.
+**Summarise** sends your diagram, or just the selected shapes: ids, labels, shape types, connections and their direction, and groups. Notes are left out unless you turn on **Include notes**, and hidden layers unless you turn on **Include hidden layers**. Colours, styling, positions and images are never sent. Your labels and notes are sent as data, never as instructions to the model.
 
 The first time, Chalkline also reminds you that what you send leaves this device. Check your own or your organisation's rules before sending anything sensitive.
 
+Each AI action is a button you press: nothing is sent automatically, and Chalkline never retries on its own.
+
 **Test key** sends one word ("Hi") to Anthropic's free token-counting service. It doesn't use your diagram and doesn't cost anything.
+
+## Tokens and cost
+
+After each AI request, the AI sheet shows the model and the input and output tokens Anthropic reported for it, with a total for this visit. The total resets when you reload and is never saved. If Anthropic doesn't report the tokens, nothing is shown. Chalkline shows tokens, not prices: your Anthropic account shows what they cost.
 
 ## Models
 
-- **Claude Haiku 4.5**: labels, summaries and testing your key.
+- **Claude Haiku 4.5**: summarising diagrams and testing your key.
 - **Claude Sonnet 5.5**: generating diagrams.
 
 ## When it doesn't work

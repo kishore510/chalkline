@@ -2,6 +2,21 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.23.0] - 2026-10-01
+
+### Added
+- **Summarise a diagram with AI**: a written description of your diagram, or just the selected shapes, to read, copy or download. Choose **AI** in the top bar, then **Summarise** (on a phone, **Summarise with AI…** in the menu). It never changes your diagram.
+- Three styles: **Short summary**, **Component list** and **Documentation** (overview, components, data flow, notes and assumptions).
+- Choose the whole diagram or the selected shapes. Notes are left out unless you turn on **Include notes**. Shapes on hidden layers are left out too, with a count, unless you turn on **Include hidden layers**.
+- The check step shows the model (Claude Haiku 4.5), the scope, how many shapes, connectors and notes go, and the estimated size. A diagram over the size limit (about 40,000 tokens) isn't cut short: Chalkline says so and offers to summarise the selection instead.
+- The result is shown as formatted text, with links shown as plain text and no images or web content loaded. **Copy (Markdown)**, **Download as .md**, **Regenerate** and **Close**. It's marked as AI-generated, and it's never saved with your diagram or put in an export.
+- After each AI request (summaries and generated diagrams), the AI sheet shows the model and the input and output tokens Anthropic reported, with a total for this visit.
+- A Help topic on summarising diagrams.
+
+### Changed
+- **Generate** and **Summarise** share one AI sheet: switch between them at the top.
+- The AI help topic covers summaries, what's sent and the token counts.
+
 ## [0.22.0] - 2026-10-01
 
 ### Added

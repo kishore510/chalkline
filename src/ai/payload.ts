@@ -1,10 +1,11 @@
-import type { Diagram } from '@/schema/diagram'
+import type { Diagram, DiagramEdge } from '@/schema/diagram'
 import { isEdgeHidden, isGroupFrameHidden, isNodeHidden } from '@/store/layers'
 
 /*
  * What an AI action sends about a diagram: compact JSON with only what a
- * model needs to understand it. Ids, labels, shape ids, connections, groups,
- * and (when asked for) notes and rounded positions. Never styling, fonts,
+ * model needs to understand it. Ids, labels, shape ids, connections (with
+ * their direction when it isn't the usual one-way arrow), groups, and (when
+ * asked for) notes and rounded positions. Never styling, fonts,
  * layers, timestamps or images. Pure and deterministic, so the size shown
  * before sending is the size sent.
  */
@@ -35,10 +36,14 @@ export interface PayloadNode extends Partial<Box> {
   group?: string
 }
 
+/** Which way a connector's arrows point. Missing means "forward": one arrow, at "to". */
+export type PayloadDirection = 'both' | 'back' | 'none'
+
 export interface PayloadEdge {
   id: string
   from: string
   to: string
+  dir?: PayloadDirection
   label?: string
   notes?: string
 }
@@ -82,6 +87,18 @@ const box = (item: { position: { x: number; y: number }; size: { width: number; 
 })
 
 const text = (value: string) => (value.trim() ? value : undefined)
+
+/** The renderer's defaults (EDGE_DEFAULTS in canvas/flow.ts): no start arrow, an arrow at the end. */
+const ARROW_DEFAULTS = { start: 'none', end: 'arrow' } as const
+
+export function edgeDirection(style: DiagramEdge['style']): PayloadDirection | undefined {
+  const start = (style.startArrow ?? ARROW_DEFAULTS.start) !== 'none'
+  const end = (style.endArrow ?? ARROW_DEFAULTS.end) !== 'none'
+  if (start && end) return 'both'
+  if (start) return 'back'
+  if (end) return undefined
+  return 'none'
+}
 
 /**
  * The diagram, or the chosen items, as compact JSON. A subset includes the
@@ -136,7 +153,7 @@ export function buildPayload(diagram: Diagram, options: PayloadOptions): BuiltPa
       group: n.groupId !== undefined && sentGroups.has(n.groupId) ? n.groupId : undefined,
       ...(includePositions && box(n)),
     })),
-    edges: edges.map((e) => ({ id: e.id, from: e.source, to: e.target, label: text(e.label ?? ''), notes: noteOf(e.notes) })),
+    edges: edges.map((e) => ({ id: e.id, from: e.source, to: e.target, dir: edgeDirection(e.style), label: text(e.label ?? ''), notes: noteOf(e.notes) })),
   }
   if (groups.length > 0) {
     payload.groups = groups.map((g) => ({

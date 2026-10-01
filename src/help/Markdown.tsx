@@ -3,11 +3,15 @@ import type { ReactNode } from 'react'
 import { HELP_LINK, type Block, type Inline } from './markdown'
 
 /*
- * Renders parsed help Markdown as React elements. No HTML strings are ever
- * injected; links are either help topics or https pages in a new tab.
+ * Renders parsed Markdown as React elements. No HTML strings are ever
+ * injected; links are either help topics or https pages in a new tab (and
+ * untrusted text, parsed with parseUntrustedMarkdown, has no links at all).
  */
 
-function InlineView({ nodes, onTopic }: { nodes: Inline[]; onTopic: (id: string) => void }): ReactNode {
+type OnTopic = (id: string) => void
+const noTopic: OnTopic = () => {}
+
+function InlineView({ nodes, onTopic }: { nodes: Inline[]; onTopic: OnTopic }): ReactNode {
   return nodes.map((node, i) => {
     switch (node.type) {
       case 'text':
@@ -48,7 +52,7 @@ function InlineView({ nodes, onTopic }: { nodes: Inline[]; onTopic: (id: string)
   })
 }
 
-export function Markdown({ blocks, onTopic }: { blocks: Block[]; onTopic: (id: string) => void }) {
+export function Markdown({ blocks, onTopic = noTopic }: { blocks: Block[]; onTopic?: OnTopic }) {
   return (
     <div className="flex flex-col gap-3 text-sm text-text">
       {blocks.map((block, i) => {
@@ -86,6 +90,12 @@ export function Markdown({ blocks, onTopic }: { blocks: Block[]; onTopic: (id: s
               <aside key={i} className="rounded-md border border-border bg-accent-subtle px-3 py-2">
                 <InlineView nodes={block.children} onTopic={onTopic} />
               </aside>
+            )
+          case 'code':
+            return (
+              <pre key={i} className="overflow-x-auto rounded-md border border-border bg-surface-muted p-3 font-mono text-xs whitespace-pre text-text">
+                <code>{block.text}</code>
+              </pre>
             )
         }
       })}

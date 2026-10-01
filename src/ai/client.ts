@@ -3,6 +3,7 @@ import { aiError } from './messages'
 import type { AiModel } from './models'
 import { TEST_PROMPT } from './plan'
 import { redactSecrets } from './redact'
+import { parseUsage, type Usage } from './usage'
 
 /*
  * The one way Chalkline talks to Anthropic's API. Loaded on demand (never in
@@ -118,6 +119,8 @@ export type Failure = {
   status?: number
   /** Seconds, from the retry-after header. */
   retryAfter?: number
+  /** Tokens the API reported for an answer that came back but couldn't be used (it's still billed). */
+  usage?: Usage | null
 }
 
 export type Outcome<T> = { ok: true; value: T; requestId?: string } | Failure
@@ -143,7 +146,7 @@ const KIND: Record<FailureReason, AiErrorKind> = {
   truncated: 'ai-truncated',
 }
 
-export function failure(reason: FailureReason, detail?: string, extra: { status?: number; retryAfter?: number } = {}): Failure {
+export function failure(reason: FailureReason, detail?: string, extra: { status?: number; retryAfter?: number; usage?: Usage | null } = {}): Failure {
   return { ok: false, reason, error: aiError(KIND[reason], detail, { wait: extra.retryAfter }), ...extra }
 }
 
@@ -258,7 +261,8 @@ export async function testKey(key: string, model: AiModel, options: SendOptions 
 export interface MessageResult {
   text: string
   stopReason: string | null
-  usage: { inputTokens: number; outputTokens: number; cacheReadTokens: number }
+  /** What the API reported, or null if the answer had no (readable) usage. */
+  usage: Usage | null
 }
 
 /** One Messages call, for the AI actions in later releases. The answer is returned, never applied. */
@@ -268,7 +272,7 @@ export async function sendMessage(key: string, input: MessageInput, options: Sen
   const body = outcome.value as {
     content?: { type?: string; text?: string }[]
     stop_reason?: string | null
-    usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number }
+    usage?: unknown
   } | null
   if (!body || !Array.isArray(body.content)) return failure('unexpected', 'No content in the answer.')
   const text = body.content
@@ -280,11 +284,7 @@ export async function sendMessage(key: string, input: MessageInput, options: Sen
     value: {
       text,
       stopReason: body.stop_reason ?? null,
-      usage: {
-        inputTokens: body.usage?.input_tokens ?? 0,
-        outputTokens: body.usage?.output_tokens ?? 0,
-        cacheReadTokens: body.usage?.cache_read_input_tokens ?? 0,
-      },
+      usage: parseUsage(body.usage),
     },
     requestId: outcome.requestId,
   }

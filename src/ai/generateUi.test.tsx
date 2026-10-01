@@ -13,6 +13,7 @@ import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
 import { NOTICE_TITLE } from './ConfirmSend'
 import { resetSecretsForTests } from './redact'
+import { useUsageStore } from './usage'
 
 vi.mock('@/layout/elkWorker', async () => {
   const { default: ELK } = await import('elkjs/lib/elk.bundled.js')
@@ -64,7 +65,7 @@ async function mount() {
 }
 
 const dialog = () => document.querySelector<HTMLElement>('[role="dialog"]')
-const button = (text: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === text)
+const button = (text: string) => [...document.querySelectorAll<HTMLButtonElement>('button:not([data-mode])')].find((b) => b.textContent?.trim() === text)
 const click = async (text: string) => {
   const b = button(text)
   if (!b) throw new Error(`No button "${text}" in: ${dialog()?.textContent}`)
@@ -84,7 +85,7 @@ async function until(text: string) {
   for (let i = 0; i < 600 && !dialog()?.textContent?.includes(text); i++) await settle(1)
 }
 async function open() {
-  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate a diagram with AI"]')!.click())
+  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate or summarise with AI"]')!.click())
   // The sheet loads on first open.
   for (let i = 0; i < 400 && !dialog(); i++) await settle(1)
   await settle(2)
@@ -93,6 +94,7 @@ async function open() {
 beforeEach(() => {
   useDiagramStore.getState().load(parseDiagram(fixtures['web-architecture']), { undoable: false })
   updateSettings({ ai: { noticeAcknowledged: false } })
+  useUsageStore.getState().reset()
 })
 afterEach(async () => {
   useGenerateSheet.getState().closeGenerate()
@@ -146,6 +148,9 @@ describe('Generate diagram sheet', () => {
     expect(dialog()!.textContent).toContain('“Flux capacitor” asked for an unknown shape')
     expect(dialog()!.querySelector('svg')).not.toBeNull()
     expect(dialog()!.innerHTML).not.toContain(FAKE)
+    // The usage line: the model and the counts the API sent back.
+    expect(dialog()!.textContent).toContain('Last request: Claude Sonnet 5.5: 1 input token, 1 output token.')
+    expect(dialog()!.textContent).toContain('This visit: 1 request')
 
     // Nothing on the canvas yet.
     const before = useDiagramStore.getState().diagram
