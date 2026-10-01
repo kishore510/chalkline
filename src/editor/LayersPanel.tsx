@@ -5,6 +5,7 @@ import { Panel } from '@/components/ui/panel'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { DEFAULT_LAYER_ID, MAX_LAYERS, type DiagramLayer } from '@/schema/diagram'
+import { useShallow } from 'zustand/react/shallow'
 import { useDiagramStore } from '@/store/diagramStore'
 import { layerCounts, layerIdOf } from '@/store/layers'
 import { useUiStore } from '@/store/uiStore'
@@ -211,15 +212,23 @@ function LayerRow({ layer, index, total, count, active, hiddenFrames }: { layer:
 
 /** The list of layers (top of the stack first) with Add layer and Show all. */
 export function LayersContent() {
-  const diagram = useDiagramStore((s) => s.diagram)
+  const layers = useDiagramStore((s) => s.diagram.layers)
   const active = useDiagramStore((s) => s.activeLayerId)
-  const counts = layerCounts(diagram)
-  const framed = new Set(diagram.groups.map((g) => layerIdOf(g)))
-  const anyHidden = diagram.layers.some((l) => !l.visible)
+  // Item counts and which layers hold group frames, as plain values: moving shapes doesn't change them, so no re-render.
+  const countList = useDiagramStore(
+    useShallow((s) => {
+      const all = layerCounts(s.diagram)
+      return s.diagram.layers.map((l) => all.get(l.id) ?? 0)
+    }),
+  )
+  const framedList = useDiagramStore(useShallow((s) => [...new Set(s.diagram.groups.map((g) => layerIdOf(g)))].sort()))
+  const counts = new Map(layers.map((l, i) => [l.id, countList[i] ?? 0]))
+  const framed = new Set(framedList)
+  const anyHidden = layers.some((l) => !l.visible)
   return (
     <div className="flex flex-col gap-3 pb-4">
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" disabled={diagram.layers.length >= MAX_LAYERS} onClick={() => store().addLayer()}>
+        <Button variant="secondary" disabled={layers.length >= MAX_LAYERS} onClick={() => store().addLayer()}>
           <Plus />
           Add layer
         </Button>
@@ -229,14 +238,14 @@ export function LayersContent() {
         </Button>
       </div>
       <ol aria-label="Layers, top first" className="flex flex-col gap-1.5">
-        {[...diagram.layers].reverse().map((layer) => {
-          const index = diagram.layers.indexOf(layer)
+        {[...layers].reverse().map((layer) => {
+          const index = layers.indexOf(layer)
           return (
             <LayerRow
               key={layer.id}
               layer={layer}
               index={index}
-              total={diagram.layers.length}
+              total={layers.length}
               count={counts.get(layer.id) ?? 0}
               active={layer.id === active}
               hiddenFrames={framed.has(layer.id)}

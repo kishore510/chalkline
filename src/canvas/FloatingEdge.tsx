@@ -1,5 +1,5 @@
 import { BaseEdge, getBezierPath, getSmoothStepPath, getStraightPath, useInternalNode, type EdgeProps } from '@xyflow/react'
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { memo, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { edgeLabelText, textCss, type TextStyleFields } from '@/fonts/registry'
 import type { TextDefaults } from '@/schema/diagram'
 import { useDiagramStore } from '@/store/diagramStore'
@@ -61,7 +61,7 @@ function EdgeLabel({ x, y, label, text, defaults, padding, bgStyle, radius }: {
  * its end grips is dragged, the dragged end follows the pointer (or the
  * docking point it has snapped to) as a live preview.
  */
-export function FloatingEdge({ id, source, target, data, style, markerStart, markerEnd, label, labelBgStyle, labelBgPadding, labelBgBorderRadius, interactionWidth }: EdgeProps<FloatingFlowEdge>) {
+export const FloatingEdge = memo(function FloatingEdge({ id, source, target, data, style, markerStart, markerEnd, label, labelBgStyle, labelBgPadding, labelBgBorderRadius, interactionWidth }: EdgeProps<FloatingFlowEdge>) {
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
   const drag = useUiStore((s) => (s.edgeDrag?.edgeId === id ? s.edgeDrag : null))
@@ -122,4 +122,4 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
       {labelAt(labelX, labelY)}
     </>
   )
-}
+})
