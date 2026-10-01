@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { STORAGE_KEYS } from '@/persistence/storageKeys'
 import { memoryStorage } from '@/persistence/testStorage'
 import { loadSettings, mergeSettings, SETTINGS_KEY } from './load'
-import { defaultSettings, migrateSettings, parseSettings, parseSettingsText, SETTINGS_VERSION, type SettingsMigration } from './schema'
+import { defaultSettings, migrateSettings, parseSettings, parseSettingsText, SETTINGS_MIGRATIONS, SETTINGS_VERSION, type SettingsMigration } from './schema'
 
 const throwing = {
   getItem: () => {
@@ -26,6 +26,7 @@ describe('settings validation', () => {
       arrange: { direction: 'right', spacing: 'normal' },
       panels: { paletteWidth: null, paletteCollapsed: false, rightCollapsed: false },
       onboarding: { firstRunDone: false, tourDone: false },
+      ai: { keyStorage: 'session', noticeAcknowledged: false, includeNotes: false },
     })
   })
 
@@ -54,9 +55,9 @@ describe('settings validation', () => {
   })
 
   it('keeps unknown sections, so a newer version’s settings survive', () => {
-    const s = parseSettings({ settingsVersion: 99, ai: { provider: 'x' }, appearance: { theme: 'dark' } })
+    const s = parseSettings({ settingsVersion: 99, future: { provider: 'x' }, appearance: { theme: 'dark' } })
     expect(s.settingsVersion).toBe(99)
-    expect((s as Record<string, unknown>).ai).toEqual({ provider: 'x' })
+    expect((s as Record<string, unknown>).future).toEqual({ provider: 'x' })
     expect(s.appearance.theme).toBe('dark')
   })
 
@@ -65,6 +66,70 @@ describe('settings validation', () => {
     expect(s.canvas.grid).toBe('off')
     expect(s.canvas.snapToGrid).toBe(true)
     expect(s.text.fontSize).toBeUndefined()
+  })
+})
+
+describe('settings v1 to v2: the AI section', () => {
+  // Exactly what 0.20.0 wrote.
+  const v1 = {
+    settingsVersion: 1,
+    appearance: { theme: 'dark' },
+    canvas: { snapToGrid: false, smartGuides: true, grid: 'lines', arrowhead: 'closed' },
+    text: { fontFamily: 'nunito' },
+    arrange: { direction: 'down', spacing: 'roomy' },
+    panels: { paletteWidth: 300, paletteCollapsed: false, rightCollapsed: true },
+    onboarding: { firstRunDone: true, tourDone: true },
+  }
+
+  it('is version 2', () => {
+    expect(SETTINGS_VERSION).toBe(2)
+    expect(SETTINGS_MIGRATIONS[1]).toBeTypeOf('function')
+  })
+
+  it('adds the AI section with safe defaults and keeps every v1 choice', () => {
+    const s = parseSettings(v1)
+    expect(s.settingsVersion).toBe(2)
+    expect(s.ai).toEqual({ keyStorage: 'session', noticeAcknowledged: false, includeNotes: false })
+    const { settingsVersion: _, ...rest } = v1
+    expect(s).toMatchObject(rest)
+  })
+
+  it('the step itself sets the version and the section', () => {
+    expect(SETTINGS_MIGRATIONS[1]!({ settingsVersion: 1, x: 1 })).toEqual({
+      settingsVersion: 2,
+      x: 1,
+      ai: { keyStorage: 'session', noticeAcknowledged: false, includeNotes: false },
+    })
+  })
+
+  it('replaces anything a v1 file had under ai (never trusted as a choice to remember the key)', () => {
+    const s = parseSettings({ ...v1, ai: { keyStorage: 'device', noticeAcknowledged: true, apiKey: 'sk-ant-api03-FAKE-v1-key' } })
+    expect(s.ai).toEqual({ keyStorage: 'session', noticeAcknowledged: false, includeNotes: false })
+    expect(JSON.stringify(s)).not.toContain('sk-ant')
+  })
+
+  it('reads v2 AI choices, falls back field by field, and drops unknown AI fields (no place for a key)', () => {
+    expect(parseSettings({ settingsVersion: 2, ai: { keyStorage: 'device', noticeAcknowledged: true, includeNotes: true } }).ai).toEqual({
+      keyStorage: 'device',
+      noticeAcknowledged: true,
+      includeNotes: true,
+    })
+    const s = parseSettings({ settingsVersion: 2, ai: { keyStorage: 'cloud', includeNotes: 'yes', apiKey: 'sk-ant-api03-FAKE' } })
+    expect(s.ai).toEqual({ keyStorage: 'session', noticeAcknowledged: false, includeNotes: false })
+    expect(JSON.stringify(s)).not.toContain('sk-ant')
+  })
+
+  it('unversioned and corrupt settings still load as v2 defaults', () => {
+    expect(parseSettings({}).ai.keyStorage).toBe('session')
+    expect(parseSettingsText('{oops').settingsVersion).toBe(2)
+  })
+
+  it('a v1 settings key in storage loads as v2', () => {
+    const storage = memoryStorage({ [SETTINGS_KEY]: JSON.stringify(v1) })
+    const { settings } = loadSettings(storage)
+    expect(settings.settingsVersion).toBe(2)
+    expect(settings.appearance.theme).toBe('dark')
+    expect(settings.ai.keyStorage).toBe('session')
   })
 })
 

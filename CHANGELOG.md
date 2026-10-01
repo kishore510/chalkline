@@ -2,6 +2,19 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.21.0] - 2026-10-01
+
+### Added
+- **AI in Settings (bring your own key)**: add your own Anthropic API key, choose where it's kept, test it, and remove it. This release sets up the key only; AI actions on diagrams come later.
+- **This session only** (the default) keeps the key in memory until you reload or close the tab. **Remember on this device** keeps it in this browser, after a clear warning. Switching moves the key and removes it from the other place.
+- **Test key** checks your key with a free one-word request, and the status line shows whether it worked.
+- Before anything is sent, a check step shows the model, what's included and the estimated size, with **Send** and **Cancel**. The first time, it also reminds you that what you send leaves this device.
+- Plain messages when a request fails (wrong key, rate limits with the wait time, the service busy, a blocked network), with **Retry**. Chalkline never retries on its own.
+- A Help topic on AI features and keeping your key safe, and more troubleshooting help.
+
+### Changed
+- Your key is never included in backups, diagram files, stencil exports or error details, and **Clear local data** removes it.
+
 ## [0.20.0] - 2026-10-01
 
 ### Added

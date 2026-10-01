@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { BACKUP_KEYS, OWNED_DATABASES, OWNED_KEYS } from './storageKeys'
+import { BACKUP_KEYS, OWNED_DATABASES, OWNED_KEYS, SECRET_KEYS, STORAGE_KEYS } from './storageKeys'
 
 /*
  * Every key the app writes must be in the registry, so "Clear local data"
@@ -45,6 +45,12 @@ describe('owned storage keys: source', () => {
     for (const key of keys) expect(OWNED_KEYS).toContain(key)
   })
 
+  it('the AI key has its own entry: a secret, never backed up', () => {
+    expect(STORAGE_KEYS.aiKey).toMatchObject({ key: 'chalkline.ai.key', backup: false, secret: true })
+    expect(SECRET_KEYS).toEqual([STORAGE_KEYS.aiKey.key])
+    for (const key of SECRET_KEYS) expect(BACKUP_KEYS).not.toContain(key)
+  })
+
   it('every key and database is listed once', () => {
     expect(new Set(OWNED_KEYS).size).toBe(OWNED_KEYS.length)
     expect(new Set(BACKUP_KEYS).size).toBe(BACKUP_KEYS.length)
@@ -82,6 +88,7 @@ describe('owned storage keys: real writes', () => {
     const { markSeen } = await import('@/help/whatsNew')
     const { saveAutosave, loadAutosave, AUTOSAVE_KEY } = await import('./autosave')
     const { createEmptyDiagram } = await import('@/schema/diagram')
+    const { saveKey, setKeyPlace } = await import('@/ai/keyStore')
 
     useSettingsStore.getState().update({ canvas: { grid: 'lines' }, text: { fontSize: 18 }, onboarding: { firstRunDone: true } })
     useUiStore.getState().setViewPrefs({ snapToGrid: true })
@@ -93,6 +100,9 @@ describe('owned storage keys: real writes', () => {
     saveAutosave(createEmptyDiagram())
     data.set(AUTOSAVE_KEY, '{broken')
     loadAutosave()
+    saveKey('sk-ant-api03-FAKE-registry-test-key', 'session')
+    setKeyPlace('device')
+    expect(data.get('chalkline.ai.key')).toBe('sk-ant-api03-FAKE-registry-test-key')
 
     expect(written.size).toBeGreaterThanOrEqual(6)
     for (const key of written) expect(OWNED_KEYS, `${key} is written but not registered`).toContain(key)

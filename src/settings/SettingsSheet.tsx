@@ -1,13 +1,17 @@
-import { AlertTriangle, ArrowLeft, Archive, CircleHelp, Download, Info, PlayCircle, Settings as SettingsIcon, Trash2, Upload, X } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeft, Archive, CircleHelp, Download, Info, PlayCircle, Settings as SettingsIcon, Trash2, Upload, X } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { announce } from '@/a11y/announce'
+import { useAiStore } from '@/ai/aiStore'
+import { ConfirmSend } from '@/ai/ConfirmSend'
+import { testPlan } from '@/ai/plan'
 import { Button } from '@/components/ui/button'
 import { useFocusTrap } from '@/components/ui/useFocusTrap'
 import { FONT_SIZES, FontPicker } from '@/editor/TextControls'
 import { Section, SelectField, ToggleField } from '@/editor/fields'
 import { GridDisplayChoice } from '@/editor/ViewMenu'
 import { spokenError, type FriendlyError } from '@/errors/friendly'
+import { InlineProblem } from '@/errors/InlineProblem'
 import { DEFAULT_FONT_ID } from '@/fonts/registry'
 import { LearnMore } from '@/help/HelpEntry'
 import { useHelpStore } from '@/help/helpStore'
@@ -23,6 +27,8 @@ import type { ThemePreference } from '@/lib/theme'
 import { MEDIA } from '@/styles/breakpoints'
 import { useUiStore } from '@/store/uiStore'
 import { APP_VERSION } from '@/version'
+import { AiSection } from './AiSection'
+import { Choice } from './Choice'
 import { checkBackupFile, clearLocalData, exportEverything, restoreBackup } from './dataActions'
 import { useSettingsSheet } from './SettingsEntry'
 import { updateSettings, useSettingsStore } from './settingsStore'
@@ -37,29 +43,8 @@ import { updateSettings, useSettingsStore } from './settingsStore'
  * on top of it, so there is only ever one focus trap.
  */
 
-type Page = { kind: 'main' } | { kind: 'restore'; plan: RestorePlan } | { kind: 'clear' }
-
-/** Mutually exclusive text choices, e.g. the theme. */
-function Choice<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (value: T) => void }) {
-  return (
-    <div role="group" aria-label={label} className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-text">{label}</span>
-      <div className="flex gap-1">
-        {options.map((o) => (
-          <Button
-            key={o.value}
-            variant="secondary"
-            aria-pressed={o.value === value}
-            onClick={() => onChange(o.value)}
-            className="min-w-0 flex-1 px-2 aria-pressed:border-accent aria-pressed:bg-accent-subtle aria-pressed:text-accent"
-          >
-            {o.label}
-          </Button>
-        ))}
-      </div>
-    </div>
-  )
-}
+/** `back` on the main page: the section to return to (and focus) after a confirmation. */
+type Page = { kind: 'main'; back?: 'ai' } | { kind: 'restore'; plan: RestorePlan } | { kind: 'clear' } | { kind: 'ai-confirm' }
 
 const THEMES: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -120,26 +105,6 @@ function useStorageUsed() {
     }
   }, [])
   return used
-}
-
-/** A problem shown in place (the sheet stays open), with its detail folded away. */
-function InlineProblem({ error }: { error: FriendlyError }) {
-  return (
-    <div role="group" aria-label="Problem" className="flex gap-2 rounded-md border border-danger p-3 text-sm text-text">
-      <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-danger" />
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold">{error.title}</p>
-        <p>{error.message}</p>
-        <p>{error.next}</p>
-        {error.detail && (
-          <details>
-            <summary className="flex min-h-touch cursor-pointer items-center font-medium text-text-muted">Details</summary>
-            <pre className="font-mono text-xs whitespace-pre-wrap break-words text-text-muted">{error.detail}</pre>
-          </details>
-        )}
-      </div>
-    </div>
-  )
 }
 
 function Data({ go }: { go: (page: Page) => void }) {
@@ -340,7 +305,25 @@ function ConfirmClear({ back }: { back: () => void }) {
   )
 }
 
-const TITLES: Record<Page['kind'], string> = { main: 'Settings', restore: 'Restore this backup?', clear: 'Clear local data?' }
+/** The confirmation for Test key; Send acknowledges the one-time notice and starts the test. */
+function AiConfirm({ back }: { back: () => void }) {
+  const needsNotice = useSettingsStore((s) => !s.settings.ai.noticeAcknowledged)
+  const plan = useMemo(testPlan, [])
+  return (
+    <ConfirmSend
+      plan={plan}
+      needsNotice={needsNotice}
+      onCancel={back}
+      onSend={() => {
+        if (needsNotice) updateSettings({ ai: { noticeAcknowledged: true } })
+        back()
+        void useAiStore.getState().runTest()
+      }}
+    />
+  )
+}
+
+const TITLES: Record<Page['kind'], string> = { main: 'Settings', restore: 'Restore this backup?', clear: 'Clear local data?', 'ai-confirm': 'Check before sending' }
 
 function Header({ title, titleId, titleRef, onBack, onClose }: { title: string; titleId: string; titleRef: React.RefObject<HTMLHeadingElement | null>; onBack?: () => void; onClose: () => void }): ReactNode {
   return (
@@ -374,7 +357,7 @@ export default function SettingsSheet() {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const titleId = useId()
   const first = useRef(true)
-  useFocusTrap(ref, () => (page.kind === 'main' ? close() : setPage({ kind: 'main' })))
+  useFocusTrap(ref, () => (page.kind === 'main' ? close() : setPage({ kind: 'main', ...(page.kind === 'ai-confirm' && { back: 'ai' as const }) })))
 
   // Opened on a section: scroll it into view.
   useEffect(() => {
@@ -387,12 +370,19 @@ export default function SettingsSheet() {
       first.current = false
       return
     }
+    if (page.kind === 'main' && page.back) {
+      // Back from a confirmation: to the section it came from, with focus on its action (Test key, or Cancel while testing).
+      const section = bodyRef.current?.querySelector<HTMLElement>(`[data-section="${page.back}"]`)
+      section?.scrollIntoView({ block: 'start' })
+      ;(section?.querySelector<HTMLElement>('[data-ai-focus]') ?? titleRef.current)?.focus()
+      return
+    }
     bodyRef.current?.scrollTo({ top: 0 })
     if (page.kind === 'main') titleRef.current?.focus()
     else bodyRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
   }, [page])
 
-  const main = () => setPage({ kind: 'main' })
+  const main = () => setPage({ kind: 'main', ...(page.kind === 'ai-confirm' && { back: 'ai' as const }) })
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end bg-overlay md:items-stretch md:justify-end" onPointerDown={(e) => e.target === e.currentTarget && close()}>
@@ -419,6 +409,9 @@ export default function SettingsSheet() {
               <div data-section="text">
                 <Text />
               </div>
+              <div data-section="ai">
+                <AiSection onTest={() => setPage({ kind: 'ai-confirm' })} />
+              </div>
               <div data-section="data">
                 <Data go={setPage} />
               </div>
@@ -430,6 +423,11 @@ export default function SettingsSheet() {
           {page.kind === 'restore' && (
             <div className="pt-4">
               <ConfirmRestore plan={page.plan} back={main} />
+            </div>
+          )}
+          {page.kind === 'ai-confirm' && (
+            <div className="pt-4">
+              <AiConfirm back={() => setPage({ kind: 'main', back: 'ai' })} />
             </div>
           )}
           {page.kind === 'clear' && (

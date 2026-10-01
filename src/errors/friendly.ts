@@ -1,11 +1,14 @@
+import { redactSecrets } from '@/ai/redact'
+
 /*
  * Every problem the app reports to people, worded in one place so messages
  * stay consistent: what happened (title), what it means (message), what to do
  * next (next), and an optional short technical detail shown behind a
- * "Details" toggle. Pure: no DOM, no stores.
+ * "Details" toggle. Pure: no DOM, no stores. Details are always redacted, so
+ * an API key can never reach the screen through one.
  */
 
-export type ErrorKind =
+export type CoreErrorKind =
   | 'file-empty'
   | 'file-type'
   | 'file-not-json'
@@ -26,6 +29,27 @@ export type ErrorKind =
   | 'autosave-newer'
   | 'render-failed'
 
+/** AI request problems; their wording lives in src/ai/messages.ts so it loads with the AI code. */
+export type AiErrorKind =
+  | 'ai-no-key'
+  | 'ai-invalid-key'
+  | 'ai-permission'
+  | 'ai-billing'
+  | 'ai-rate-limited'
+  | 'ai-spend-limit'
+  | 'ai-overloaded'
+  | 'ai-server'
+  | 'ai-timeout'
+  | 'ai-too-large'
+  | 'ai-model-unavailable'
+  | 'ai-bad-request'
+  | 'ai-offline'
+  | 'ai-blocked'
+  | 'ai-cancelled'
+  | 'ai-unexpected'
+
+export type ErrorKind = CoreErrorKind | AiErrorKind
+
 export interface FriendlyError {
   kind: ErrorKind
   title: string
@@ -36,16 +60,22 @@ export interface FriendlyError {
   detail?: string
 }
 
-interface Vars {
+export interface Vars {
   /** Schema version a file or autosave was written with. */
   version?: number
   /** This build's schema version. */
   supported?: number
+  /** Seconds to wait before trying again, when the API says. */
+  wait?: number
 }
+
 
 const KEEP = 'Your current diagram hasn’t changed.'
 
-const MESSAGES: Record<ErrorKind, (v: Vars) => Omit<FriendlyError, 'kind' | 'detail'>> = {
+/** Wording for a set of kinds: title, message and next step. */
+export type MessageTable<K extends ErrorKind> = Record<K, (v: Vars) => Omit<FriendlyError, 'kind' | 'detail'>>
+
+const MESSAGES: MessageTable<CoreErrorKind> = {
   'file-empty': () => ({ title: 'That file is empty', message: `There’s nothing in it to open. ${KEEP}`, next: 'Choose a Chalkline .json file you saved with Save as JSON.' }),
   'file-type': () => ({
     title: 'Chalkline can’t open this type of file',
@@ -142,12 +172,15 @@ const MESSAGES: Record<ErrorKind, (v: Vars) => Omit<FriendlyError, 'kind' | 'det
 /** Longest technical detail kept, so a huge error never floods the screen. */
 export const MAX_DETAIL = 600
 
-/** The message for `kind`, with an optional technical detail. */
-export function friendlyError(kind: ErrorKind, detail?: string, vars: Vars = {}): FriendlyError {
-  const text = MESSAGES[kind](vars)
-  const trimmed = detail?.trim()
+/** The message for `kind` from `table`, with an optional technical detail (always redacted). */
+export function messageFrom<K extends ErrorKind>(table: MessageTable<K>, kind: K, detail?: string, vars: Vars = {}): FriendlyError {
+  const text = table[kind](vars)
+  const trimmed = detail === undefined ? undefined : redactSecrets(detail).trim()
   return { kind, ...text, ...(trimmed && { detail: trimmed.length > MAX_DETAIL ? `${trimmed.slice(0, MAX_DETAIL)}…` : trimmed }) }
 }
+
+/** The message for `kind`, with an optional technical detail. */
+export const friendlyError = (kind: CoreErrorKind, detail?: string, vars: Vars = {}) => messageFrom(MESSAGES, kind, detail, vars)
 
 /** One sentence for the screen-reader live region. */
 export const spokenError = (e: FriendlyError) => `${e.title}. ${e.message} ${e.next}`

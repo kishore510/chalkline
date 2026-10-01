@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from 'lucide-react'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { redactSecrets } from '@/ai/redact'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Panel } from '@/components/ui/panel'
@@ -115,7 +116,9 @@ export class RenderErrorBoundary extends Component<BoundaryProps, { error: Frien
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
-    console.error('Canvas failed to render', error, info.componentStack)
+    // Redacted text, not the error object: nothing logged can carry an API key.
+    const text = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error)
+    console.error('Canvas failed to render', redactSecrets(`${text}\n${info.componentStack ?? ''}`))
   }
 
   private reset = () => this.setState({ error: null })

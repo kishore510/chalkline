@@ -10,11 +10,14 @@ import { THEME_PREFERENCES } from '@/lib/theme'
  * shape here needs a SETTINGS_VERSION bump and a step in SETTINGS_MIGRATIONS.
  *
  * Every field falls back to its default on its own, so a bad value never costs
- * the user their other choices, and loading never throws. A new section (for
- * example an AI section) is one more entry in SECTIONS.
+ * the user their other choices, and loading never throws. A new section is one
+ * more entry in SECTIONS.
+ *
+ * Settings are backed up, so they must never hold a secret: the AI key has its
+ * own storage entry (see src/ai/keyStore.ts), never a field here.
  */
 
-export const SETTINGS_VERSION = 1
+export const SETTINGS_VERSION = 2
 
 /** A field that falls back to `fallback` when missing or invalid. */
 const field = <T extends z.ZodType>(schema: T, fallback: z.infer<T>) => schema.catch(fallback)
@@ -26,6 +29,7 @@ function section<S extends z.ZodRawShape>(shape: S) {
 }
 
 export const GridDisplaySchema = z.enum(['dots', 'lines', 'off'])
+export const AiKeyStorageSchema = z.enum(['session', 'device'])
 
 const SECTIONS = {
   appearance: section({
@@ -61,6 +65,15 @@ const SECTIONS = {
     firstRunDone: field(z.boolean(), false),
     tourDone: field(z.boolean(), false),
   }),
+  /** AI features (v2). Preferences only: the key itself is never stored in settings. */
+  ai: section({
+    /** Where a new key is kept: in memory for this visit, or remembered in this browser. */
+    keyStorage: field(AiKeyStorageSchema, 'session'),
+    /** The one-time "content leaves this device" notice has been acknowledged. */
+    noticeAcknowledged: field(z.boolean(), false),
+    /** Include shape and connector notes in what is sent. */
+    includeNotes: field(z.boolean(), false),
+  }),
 }
 
 /**
@@ -77,6 +90,7 @@ export const SettingsSchema = z
 export type Settings = z.infer<typeof SettingsSchema>
 export type SectionName = keyof typeof SECTIONS
 export type GridDisplay = z.infer<typeof GridDisplaySchema>
+export type AiKeyStorage = z.infer<typeof AiKeyStorageSchema>
 export const SECTION_NAMES = Object.keys(SECTIONS) as SectionName[]
 
 export const defaultSettings = (): Settings => SettingsSchema.parse({})
@@ -86,12 +100,12 @@ export const defaultSettings = (): Settings => SettingsSchema.parse({})
 type RawSettings = Record<string, unknown>
 export type SettingsMigration = (raw: RawSettings) => RawSettings
 
-/**
- * Steps keyed by the version they upgrade FROM. v1 is the first version.
- * Example for a future v2:
- *   1: (raw) => ({ ...raw, settingsVersion: 2, ai: { enabled: false } }),
- */
-export const SETTINGS_MIGRATIONS: Readonly<Record<number, SettingsMigration>> = {}
+/** Steps keyed by the version they upgrade FROM. v1 is the first version. */
+export const SETTINGS_MIGRATIONS: Readonly<Record<number, SettingsMigration>> = {
+  // v2 adds the AI section. Whatever was under `ai` before (only a newer
+  // version could have written it) is replaced by the defaults.
+  1: (raw) => ({ ...raw, settingsVersion: 2, ai: { keyStorage: 'session', noticeAcknowledged: false, includeNotes: false } }),
+}
 
 const isRecord = (value: unknown): value is RawSettings => typeof value === 'object' && value !== null && !Array.isArray(value)
 

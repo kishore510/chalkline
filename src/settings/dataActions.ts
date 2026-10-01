@@ -1,3 +1,4 @@
+import { forgetKey } from '@/ai/keyStore'
 import { friendlyError, type FriendlyError } from '@/errors/friendly'
 import { applyRestore, backupFileName, buildBackup, clearOwnedData, deleteDatabase, planRestore, serializeBackup, type RestoreCheck, type RestorePlan } from '@/persistence/backup'
 import { downloadText } from '@/persistence/download'
@@ -59,12 +60,13 @@ export async function restoreBackup(plan: RestorePlan, reload = () => window.loc
 }
 
 /**
- * Removes every key and database Chalkline owns (by the registry), then
- * reloads to a clean, first-run state. If something couldn't be removed,
+ * Removes every key and database Chalkline owns (by the registry), and the
+ * AI key from memory, then reloads to a clean, first-run state. If something couldn't be removed,
  * returns the problem instead (autosave stays paused: some data is already gone).
  */
 export async function clearLocalData(reload = () => window.location.reload()): Promise<FriendlyError | null> {
   pauseAutosave()
+  forgetKey()
   const result = await clearOwnedData(appStorage(), deleteDatabase)
   if (result.failed.length === 0) {
     reload()

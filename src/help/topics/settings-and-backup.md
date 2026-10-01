@@ -1,7 +1,7 @@
 ---
 title: Settings, backup and the tour
 order: 20
-keywords: settings, preferences, theme, dark, light, grid, snap, arrow, arrowhead, font, default, backup, restore, import, export everything, clear, reset, storage, tour, welcome
+keywords: settings, preferences, ai, api key, theme, dark, light, grid, snap, arrow, arrowhead, font, default, backup, restore, import, export everything, clear, reset, storage, tour, welcome
 ---
 Open **Settings** from the gear button at the top, or from the menu (the three lines) on a phone. Changes apply straight away and are remembered in this browser. Settings are never saved inside a diagram file.
 
@@ -19,18 +19,23 @@ Open **Settings** from the gear button at the top, or from the menu (the three l
 
 The font and label size that **new** diagrams start with. Each diagram keeps its own text defaults; to change them for the diagram you're working on, select nothing and use the **Text defaults** in the properties. See [Text styling](help:text-styling).
 
+## AI
+
+Your Anthropic API key, where it's kept, **Test key**, and whether notes are included when you send a diagram. See [AI features and your API key](help:ai-features).
+
 ## Backup and restore
 
 Your diagram, stencil library and settings live in this browser only. A backup moves them to another browser or keeps them safe.
 
 - **Export everything** downloads one `.json` backup file with your current diagram, your stencils and your settings.
 - **Import backup** checks the file first and tells you what it will replace. Nothing changes until you confirm, and the page then reloads with the restored data.
+- Your AI key is never included in a backup.
 - A backup isn't a diagram file: open single diagrams with **Open JSON** in the menu instead.
 - **Storage used** shows roughly how much this browser holds for Chalkline, where the browser says.
 
 ## Clear local data
 
-**Clear local data** removes everything Chalkline keeps in this browser: the autosaved diagram, stencils, settings and recent items. It offers to export a backup first, then reloads to a fresh start. Files you've saved aren't touched.
+**Clear local data** removes everything Chalkline keeps in this browser: the autosaved diagram, stencils, settings, recent items and your AI key. It offers to export a backup first, then reloads to a fresh start. Files you've saved aren't touched.
 
 ## The tour
 

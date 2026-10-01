@@ -13,4 +13,5 @@ export const LEARN_MORE = {
   linkMode: 'connectors',
   connectorProperties: 'connectors',
   settings: 'settings-and-backup',
+  ai: 'ai-features',
 } as const
