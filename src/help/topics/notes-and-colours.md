@@ -9,6 +9,7 @@ Every shape and connector has a **Notes** field in its properties. Use it for de
 
 - A shape with notes shows a small note badge.
 - Connector notes are saved with the diagram but not drawn.
+- With an API key, **Suggest a note with AI…** offers a note for you to check and accept: see [Suggesting notes](help:suggesting-notes).
 
 ## Colours and text
 

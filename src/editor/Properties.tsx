@@ -1,7 +1,8 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, ChevronsLeft, ChevronsRight, CopyPlus, Group, Layers, LogOut, Pencil, RotateCcw, SlidersHorizontal, Trash2, Ungroup, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BetweenHorizontalEnd, BetweenHorizontalStart, ChevronsLeft, ChevronsRight, CopyPlus, Group, Layers, LogOut, NotebookPen, Pencil, RotateCcw, SlidersHorizontal, Trash2, Ungroup, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { openNotes } from '@/ai/GenerateEntry'
 import { revealViewport, selectionBounds } from '@/canvas/floating'
 import { EDGE_DEFAULTS } from '@/canvas/flow'
 import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
@@ -218,6 +219,16 @@ function EdgeTextSection({ edges }: { edges: DiagramEdge[] }) {
 /* ---------- Bodies ---------- */
 
 const NODE_NOTES_HINT = 'Notes show as a small note badge on the shape, not as text on the canvas.'
+
+/** Opens the AI sheet's Notes mode for the selected shapes (it explains if there are too many). */
+function SuggestNotesButton({ many }: { many: boolean }) {
+  return (
+    <Button variant="secondary" className="h-auto min-h-touch self-start py-2 text-left whitespace-normal" onClick={openNotes} aria-haspopup="dialog">
+      <NotebookPen />
+      {many ? 'Suggest notes with AI…' : 'Suggest a note with AI…'}
+    </Button>
+  )
+}
 const EDGE_NOTES_HINT = 'Notes are saved with the diagram but not drawn on the canvas.'
 
 function NodeProperties({ node }: { node: DiagramNode }) {
@@ -236,6 +247,7 @@ function NodeProperties({ node }: { node: DiagramNode }) {
         hint={NODE_NOTES_HINT}
         onChange={(notes) => store().setNodeNotes(node.id, notes)}
       />
+      <SuggestNotesButton many={false} />
       <ChangeShape nodes={[node]} />
       <GroupMembership node={node} />
       <NodeTextSection nodes={[node]} />
@@ -602,6 +614,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
       {summary.kind === 'nodes' && (
         <>
           <GroupButton />
+          <SuggestNotesButton many />
           <ChangeShape nodes={summary.nodes} />
           <NodeTextSection nodes={summary.nodes} />
           <NodeStyleSection nodes={summary.nodes} />

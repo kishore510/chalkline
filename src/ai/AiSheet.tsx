@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { useAiSheet } from './GenerateEntry'
 import { GeneratePanel } from './GenerateSheet'
+import { NotesPanel } from './NotesSheet'
 import { ReviewPanel } from './ReviewSheet'
 import { SummarisePanel } from './SummariseSheet'
 
 /*
- * The AI sheet: Generate (6b), Summarise (6c) or Review (6e), switched on
+ * The AI sheet: Generate (6b), Summarise (6c), Review (6e) or Notes (6d), switched on
  * each mode's first page. The panels stay mounted while the sheet is open,
  * so switching keeps a description or a summary; only the active one shows
- * its frame. Review results live in their own store and outlast the sheet.
+ * its frame. Review results and suggested notes live in their own stores
+ * and outlast the sheet.
  */
 export default function AiSheet() {
   const mode = useAiSheet((s) => s.mode)
@@ -28,6 +30,7 @@ export default function AiSheet() {
       <GeneratePanel active={mode === 'generate'} />
       <SummarisePanel active={mode === 'summarise'} />
       <ReviewPanel active={mode === 'review'} />
+      <NotesPanel active={mode === 'notes'} />
     </>
   )
 }

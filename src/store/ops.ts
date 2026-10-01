@@ -210,6 +210,14 @@ export function setNodeNotes(diagram: Diagram, id: string, notes: string): Diagr
   return mapNodes(diagram, (node) => (node.id === id && node.notes !== notes ? { ...node, notes } : node))
 }
 
+/** Sets several shapes' notes at once; nothing else on them changes. Unknown ids are ignored. */
+export function setNotesOf(diagram: Diagram, notes: ReadonlyMap<string, string>): Diagram {
+  return mapNodes(diagram, (node) => {
+    const next = notes.get(node.id)
+    return next !== undefined && node.notes !== next ? { ...node, notes: next } : node
+  })
+}
+
 function mapEdges(diagram: Diagram, update: (edge: DiagramEdge) => DiagramEdge): Diagram {
   let changed = false
   const edges = diagram.edges.map((edge) => {

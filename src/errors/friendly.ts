@@ -51,6 +51,7 @@ export type AiErrorKind =
   | 'ai-refused'
   | 'ai-truncated'
   | 'ai-review-malformed'
+  | 'ai-notes-malformed'
 
 export type ErrorKind = CoreErrorKind | AiErrorKind
 

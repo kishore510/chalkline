@@ -74,6 +74,12 @@ export interface DiagramState {
   updateNodeStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
   resetNodeStyles: (ids: string[]) => void
   setNodeNotes: (id: string, notes: string) => void
+  /**
+   * Accepted AI note suggestions: writes only these shapes' notes, as ONE undo
+   * step (never merged with typing). Like typing a note, it works on locked
+   * shapes. Returns how many shapes changed.
+   */
+  acceptSuggestedNotes: (changes: ReadonlyArray<{ id: string; notes: string }>) => number
   updateEdgeStyles: (ids: string[], patch: ops.StylePatch<EdgeStyle>) => void
   resetEdgeStyles: (ids: string[]) => void
   setEdgeLabel: (id: string, label: string) => void
@@ -449,6 +455,12 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       apply((d) => ops.updateNodeStyles(d, ids, patch), { key: `node-style:${ids.join()}:${Object.keys(patch).join()}` }),
     resetNodeStyles: (ids) => apply((d) => ops.resetNodeStyles(d, ids)),
     setNodeNotes: (id, notes) => apply((d) => ops.setNodeNotes(d, id, notes), { key: `notes:${id}` }),
+    acceptSuggestedNotes(changes) {
+      const before = get().diagram
+      const next = ops.setNotesOf(before, new Map(changes.map((c) => [c.id, c.notes])))
+      commit(next)
+      return next.nodes.filter((n, i) => n !== before.nodes[i]).length
+    },
     updateEdgeStyles: (ids, patch) =>
       apply((d) => ops.updateEdgeStyles(d, ids, patch), { key: `edge-style:${ids.join()}:${Object.keys(patch).join()}` }),
     resetEdgeStyles: (ids) => apply((d) => ops.resetEdgeStyles(d, ids)),

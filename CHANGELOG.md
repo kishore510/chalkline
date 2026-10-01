@@ -2,6 +2,20 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.25.0] - 2026-10-01
+
+### Added
+- **Suggest notes with AI**: select 1 to 5 shapes and Claude suggests a short note for each, saying what it does in the diagram or one thing worth considering. Choose **AI** in the top bar, then **Notes**, or **Suggest a note with AI…** in a shape's properties (on a phone, **Suggest notes with AI…** in the menu).
+- You check every suggestion before anything is written: edit it, **Accept** it, or **Dismiss** it. **Accept all** takes the rest in one go. Each Accept or Accept all is one undo step.
+- Suggestions only ever add to a shape's notes. A shape that already has a note offers **Append to existing note**, which adds the new text after a blank line. Nothing else in your diagram is changed.
+- The check step shows the model (Claude Haiku 4.5), the shapes, what's sent and the estimated size. Only labels, shape types and connections go, with up to 8 connections per shape. Existing notes are left out unless you turn on **Use existing notes as context**. Ids, positions and hidden layers are never sent.
+- A card says **changed since this suggestion** if you edit that shape afterwards, and asks you to confirm before accepting. **Show shape** selects the shape and centres the view on it.
+- A Help topic on suggesting notes.
+
+### Changed
+- The AI sheet has four modes: **Generate**, **Summarise**, **Review** and **Notes**, shown two by two.
+- The AI help topic covers suggested notes: what they send, the append-only rule, their cost and how far to trust them.
+
 ## [0.24.0] - 2026-10-01
 
 ### Added
