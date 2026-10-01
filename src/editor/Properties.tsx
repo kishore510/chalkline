@@ -26,6 +26,7 @@ import { LayersContent } from './LayersPanel'
 import { deleteSelectionWithNotice } from './deleteSelection'
 import { CATEGORIES, getShape, isKnownShape, SHAPES } from '@/shapes/registry'
 import { SaveStencilButton } from './stencils/SaveStencilButton'
+import { TextDefaultsSection, TextSection } from './TextControls'
 
 const store = () => useDiagramStore.getState()
 
@@ -38,7 +39,6 @@ const BORDER_WIDTHS: Option<number>[] = [
   { value: 3, label: 'Thick' },
   { value: 5, label: 'Heavy' },
 ]
-const FONT_SIZES: Option<number>[] = [10, 12, 14, 16, 20, 24, 32, 48].map((px) => ({ value: px, label: `${px} px` }))
 const LINE_TYPES: Option<NonNullable<EdgeStyle['lineType']>>[] = [
   { value: 'straight', label: 'Straight' },
   { value: 'step', label: 'Right angles' },
@@ -131,10 +131,7 @@ function NodeStyleSection({ nodes }: { nodes: DiagramNode[] }) {
         value={get('textColour')}
         onChange={(textColour) => set({ textColour })}
       />
-      <div className="flex gap-3">
-        <SelectField label="Border width" value={get('strokeWidth')} options={BORDER_WIDTHS} onChange={(strokeWidth) => set({ strokeWidth })} />
-        <SelectField label="Text size" value={get('fontSize')} options={FONT_SIZES} onChange={(fontSize) => set({ fontSize })} />
-      </div>
+      <SelectField label="Border width" value={get('strokeWidth')} options={BORDER_WIDTHS} onChange={(strokeWidth) => set({ strokeWidth })} />
       {hasStyle && <ResetButton onClick={() => store().resetNodeStyles(ids)} />}
     </Section>
   )
@@ -204,6 +201,19 @@ function ConnectionSection({ edges }: { edges: DiagramEdge[] }) {
   )
 }
 
+/** Font, size, bold, italic, underline, strikethrough and alignment for selected shapes. One undo step per change. */
+function NodeTextSection({ nodes }: { nodes: DiagramNode[] }) {
+  const defaults = useDiagramStore((s) => s.diagram.textDefaults)
+  const ids = nodes.map((n) => n.id)
+  return <TextSection styles={nodes.map((n) => n.style)} defaults={defaults} alignment onPatch={(patch) => store().updateNodeStyles(ids, patch as StylePatch<NodeStyle>)} />
+}
+
+function EdgeTextSection({ edges }: { edges: DiagramEdge[] }) {
+  const defaults = useDiagramStore((s) => s.diagram.textDefaults)
+  const ids = edges.map((e) => e.id)
+  return <TextSection styles={edges.map((e) => e.style)} defaults={defaults} alignment={false} onPatch={(patch) => store().updateEdgeStyles(ids, patch as StylePatch<EdgeStyle>)} />
+}
+
 /* ---------- Bodies ---------- */
 
 const NODE_NOTES_HINT = 'Notes show as a small note badge on the shape, not as text on the canvas.'
@@ -227,6 +237,7 @@ function NodeProperties({ node }: { node: DiagramNode }) {
       />
       <ChangeShape nodes={[node]} />
       <GroupMembership node={node} />
+      <NodeTextSection nodes={[node]} />
       <NodeStyleSection nodes={[node]} />
       <Section title="Size">
         <div className="flex gap-3">
@@ -502,6 +513,7 @@ function EdgeProperties({ edge }: { edge: DiagramEdge }) {
         onChange={(notes) => store().setEdgeNotes(edge.id, notes)}
       />
       <ConnectionSection edges={[edge]} />
+      {edge.label.trim() && <EdgeTextSection edges={[edge]} />}
       <EdgeStyleSection edges={[edge]} />
     </>
   )
@@ -509,6 +521,7 @@ function EdgeProperties({ edge }: { edge: DiagramEdge }) {
 
 function DiagramProperties() {
   const title = useDiagramStore((s) => s.diagram.meta.title)
+  const textDefaults = useDiagramStore((s) => s.diagram.textDefaults)
   const counts = useDiagramStore((s) => `${s.diagram.nodes.length} shapes, ${s.diagram.edges.length} connectors`)
   return (
     <>
@@ -518,6 +531,7 @@ function DiagramProperties() {
       </Label>
       <p className="text-sm text-text-muted">{counts}</p>
       <p className="text-sm text-text-muted">Select a shape or connector to style it and add notes.</p>
+      <TextDefaultsSection defaults={textDefaults} onPatch={(patch) => store().setTextDefaults(patch)} />
     </>
   )
 }
@@ -564,6 +578,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
         <>
           <GroupButton />
           <ChangeShape nodes={summary.nodes} />
+          <NodeTextSection nodes={summary.nodes} />
           <NodeStyleSection nodes={summary.nodes} />
           <LockField ids={summary.nodes.map((n) => n.id)} locked={summary.nodes.every((n) => n.locked)} inherited={false} />
         </>
@@ -572,6 +587,7 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
       {summary.kind === 'edges' && (
         <>
           <ConnectionSection edges={summary.edges} />
+          <EdgeTextSection edges={summary.edges} />
           <EdgeStyleSection edges={summary.edges} />
         </>
       )}

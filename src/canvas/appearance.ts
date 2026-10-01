@@ -1,5 +1,6 @@
+import { resolveText, textCss } from '@/fonts/registry'
 import { resolveColour } from '@/lib/colour'
-import type { EdgeStyle, NodeStyle } from '@/schema/diagram'
+import type { EdgeStyle, NodeStyle, TextDefaults } from '@/schema/diagram'
 
 /** Resolved CSS values for a node's style. Undefined means "use the theme default". */
 export interface NodeAppearance {
@@ -8,15 +9,20 @@ export interface NodeAppearance {
   strokeWidth?: number
   textColour?: string
   fontSize?: number
+  /** Font, weight, italic, decoration and alignment (real faces only); missing means the app's label look. */
+  text?: ReturnType<typeof textCss>
 }
 
-export function nodeAppearance(style: NodeStyle): NodeAppearance {
+/** `defaults`: the diagram's text defaults, which the node's own values override. */
+export function nodeAppearance(style: NodeStyle, defaults?: TextDefaults): NodeAppearance {
   return {
     fill: style.fill && resolveColour(style.fill, 'var(--cl-node-fill)'),
     stroke: style.stroke && resolveColour(style.stroke, 'var(--cl-node-stroke)'),
     strokeWidth: style.strokeWidth,
     textColour: style.textColour && resolveColour(style.textColour, 'var(--cl-node-text)'),
-    fontSize: style.fontSize,
+    fontSize: style.fontSize ?? defaults?.fontSize,
+    // The size is applied separately (it has a touch minimum), so the base size here doesn't matter.
+    text: textCss(resolveText(style, defaults, 0)),
   }
 }
 

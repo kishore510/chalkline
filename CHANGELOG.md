@@ -2,6 +2,17 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.18.0] - 2026-10-01
+
+### Added
+- Text styling for shapes and connectors: five fonts (Inter, Source Serif 4, JetBrains Mono, Caveat and Nunito), size, bold, italic, underline, strikethrough and, for shapes, left, centre or right alignment. Find it in the new **Text** section of the properties. Several selected items can be styled at once.
+- Diagram text defaults: with nothing selected, choose the font and label size the whole diagram uses.
+- Exports use the same fonts as the canvas. SVG files carry the fonts they use, so they look the same in other apps.
+
+### Changed
+- Bold or Italic is greyed out when a font doesn't have it (Caveat has no italic). Chalkline never fakes a style; the label keeps its setting for when you switch fonts back.
+- Diagrams are now saved in format version 5. Older diagrams and stencils still open.
+
 ## [0.17.0] - 2026-10-01
 
 ### Added

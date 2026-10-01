@@ -4,6 +4,9 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { resolveColour } from '@/lib/colour'
 import { readToken } from '@/lib/cssVar'
 import { cn } from '@/lib/utils'
+import { fontSpec } from '@/fonts/fontFaces'
+import { textCss, titleText } from '@/fonts/registry'
+import { useFontReady } from '@/fonts/useFontReady'
 import { currentTarget, useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { endResize, startResize } from './guideSession'
@@ -13,7 +16,7 @@ export type GroupNodeData = { view: GroupView; selected: boolean; dropTarget: bo
 export type GroupFlowNode = Node<GroupNodeData, 'group-box'>
 
 /** Same rule as node labels: the chosen size, never below the touch minimum. */
-const TITLE_FONT = 'max(var(--cl-node-font-min), var(--text-node))'
+const titleFont = (size: number | undefined) => `max(var(--cl-node-font-min), ${size ? `${size}px` : 'var(--text-node)'})`
 
 /** Clicking a header or border selects the group (Shift/Cmd/Ctrl adds or removes it). */
 function selectGroup(id: string, e: React.MouseEvent) {
@@ -39,6 +42,10 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
   const found = useSearchStore((s) => currentTarget(s) === id)
   const titleRef = useRef<HTMLDivElement>(null)
   const [titleSize, setTitleSize] = useState(0)
+  // Titles follow the diagram's font (and the group's own text style, if a file sets one).
+  const defaults = useDiagramStore((s) => s.diagram.textDefaults)
+  const title = titleText(group.style, defaults, 16)
+  const fontReady = useFontReady(fontSpec(title))
 
   // Measure the title across the header's thickness, so a long title grows the header instead of spilling.
   useLayoutEffect(() => {
@@ -48,12 +55,16 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(el)
-    return () => observer.disconnect()
+    document.fonts?.addEventListener('loadingdone', measure)
+    return () => {
+      observer.disconnect()
+      document.fonts?.removeEventListener('loadingdone', measure)
+    }
   }, [side])
   useEffect(() => {
     const needed = titleSize + 2 * readToken('--cl-node-padding', 8)
-    if (titleSize && needed > header) useDiagramStore.getState().growGroupHeader(id, needed)
-  }, [id, titleSize, header])
+    if (fontReady && titleSize && needed > header) useDiagramStore.getState().growGroupHeader(id, needed)
+  }, [id, titleSize, header, fontReady])
 
   const fill = resolveColour(group.style.fill, 'var(--cl-group-fill)')
   const border = resolveColour(group.style.stroke, 'var(--cl-group-border)')
@@ -111,12 +122,12 @@ export const GroupNode = memo(function GroupNode({ id, data }: NodeProps<GroupFl
         <div
           ref={titleRef}
           className={cn(
-            'min-w-0 font-semibold whitespace-pre-line',
+            'min-w-0 whitespace-pre-line',
             /\s/.test(group.label.trim()) ? 'wrap-break-word' : 'wrap-anywhere',
             side === 'left' ? 'rotate-180 [writing-mode:vertical-rl] text-center' : 'flex-1',
             !group.label && 'text-text-muted italic',
           )}
-          style={{ fontSize: TITLE_FONT, lineHeight: 'var(--text-node--line-height)' }}
+          style={{ ...textCss(title), textAlign: undefined, ...(!group.label && { fontStyle: 'italic' }), fontSize: titleFont(group.style.fontSize ?? defaults?.fontSize), lineHeight: 'var(--text-node--line-height)' }}
         >
           {group.label || (lane ? 'Lane' : 'Group')}
         </div>

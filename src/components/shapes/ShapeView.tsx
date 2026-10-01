@@ -80,11 +80,14 @@ export function ShapeView({
         <div
           ref={labelRef}
           className={cn(
-            'shrink-0 text-center font-medium whitespace-pre-line text-node-text',
+            'shrink-0 whitespace-pre-line text-node-text',
+            // Unstyled (e.g. the style sheet page): the app's label look.
+            !appearance.text && 'text-center font-medium',
             singleWord ? 'wrap-anywhere' : 'wrap-break-word',
             free ? 'px-1 pt-1' : 'w-full p-(--cl-node-padding)',
           )}
           style={{
+            ...appearance.text,
             color: appearance.textColour,
             fontSize: labelFontSize(appearance.fontSize),
             lineHeight: 'var(--text-node--line-height)',
