@@ -79,6 +79,10 @@ async function type(value: string) {
 async function settle(times = 30) {
   for (let i = 0; i < times; i++) await act(async () => new Promise((r) => setTimeout(r, 5)))
 }
+/** Waits (up to a few seconds, for a busy machine) until the sheet shows `text`. */
+async function until(text: string) {
+  for (let i = 0; i < 600 && !dialog()?.textContent?.includes(text); i++) await settle(1)
+}
 async function open() {
   await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate a diagram with AI"]')!.click())
   // The sheet loads on first open.
@@ -135,7 +139,7 @@ describe('Generate diagram sheet', () => {
     expect(calls).toHaveLength(0)
 
     await click('Send')
-    await settle()
+    await until('Add to canvas')
     expect(calls).toHaveLength(1)
     expect(dialog()!.textContent).toContain('4 shapes, 2 connectors')
     expect(dialog()!.textContent).toContain('What was changed')
@@ -169,11 +173,11 @@ describe('Generate diagram sheet', () => {
     await click('Generate')
     expect(dialog()!.textContent).not.toContain(NOTICE_TITLE)
     await click('Send')
-    await settle(5)
+    await until('Asking')
     expect(dialog()!.textContent).toContain('Asking')
     await click('Cancel')
     release()
-    await settle()
+    for (let i = 0; i < 600 && !document.querySelector('textarea'); i++) await settle(1)
     expect(document.querySelector('textarea')!.value).toBe('Something')
     expect(dialog()!.textContent).not.toContain('Add to canvas')
     expect(useDiagramStore.getState().past).toHaveLength(0)
@@ -189,7 +193,7 @@ describe('Generate diagram sheet', () => {
     await type('A queue')
     await click('Generate')
     await click('Send')
-    await settle()
+    await until('Retry')
     expect(dialog()!.textContent).toContain('The answer couldn’t be turned into a diagram')
     expect(calls).toHaveLength(1)
     await click('Retry')
