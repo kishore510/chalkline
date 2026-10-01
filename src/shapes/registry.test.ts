@@ -40,6 +40,15 @@ describe('shape registry', () => {
     for (const c of CATEGORIES) expect(SHAPES.some((s) => s.category === c.id)).toBe(true)
   })
 
+  it('describes every shape in its own words, with search keywords', () => {
+    for (const s of SHAPES) {
+      expect(s.description.trim().length, s.id).toBeGreaterThan(10)
+      expect(s.keywords.length, s.id).toBeGreaterThan(0)
+    }
+    // A shape built by spreading another must not keep its description.
+    expect(new Set(SHAPES.map((s) => s.description)).size).toBe(SHAPES.length)
+  })
+
   it('keeps the original six ids', () => {
     for (const id of ['rectangle', 'rounded', 'database', 'cloud', 'actor', 'text']) expect(isKnownShape(id)).toBe(true)
   })

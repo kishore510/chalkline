@@ -2,6 +2,7 @@ import { FolderKanban, Radio, type LucideIcon } from 'lucide-react'
 import type { Size } from '@/schema/diagram'
 import { boxSidePoint, r2 as n, rectOutline, sampleCubic } from './outline'
 import { glyphIcon, penAt } from './glyphIcon'
+import { LUCIDE, lucideGlyph } from './lucideGlyph'
 import { cylinderRy, hexagonPoints, hexInset, polygon, roundedRect } from './paths'
 import { SIDES, type Box, type Glyph, type Pen, type Point, type ShapeCategory, type ShapeDefinition, type Side } from './types'
 
@@ -10,6 +11,9 @@ import { SIDES, type Box, type Glyph, type Pen, type Point, type ShapeCategory, 
  * (an outline such as a rounded box, hexagon, cylinder or shield) plus an
  * optional glyph: a small stroke-only mark drawn in a band above the label,
  * the way the server draws its rack units above its label.
+ *
+ * Shapes pack 3 adds the Model Context Protocol (MCP) client and server and
+ * agent tools to AI & ML, with glyphs drawn from Lucide artwork.
  */
 
 /* ---------- Frames ---------- */
@@ -266,6 +270,10 @@ const GLYPHS = {
       `Q${pen.p(m(0.2), 0.5)} ${pen.p(m(0.2), 0.62)}L${pen.p(m(0.2), 0.8)}Q${pen.p(m(0.2), 1)} ${pen.p(m(0.36), 1)}`
     return [brace((u) => u), brace((u) => 1 - u), line(pen, [0.46, 0.5], [0.54, 0.5])]
   },
+  // Lucide artwork, drawn through the pen like the glyphs above.
+  plug: lucideGlyph(LUCIDE.plug),
+  serverCog: lucideGlyph(LUCIDE['server-cog']),
+  wrench: lucideGlyph(LUCIDE.wrench),
 } satisfies Record<string, Glyph>
 
 /* ---------- Building a shape ---------- */
@@ -340,7 +348,7 @@ export const NETWORKING: readonly ShapeDefinition[] = [
 export const ARCHITECTURE: readonly ShapeDefinition[] = [
   shape({ id: 'cache', name: 'Cache store', category: 'architecture', description: 'fast in-memory key-value store in front of slower storage', keywords: ['cache', 'redis', 'memcached', 'in-memory', 'key-value'], defaultSize: CYLINDER, defaultLabel: 'Cache', frame: cylinderFrame, glyph: GLYPHS.bolt }),
   shape({ id: 'message-bus', name: 'Message bus / pub-sub', category: 'architecture', icon: Radio, description: 'publishes events to many subscribers', keywords: ['pub-sub', 'pubsub', 'event bus', 'topic', 'broker', 'kafka', 'events', 'streaming'], defaultSize: { width: 220, height: 60 }, defaultLabel: 'Event bus', frame: busFrame }),
-  shape({ id: 'microservice', name: 'Microservice', category: 'architecture', description: 'small independently deployed service', keywords: ['service', 'component', 'container', 'module'], defaultSize: SMALL_BOX, defaultLabel: 'Service', frame: roundedFrame, glyph: GLYPHS.cube }),
+  shape({ id: 'microservice', name: 'Microservice', category: 'architecture', description: 'small, independently deployed application service that owns one business capability and is called over HTTP, gRPC or messaging', keywords: ['service', 'component', 'container', 'module', 'backend', 'rest'], defaultSize: SMALL_BOX, defaultLabel: 'Service', frame: roundedFrame, glyph: GLYPHS.cube }),
   shape({ id: 'object-storage', name: 'Object storage / data lake', category: 'architecture', icon: FolderKanban, description: 'stores files and blobs at scale', keywords: ['blob', 'bucket', 's3', 'data lake', 'files', 'lake'], defaultSize: { width: 140, height: 120 }, defaultLabel: 'Object storage', frame: bucketFrame }),
   shape({ id: 'worker', name: 'Worker / cron job', category: 'architecture', description: 'background or scheduled processing', keywords: ['cron', 'job', 'batch', 'scheduled', 'background', 'timer'], defaultSize: SMALL_BOX, defaultLabel: 'Worker', frame: roundedFrame, glyph: GLYPHS.clock }),
 ]
@@ -357,4 +365,7 @@ export const AI: readonly ShapeDefinition[] = [
   shape({ id: 'ai-agent', name: 'AI agent / orchestrator', category: 'ai', description: 'plans steps and calls models and tools', keywords: ['agent', 'orchestrator', 'planner', 'bot', 'autonomous', 'workflow'], defaultSize: BOX, defaultLabel: 'AI agent', frame: roundedFrame, glyph: GLYPHS.bot }),
   shape({ id: 'agent-identity', name: 'Agent identity', category: 'ai', description: 'credentials an agent acts under', keywords: ['identity', 'credential', 'service account', 'workload identity', 'oauth', 'token'], defaultSize: BOX, defaultLabel: 'Agent identity', frame: roundedFrame, glyph: GLYPHS.badge }),
   shape({ id: 'prompt-template', name: 'Prompt template', category: 'ai', description: 'reusable prompt with placeholders', keywords: ['prompt', 'template', 'system prompt', 'instructions'], defaultSize: { width: 140, height: 120 }, defaultLabel: 'Prompt', frame: pageFrame, glyph: GLYPHS.braces }),
+  shape({ id: 'mcp-client', name: 'MCP client', category: 'ai', description: 'the connector inside an AI app or agent host that connects out over the Model Context Protocol and hands the tools it finds to the model', keywords: ['mcp', 'model context protocol', 'client', 'host', 'connector', 'agent host'], defaultSize: BOX, defaultLabel: 'MCP client', frame: roundedFrame, glyph: GLYPHS.plug }),
+  shape({ id: 'mcp-server', name: 'MCP server', category: 'ai', description: 'a Model Context Protocol endpoint that exposes tools, resources and prompts for AI agents to call', keywords: ['mcp', 'model context protocol', 'server', 'tools', 'resources', 'context'], defaultSize: BOX, defaultLabel: 'MCP server', frame: roundedFrame, glyph: GLYPHS.serverCog }),
+  shape({ id: 'tool', name: 'Tool / plugin', category: 'ai', description: 'a single callable tool, function or integration that an agent can invoke, such as search, code execution or a SaaS API', keywords: ['tool', 'plugin', 'function calling', 'tool use', 'integration', 'action', 'extension', 'skill'], defaultSize: SMALL_BOX, defaultLabel: 'Tool', frame: roundedFrame, glyph: GLYPHS.wrench }),
 ]

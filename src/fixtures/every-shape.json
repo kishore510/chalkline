@@ -36,7 +36,10 @@
     {"id": "n_semantic-cache", "type": "semantic-cache", "position": {"x": 720, "y": 1400}, "size": {"width": 120, "height": 120}, "label": "Semantic cache"},
     {"id": "n_ai-agent", "type": "ai-agent", "position": {"x": 0, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "AI agent / orchestrator"},
     {"id": "n_agent-identity", "type": "agent-identity", "position": {"x": 240, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "Agent identity"},
-    {"id": "n_prompt-template", "type": "prompt-template", "position": {"x": 480, "y": 1600}, "size": {"width": 140, "height": 120}, "label": "Prompt template"}
+    {"id": "n_prompt-template", "type": "prompt-template", "position": {"x": 480, "y": 1600}, "size": {"width": 140, "height": 120}, "label": "Prompt template"},
+    {"id": "n_mcp-client", "type": "mcp-client", "position": {"x": 720, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "MCP client"},
+    {"id": "n_mcp-server", "type": "mcp-server", "position": {"x": 0, "y": 1800}, "size": {"width": 160, "height": 100}, "label": "MCP server"},
+    {"id": "n_tool", "type": "tool", "position": {"x": 240, "y": 1800}, "size": {"width": 140, "height": 100}, "label": "Tool / plugin"}
   ],
   "edges": []
 }
