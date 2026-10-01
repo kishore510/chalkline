@@ -12,6 +12,7 @@ import {
   type Orientation,
   type Position,
   type Size,
+  type TextDefaults,
 } from '@/schema/diagram'
 import { align, distribute, matchSize, type AlignMode, type Axis, type MatchMode } from '@/canvas/arrange'
 import { createId } from '@/lib/id'
@@ -66,6 +67,8 @@ export interface DiagramState {
   /** Changes nodes to another registry shape, keeping label, notes, style, size (grown to its minimum), connectors and group. Unknown ids and locked nodes are skipped. */
   changeNodeType: (ids: string[], type: string) => void
   setTitle: (title: string) => void
+  /** Diagram-wide font and size for labels; a label's own values override them. One undo step. */
+  setTextDefaults: (patch: ops.StylePatch<TextDefaults>) => void
   updateNodeStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
   resetNodeStyles: (ids: string[]) => void
   setNodeNotes: (id: string, notes: string) => void
@@ -430,6 +433,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
     setNodeLabel: (id, label) => apply((d) => ops.setNodeLabel(d, id, label), { key: `label:${id}` }),
     setTitle: (title) => apply((d) => ops.setTitle(d, title), { key: 'title' }),
+    setTextDefaults: (patch) => apply((d) => ops.setTextDefaults(d, patch)),
     updateNodeStyles: (ids, patch) =>
       apply((d) => ops.updateNodeStyles(d, ids, patch), { key: `node-style:${ids.join()}:${Object.keys(patch).join()}` }),
     resetNodeStyles: (ids) => apply((d) => ops.resetNodeStyles(d, ids)),

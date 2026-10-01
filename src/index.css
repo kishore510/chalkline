@@ -16,6 +16,8 @@
     background-color: var(--cl-bg);
     color: var(--cl-text);
     font-family: var(--font-sans);
+    /* Never fake a bold or italic a font doesn't have (labels pick real faces; see src/fonts). */
+    font-synthesis: none;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;

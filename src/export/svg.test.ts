@@ -3,6 +3,7 @@ import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
 import { useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
+import { FONTS } from '@/fonts/registry'
 import { buildSvg, type ExportEnv } from './svg'
 
 // A fixed palette so output is predictable; every token gets a distinct colour.
@@ -26,7 +27,6 @@ const palette: Record<string, string> = {
 const env: ExportEnv = {
   colour: (token) => palette[token] ?? '',
   measure: (text, size) => text.length * size * 0.55,
-  fontFamily: 'Inter, sans-serif',
   fontSize: 15,
   lineHeight: 1.35,
   nodePadding: 8,
@@ -65,7 +65,7 @@ describe('buildSvg', () => {
   })
 
   it('draws edge labels, dashes and arrowheads', () => {
-    expect(svg).toContain('>SQL</text>')
+    expect(svg).toContain('>SQL</tspan></text>')
     expect(svg).toContain('stroke-dasharray="8 6"')
     expect(svg).toContain('<marker id="m0"')
   })
@@ -141,5 +141,52 @@ describe('search highlight', () => {
     expect(buildSvg(useDiagramStore.getState().diagram, env).svg).toBe(before)
     expect(before).not.toContain('found')
     useSearchStore.getState().close()
+  })
+})
+
+describe('text styling in exports', () => {
+  const styled = parseDiagram(fixtures['text-styles'])
+  // Every face has data, as the browser would provide; only the used ones may be embedded.
+  const allData = new Map(FONTS.flatMap((f) => f.faces).map((face) => [face.file, `DATA:${face.file}`]))
+  const { svg, faces } = buildSvg(styled, { ...env, fontData: allData })
+  const embedded = [...svg.matchAll(/@font-face\{font-family:'([^']+)';font-style:(\w+)/g)].map((m) => `${m[1]} ${m[2]}`).sort()
+
+  it('embeds @font-face only for the faces the labels use', () => {
+    expect(embedded).toEqual([
+      'Caveat Variable normal',
+      'Inter Variable normal',
+      'JetBrains Mono Variable normal',
+      'Nunito Variable italic',
+      'Nunito Variable normal',
+      'Source Serif 4 Variable italic',
+    ])
+    expect(faces).toHaveLength(6)
+    expect(svg).not.toContain('inter-latin-wght-italic')
+    expect(svg).not.toContain('jetbrains-mono-latin-wght-italic')
+  })
+
+  it('embeds nothing when no font data is given, and nothing unused for a plain diagram', () => {
+    expect(buildSvg(styled, env).svg).not.toContain('@font-face')
+    const plain = buildSvg(parseDiagram(fixtures['process-flow']), { ...env, fontData: allData }).svg
+    expect([...plain.matchAll(/@font-face/g)]).toHaveLength(1)
+    expect(plain).toContain("font-family:'Inter Variable';font-style:normal")
+  })
+
+  it('draws each label in its font, weight and style; a missing italic draws upright', () => {
+    expect(svg).toMatch(/font-family="'Source Serif 4 Variable'[^"]*" font-size="18" font-weight="700" font-style="italic"/)
+    // Caveat is stored italic but has no italic face.
+    expect(svg).toMatch(/font-family="'Caveat Variable'[^"]*" font-size="22" font-weight="500" fill/)
+    // Unknown font id: the default font. Diagram defaults: Nunito at 16.
+    expect(svg).toMatch(/font-family="'Nunito Variable'[^"]*" font-size="16" font-weight="500"/)
+    // Connector labels take the diagram font but keep their own default size.
+    expect(svg).toMatch(/font-family="'Nunito Variable'[^"]*" font-size="12" font-weight="500" font-style="italic"/)
+    expect(svg).toMatch(/font-family="'JetBrains Mono Variable'[^"]*" font-size="14" font-weight="700"/)
+  })
+
+  it('aligns lines and draws underline and strikethrough as lines', () => {
+    expect(svg).toMatch(/text-anchor="start"[^>]*><tspan[^>]*>GET \/api\/orders<\/tspan>/)
+    expect(svg).toMatch(/text-anchor="end"[^>]*><tspan[^>]*>Old service/)
+    // Caveat (underline, 3 lines or so), the struck-out callout, and the underlined connector label.
+    expect((svg.match(/<line /g) ?? []).length).toBeGreaterThanOrEqual(3)
   })
 })

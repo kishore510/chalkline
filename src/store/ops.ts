@@ -1,4 +1,4 @@
-import { DiagramSchema, EdgeStyleSchema, NodeStyleSchema, type Diagram, type DiagramEdge, type DiagramGroup, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size } from '@/schema/diagram'
+import { DiagramSchema, EdgeStyleSchema, NodeStyleSchema, TextDefaultsSchema, type Diagram, type DiagramEdge, type DiagramGroup, type DiagramNode, type EdgeStyle, type NodeStyle, type Position, type Size, type TextDefaults } from '@/schema/diagram'
 import { HANDLE_SIDES, type HandleSide } from '@/canvas/handles'
 import { createEdge } from '@/schema/factories'
 
@@ -63,6 +63,15 @@ export function setNodeLabel(diagram: Diagram, id: string, label: string): Diagr
 
 export function setTitle(diagram: Diagram, title: string): Diagram {
   return title === diagram.meta.title ? diagram : { ...diagram, meta: { ...diagram.meta, title } }
+}
+
+/** Changes the diagram's text defaults; undefined clears a field, and an empty set is removed. */
+export function setTextDefaults(diagram: Diagram, patch: StylePatch<TextDefaults>): Diagram {
+  const current = diagram.textDefaults ?? {}
+  const next = patchStyle(current, patch, TextDefaultsSchema)
+  if (next === null || next === current) return diagram
+  const { textDefaults: _old, ...rest } = diagram
+  return Object.keys(next).length ? { ...rest, textDefaults: next } : rest
 }
 
 /** True when an edge with the same ends and handles already exists. */

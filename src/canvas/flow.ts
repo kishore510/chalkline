@@ -1,4 +1,5 @@
 import { MarkerType, type Edge, type EdgeChange, type EdgeMarker, type Node, type NodeChange } from '@xyflow/react'
+import type { TextStyleFields } from '@/fonts/registry'
 import type { Diagram, DiagramEdge, DiagramNode, EdgeStyle, NodeStyle, NodeType, Position, Size } from '@/schema/diagram'
 import { edgeAppearance } from './appearance'
 import type { Route } from './routing'
@@ -32,6 +33,8 @@ export type FloatingEdgeData = {
   /** Offsets along the side, so connectors sharing a side don't stack (see spread.ts). */
   sourceShift?: number
   targetShift?: number
+  /** The label's own text styling, if any (the canvas adds the diagram defaults). */
+  text?: TextStyleFields
 }
 export type FloatingFlowEdge = Edge<FloatingEdgeData, 'floating'>
 
@@ -110,8 +113,16 @@ export const zForGroup = (layer: number, depth: number) => layer * LAYER_Z - 90 
 /** Default edge width in px; the canvas passes the --cl-edge-width token. */
 export const DEFAULT_EDGE_WIDTH = 1.5
 
+/** Just the text fields of an edge style, or undefined if it has none. */
+function edgeText(style: EdgeStyle): TextStyleFields | undefined {
+  const { fontFamily, fontSize, fontWeight, fontStyle, textDecoration } = style
+  const text = { fontFamily, fontSize, fontWeight, fontStyle, textDecoration }
+  return Object.values(text).some((v) => v !== undefined) ? text : undefined
+}
+
 export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = DEFAULT_EDGE_WIDTH, route?: Route, spread?: Spread, zIndex = zForEdge(0)): Edge {
   const style = edge.style
+  const text = edgeText(style)
   const { colour, width, dashArray } = edgeAppearance(style, selected, defaultWidth)
   const lineType = style.lineType ?? EDGE_DEFAULTS.lineType
   // Every edge is drawn by FloatingEdge, which attaches exactly at side midpoints.
@@ -133,11 +144,13 @@ export function toFlowEdge(edge: DiagramEdge, selected: boolean, defaultWidth = 
           ...(route.kind === 'detour' && { detour: route.points }),
           ...(spread?.source && { sourceShift: spread.source }),
           ...(spread?.target && { targetShift: spread.target }),
+          ...(text && { text }),
         }
       : {
           lineType,
           ...(isSide(edge.sourceHandle) && { sourceSide: edge.sourceHandle }),
           ...(isSide(edge.targetHandle) && { targetSide: edge.targetHandle }),
+          ...(text && { text }),
         }) satisfies FloatingEdgeData,
     selected,
     markerStart: marker(style.startArrow ?? EDGE_DEFAULTS.startArrow, colour),

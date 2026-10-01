@@ -26,7 +26,6 @@ export function thumbnailEnv(sizes: ThumbnailSizes): ExportEnv {
     ...sizes,
     colour: (token) => `var(--cl-${token})`,
     measure: (text, size) => text.length * size * 0.55,
-    fontFamily: 'inherit',
   }
 }
 

@@ -12,7 +12,7 @@ Every shape and connector has a **Notes** field in its properties. Use it for de
 
 ## Colours and text
 
-Select a shape to set its **Fill**, **Border** colour and width, **Text** colour and **Font size**. Select a connector to set its line colour and width.
+Select a shape to set its **Fill**, **Border** colour and width, and **Text** colour. Select a connector to set its line colour and width. Font, size, bold, italic and alignment are in the **Text** section: see [Text styling](help:text-styling).
 
 - **Presets** are soft fills and strong lines that suit both light and dark themes, and switch with the theme.
 - **Custom** lets you enter any colour. Custom colours stay the same in both themes.

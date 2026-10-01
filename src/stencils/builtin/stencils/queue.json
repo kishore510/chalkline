@@ -1,6 +1,6 @@
 {
   "kind": "chalkline-stencil",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "builtin:queue",
   "name": "Queue with producer and consumer",
   "category": "Messaging",

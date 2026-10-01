@@ -1,4 +1,7 @@
 import { BaseEdge, getBezierPath, getSmoothStepPath, getStraightPath, useInternalNode, type EdgeProps } from '@xyflow/react'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { edgeLabelText, textCss, type TextStyleFields } from '@/fonts/registry'
+import type { TextDefaults } from '@/schema/diagram'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { internalBox } from './EdgeGrips'
@@ -12,16 +15,62 @@ import { shiftAlongSide } from './spread'
 const DETOUR_RADIUS = 8
 
 /**
+ * A connector label: text on a rounded background, like React Flow's own, but
+ * re-measured when its font changes or fonts finish loading (React Flow
+ * measures only when the text changes, so the background would be wrong).
+ */
+function EdgeLabel({ x, y, label, text, defaults, padding, bgStyle, radius }: {
+  x: number
+  y: number
+  label: string
+  text: TextStyleFields | undefined
+  defaults: TextDefaults | undefined
+  padding: [number, number]
+  bgStyle?: CSSProperties
+  radius?: number
+}) {
+  const ref = useRef<SVGTextElement>(null)
+  const [box, setBox] = useState({ width: 0, height: 0 })
+  const resolved = edgeLabelText(text ?? {}, defaults, 0)
+  // Size only when set on the connector; otherwise the stylesheet's label size applies.
+  const style: CSSProperties = { ...textCss(resolved), textAlign: undefined, ...(text?.fontSize !== undefined && { fontSize: text.fontSize }) }
+  const key = `${label}|${resolved.font.id}|${resolved.weight}|${resolved.italic}|${text?.fontSize ?? ''}`
+  useLayoutEffect(() => {
+    const measure = () => {
+      const b = ref.current?.getBBox()
+      if (b) setBox((prev) => (prev.width === b.width && prev.height === b.height ? prev : { width: b.width, height: b.height }))
+    }
+    measure()
+    document.fonts?.addEventListener('loadingdone', measure)
+    return () => document.fonts?.removeEventListener('loadingdone', measure)
+  }, [key])
+  const [px, py] = padding
+  return (
+    <g transform={`translate(${x - box.width / 2} ${y - box.height / 2})`} className="react-flow__edge-textwrapper" visibility={box.width ? 'visible' : 'hidden'}>
+      <rect width={box.width + 2 * px} x={-px} y={-py} height={box.height + 2 * py} className="react-flow__edge-textbg" style={bgStyle} rx={radius} ry={radius} />
+      <text ref={ref} className="react-flow__edge-text" y={box.height / 2} dy="0.3em" style={style}>
+        {label}
+      </text>
+    </g>
+  )
+}
+
+/**
  * Draws every connector. Ends attach at side midpoints on the sides the
  * router chose (pinned sides never change; auto sides avoid other shapes). While one of
  * its end grips is dragged, the dragged end follows the pointer (or the
  * docking point it has snapped to) as a live preview.
  */
-export function FloatingEdge({ id, source, target, data, style, markerStart, markerEnd, label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius, interactionWidth }: EdgeProps<FloatingFlowEdge>) {
+export function FloatingEdge({ id, source, target, data, style, markerStart, markerEnd, label, labelBgStyle, labelBgPadding, labelBgBorderRadius, interactionWidth }: EdgeProps<FloatingFlowEdge>) {
   const sourceNode = useInternalNode(source)
   const targetNode = useInternalNode(target)
   const drag = useUiStore((s) => (s.edgeDrag?.edgeId === id ? s.edgeDrag : null))
   const snapNode = useDiagramStore((s) => (drag?.target ? s.diagram.nodes.find((n) => n.id === drag.target!.nodeId) : undefined))
+  const defaults = useDiagramStore((s) => s.diagram.textDefaults)
+  const labelAt = (x: number, y: number) =>
+    typeof label === 'string' && label ? (
+      <EdgeLabel x={x} y={y} label={label} text={data?.text} defaults={defaults} padding={labelBgPadding ?? [2, 4]} bgStyle={labelBgStyle} radius={labelBgBorderRadius} />
+    ) : null
   if (!sourceNode || !targetNode || !data) return null
 
   let sourceBox: Box = internalBox(sourceNode)
@@ -41,22 +90,10 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
     const radius = data.lineType === 'smoothstep' || data.lineType === 'bezier' ? DETOUR_RADIUS : 0
     const mid = polylineMidpoint(data.detour)
     return (
-      <BaseEdge
-        id={id}
-        path={polylinePath(data.detour, radius)}
-        style={style}
-        markerStart={markerStart}
-        markerEnd={markerEnd}
-        label={label}
-        labelX={mid.x}
-        labelY={mid.y}
-        labelStyle={labelStyle}
-        labelShowBg={labelShowBg}
-        labelBgStyle={labelBgStyle}
-        labelBgPadding={labelBgPadding}
-        labelBgBorderRadius={labelBgBorderRadius}
-        interactionWidth={interactionWidth}
-      />
+      <>
+        <BaseEdge id={id} path={polylinePath(data.detour, radius)} style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={interactionWidth} />
+        {labelAt(mid.x, mid.y)}
+      </>
     )
   }
 
@@ -80,21 +117,9 @@ export function FloatingEdge({ id, source, target, data, style, markerStart, mar
         : getSmoothStepPath({ ...params, borderRadius: data.lineType === 'step' ? 0 : undefined })
 
   return (
-    <BaseEdge
-      id={id}
-      path={path}
-      style={style}
-      markerStart={markerStart}
-      markerEnd={markerEnd}
-      label={label}
-      labelX={labelX}
-      labelY={labelY}
-      labelStyle={labelStyle}
-      labelShowBg={labelShowBg}
-      labelBgStyle={labelBgStyle}
-      labelBgPadding={labelBgPadding}
-      labelBgBorderRadius={labelBgBorderRadius}
-      interactionWidth={interactionWidth}
-    />
+    <>
+      <BaseEdge id={id} path={path} style={style} markerStart={markerStart} markerEnd={markerEnd} interactionWidth={interactionWidth} />
+      {labelAt(labelX, labelY)}
+    </>
   )
 }

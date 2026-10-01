@@ -14,7 +14,6 @@ import { CATEGORIES, getShape, isKnownShape, SHAPE_IDS, SHAPES } from './registr
 const env: ExportEnv = {
   colour: (token) => (token.startsWith('swatch') ? '#aabbcc' : '#123456'),
   measure: (text, size) => text.length * size * 0.55,
-  fontFamily: 'sans-serif',
   fontSize: 15,
   lineHeight: 1.35,
   nodePadding: 8,

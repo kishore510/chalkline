@@ -29,7 +29,9 @@ export function LabelEditor({ id, initial }: { id: string; initial: string }) {
       rows={1}
       // nodrag/nopan/nowheel stop React Flow treating typing or selecting text as canvas gestures.
       // Grows with its text, so the whole label stays visible while editing.
-      className="nodrag nopan nowheel block w-full field-sizing-content resize-none bg-transparent text-center text-inherit outline-none select-text"
+      className="nodrag nopan nowheel block w-full field-sizing-content resize-none bg-transparent text-inherit outline-none select-text"
+      // Same alignment as the label it edits.
+      style={{ textAlign: 'inherit' }}
       onKeyDown={(e) => {
         e.stopPropagation()
         if (e.key === 'Enter' && !e.shiftKey) {

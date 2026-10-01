@@ -1,6 +1,6 @@
 {
   "kind": "chalkline-stencil",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "builtin:read-replica",
   "name": "Database with read replica",
   "category": "Data",

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "meta": {"title": "Layered architecture", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
     {"id": "n_client", "type": "actor", "position": {"x": 0, "y": 20}, "size": {"width": 96, "height": 128}, "label": "Client"},

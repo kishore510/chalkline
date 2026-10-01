@@ -9,7 +9,7 @@
     "async"
   ],
   "diagram": {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "meta": {
       "title": "Event-driven flow",
       "created": "2026-09-30T00:00:00.000Z",

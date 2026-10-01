@@ -13,11 +13,11 @@ const issues = (doc: unknown) => {
 describe('migration v3 -> v4', () => {
   it('the fixture was saved at v3', () => {
     expect(v3.schemaVersion).toBe(3)
-    expect(SCHEMA_VERSION).toBe(4)
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(4)
   })
 
   it('adds just the default layer and changes nothing else', () => {
-    expect(migrate(v3)).toEqual({ ...v3, schemaVersion: 4, layers: [{ id: 'default', name: 'Base', visible: true, locked: false }] })
+    expect(migrate(v3, 4)).toEqual({ ...v3, schemaVersion: 4, layers: [{ id: 'default', name: 'Base', visible: true, locked: false }] })
   })
 
   it('loads through file import and through a browser autosave', () => {

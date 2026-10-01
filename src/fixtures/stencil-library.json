@@ -3,7 +3,7 @@
   "stencils": [
     {
       "kind": "chalkline-stencil",
-      "schemaVersion": 4,
+      "schemaVersion": 5,
       "id": "s_web_pair",
       "name": "Web pair",
       "category": "Architecture",
@@ -145,7 +145,7 @@
     },
     {
       "kind": "chalkline-stencil",
-      "schemaVersion": 4,
+      "schemaVersion": 5,
       "id": "s_note",
       "name": "Note",
       "category": "Annotation",

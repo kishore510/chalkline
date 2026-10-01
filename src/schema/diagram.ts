@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Diagram document schema. Single source of truth for types.
  * Any change here requires: bump SCHEMA_VERSION, add a migration, add a test.
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /* ---------- Primitives ---------- */
 
@@ -34,13 +34,37 @@ const LayerIdSchema = z.string().min(1).max(128)
  */
 export const NodeTypeSchema = z.string().min(1).max(64)
 
+/* ---------- Text styling (v5) ---------- */
+
+/**
+ * A font id from the font registry (src/fonts/registry.ts). Like shape ids,
+ * any short string loads: an id this version doesn't know draws in the
+ * default font and is kept when saved.
+ */
+export const FontIdSchema = z.string().min(1).max(64)
+export const FontSizeSchema = z.number().min(8).max(72)
+export const FontWeightSchema = z.union([z.literal(400), z.literal(700)])
+export const FontStyleSchema = z.enum(['normal', 'italic'])
+export const TextDecorationSchema = z.enum(['none', 'underline', 'line-through'])
+export const TextAlignSchema = z.enum(['left', 'center', 'right'])
+
+/** Whole-label text styling, shared by shapes and connectors (connector labels are one line, so no alignment). */
+const textStyle = {
+  fontFamily: FontIdSchema,
+  fontSize: FontSizeSchema,
+  fontWeight: FontWeightSchema,
+  fontStyle: FontStyleSchema,
+  textDecoration: TextDecorationSchema,
+}
+
 export const NodeStyleSchema = z
   .object({
     fill: ColourSchema,
     stroke: ColourSchema,
     strokeWidth: z.number().min(0).max(12),
     textColour: ColourSchema,
-    fontSize: z.number().min(8).max(72),
+    ...textStyle,
+    textAlign: TextAlignSchema,
   })
   .partial() // every field optional: missing means "use the theme default"
 
@@ -74,6 +98,7 @@ export const EdgeStyleSchema = z
     endArrow: ArrowheadSchema,
     colour: ColourSchema,
     width: z.number().min(0.5).max(12),
+    ...textStyle,
   })
   .partial()
 
@@ -140,6 +165,9 @@ export const defaultLayer = () => ({ id: DEFAULT_LAYER_ID, name: 'Base', visible
 
 /* ---------- Document ---------- */
 
+/** Diagram-wide text defaults (v5); a shape's or connector's own values override them. */
+export const TextDefaultsSchema = z.object({ fontFamily: FontIdSchema, fontSize: FontSizeSchema }).partial()
+
 export const MetaSchema = z.object({
   title: z.string().default('Untitled diagram'),
   created: z.iso.datetime(),
@@ -154,6 +182,8 @@ export const DiagramSchema = z
     edges: z.array(EdgeSchema),
     groups: z.array(GroupSchema).default([]),
     layers: z.array(LayerSchema).default(() => [defaultLayer()]),
+    /** Missing means the app defaults (Inter at the theme's label size). */
+    textDefaults: TextDefaultsSchema.optional(),
   })
   .superRefine((d, ctx) => {
     // Layers: unique ids, the default layer present, not too many, every reference known.
@@ -249,6 +279,10 @@ export type Orientation = z.infer<typeof OrientationSchema>
 export type NodeType = z.infer<typeof NodeTypeSchema>
 export type NodeStyle = z.infer<typeof NodeStyleSchema>
 export type EdgeStyle = z.infer<typeof EdgeStyleSchema>
+export type TextDefaults = z.infer<typeof TextDefaultsSchema>
+export type FontWeight = z.infer<typeof FontWeightSchema>
+export type TextAlign = z.infer<typeof TextAlignSchema>
+export type TextDecoration = z.infer<typeof TextDecorationSchema>
 export type Position = z.infer<typeof PositionSchema>
 export type Size = z.infer<typeof SizeSchema>
 
@@ -271,6 +305,9 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   2: (doc) => ({ ...doc, schemaVersion: 3 }),
   // v4: layers. Every existing item stays on the default layer; nothing else changes.
   3: (doc) => ({ ...doc, schemaVersion: 4, layers: [defaultLayer()] }),
+  // v5: optional text styling (font, weight, italic, decoration, alignment) and diagram text defaults.
+  // All new fields are optional, so existing data is already valid: a version bump only.
+  4: (doc) => ({ ...doc, schemaVersion: 5 }),
   // v2: groups gain kind/parentId/orientation/headerSize/locked; nodes gain locked.
   // Existing groups become plain containers; nothing is locked.
   1: (doc) => ({

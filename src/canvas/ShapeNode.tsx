@@ -3,6 +3,9 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import { minHeightForLabel } from '@/components/shapes/geometry'
 import { ShapeView } from '@/components/shapes/ShapeView'
 import { getShape } from '@/shapes/registry'
+import { fontSpec } from '@/fonts/fontFaces'
+import { useFontReady } from '@/fonts/useFontReady'
+import { resolveText } from '@/fonts/registry'
 import { cn } from '@/lib/utils'
 import { currentTarget, useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
@@ -13,7 +16,10 @@ import { endResize, startResize } from './guideSession'
 import { HANDLE_POSITION, HANDLE_SIDES } from './handles'
 import { LabelEditor } from './LabelEditor'
 
-/** Measures an element's layout height (unaffected by canvas zoom) and keeps it up to date. */
+/**
+ * Measures an element's layout height (unaffected by canvas zoom) and keeps it
+ * up to date, including when web fonts finish loading.
+ */
 function useHeight() {
   const ref = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState(0)
@@ -24,10 +30,15 @@ function useHeight() {
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(el)
-    return () => observer.disconnect()
+    document.fonts?.addEventListener('loadingdone', measure)
+    return () => {
+      observer.disconnect()
+      document.fonts?.removeEventListener('loadingdone', measure)
+    }
   }, [])
   return [ref, height] as const
 }
+
 
 export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0, height = 0 }: NodeProps<ShapeFlowNode>) {
   const editing = useUiStore((s) => s.editingId === id)
@@ -35,8 +46,10 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
   // Search highlight (view state only; exports draw from the diagram, so it never appears in them).
   const found = useSearchStore((s) => s.matchIds.has(id))
   const current = useSearchStore((s) => currentTarget(s) === id)
-  const appearance = useMemo(() => nodeAppearance(data.style), [data.style])
+  const defaults = useDiagramStore((s) => s.diagram.textDefaults)
+  const appearance = useMemo(() => nodeAppearance(data.style, defaults), [data.style, defaults])
   const [labelRef, labelHeight] = useHeight()
+  const fontReady = useFontReady(fontSpec(resolveText(data.style, defaults, 16)))
 
   const shape = getShape(data.type)
   // Tallest the label needs the node to be; the node grows to fit rather than clipping.
@@ -44,9 +57,10 @@ export const ShapeNode = memo(function ShapeNode({ id, data, selected, width = 0
     () => Math.max(shape.minSize.height, labelHeight ? minHeightForLabel(data.type, width, labelHeight) : 0),
     [shape, data.type, width, labelHeight],
   )
+  // Re-runs when the font, size or weight change the label's height; waits for the font to load.
   useEffect(() => {
-    if (labelHeight && height < minHeight) useDiagramStore.getState().growNodeToFit(id, minHeight)
-  }, [id, height, minHeight, labelHeight])
+    if (fontReady && labelHeight && height < minHeight) useDiagramStore.getState().growNodeToFit(id, minHeight)
+  }, [id, height, minHeight, labelHeight, fontReady])
 
   return (
     <>
