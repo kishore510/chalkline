@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
  * top-bar button and the host. The sheet itself loads on first open.
  */
 
-export type SettingsSection = 'appearance' | 'canvas' | 'text' | 'data' | 'about'
+export type SettingsSection = 'appearance' | 'canvas' | 'text' | 'ai' | 'data' | 'about'
 
 interface SettingsSheetState {
   open: boolean

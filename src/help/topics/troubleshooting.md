@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 order: 17
-keywords: problem, help, not loading, missing, export different, storage, browser, lost, error, damaged, corrupt, newer version, full, private, recovered, crash
+keywords: problem, help, not loading, missing, export different, storage, browser, lost, error, damaged, corrupt, newer version, full, private, recovered, crash, ai, api key, blocked, rate limit, offline
 ---
 ## My diagram isn't there
 
@@ -41,6 +41,18 @@ Something in the diagram stopped the canvas from drawing. Choose **Export JSON**
 - Hidden layers are left out unless you turn on **Include hidden layers**.
 - Some apps show SVG files with a different font. Use PNG or PDF when the exact look matters.
 
+## AI requests fail
+
+Each message says what went wrong, and **Retry** sends the same request again. Nothing in your diagram changes when a request fails.
+
+- **That API key didn't work**: the key is mistyped, revoked or expired. Copy it again from the Claude Console, then **Save key** and **Test key**.
+- **Your key isn't allowed to do that** or **billing problem**: check the key's workspace, model access and billing in the Claude Console.
+- **Too many requests for now**: wait the time shown, then **Retry**. **Your API spending limit is reached** means your account's monthly limit; raise it in the Console or wait for it to reset.
+- **The AI service is busy** or **had a problem**: Anthropic's side, not your key. Wait a little, then **Retry**.
+- **Could not reach the API**: your network or browser may be blocking it. Ad blockers, privacy extensions, and work or school networks can block `api.anthropic.com`. Try another network or browser.
+- **You're offline**: reconnect, then **Retry**.
+- **My key is gone after a reload**: keys kept for **This session only** are forgotten on reload. Choose **Remember on this device** if you want it kept. See [AI features and your API key](help:ai-features).
+
 ## Storage is per browser
 
-Autosave, your stencil library and settings stay in this browser only. Nothing is sent anywhere. Use **Export everything** in [Settings](help:settings-and-backup) to back up all of it in one file.
+Autosave, your stencil library and settings stay in this browser only. Nothing is sent anywhere unless you use an AI feature and press **Send**. Use **Export everything** in [Settings](help:settings-and-backup) to back up all of it in one file.
