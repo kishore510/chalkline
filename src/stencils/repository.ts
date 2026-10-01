@@ -1,3 +1,4 @@
+import { OWNED_DATABASES } from '@/persistence/storageKeys'
 import type { Stencil } from './format'
 
 /*
@@ -36,7 +37,8 @@ export function memoryRepository(initial: StencilRecord[] = []): StencilReposito
   }
 }
 
-const DB_NAME = 'chalkline'
+/** Registered in storageKeys.ts, so Clear local data removes it. */
+export const DB_NAME = OWNED_DATABASES[0]
 const DB_VERSION = 1
 const STORE = 'stencils'
 
@@ -66,7 +68,14 @@ export function indexedDbRepository(factory: IDBFactory | undefined = globalThis
       req.onupgradeneeded = () => {
         if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE, { keyPath: 'id' })
       }
-      req.onsuccess = () => resolve(req.result)
+      req.onsuccess = () => {
+        // Let "Clear local data" (or a newer version) delete or upgrade the database: close, and reopen on next use.
+        req.result.onversionchange = () => {
+          req.result.close()
+          db = null
+        }
+        resolve(req.result)
+      }
       req.onerror = () => reject(req.error)
       req.onblocked = () => reject(new DOMException('The stencil library is open in an older tab', 'InvalidStateError'))
     }).catch((error) => {

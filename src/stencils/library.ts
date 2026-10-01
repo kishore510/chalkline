@@ -254,6 +254,16 @@ export function createLibrary({ repository, thumbnail, now = () => new Date(), m
       return { added: put.length - replaced, replaced, skipped }
     },
 
+    /**
+     * Replaces the whole library (restoring a backup) in one transaction per
+     * step. Stencils past the library limit are left out.
+     */
+    async replaceAll(stencils: readonly Stencil[]): Promise<void> {
+      const put = stencils.slice(0, MAX_LIBRARY_STENCILS).map((s) => record(s))
+      const keep = new Set(put.map((r) => r.id))
+      await write(put, records.filter((r) => !keep.has(r.id)).map((r) => r.id))
+    },
+
     exportOne: (stencil: Stencil) => ({ fileName: fileNameFor(stencil.name, 'stencil.json'), text: serializeStencil(stencil) }),
     exportAll: () => ({ fileName: 'chalkline-stencils.json', text: serializeLibrary(sorted().map((r) => r.stencil)) }),
   }

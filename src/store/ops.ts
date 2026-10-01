@@ -86,13 +86,13 @@ function isDuplicate(edges: DiagramEdge[], c: Connection): boolean {
 }
 
 /** Adds an edge. Returns the new edge id, or null for self-loops, duplicates and missing nodes. */
-export function connect(diagram: Diagram, connection: Connection, id?: string): { diagram: Diagram; edgeId: string | null } {
+export function connect(diagram: Diagram, connection: Connection, id?: string, style: EdgeStyle = {}): { diagram: Diagram; edgeId: string | null } {
   const { source, target } = connection
   const ids = new Set(diagram.nodes.map((n) => n.id))
   if (source === target || !ids.has(source) || !ids.has(target) || isDuplicate(diagram.edges, connection)) {
     return { diagram, edgeId: null }
   }
-  const edge = createEdge(source, target, id ? { id } : {})
+  const edge = createEdge(source, target, { ...(id && { id }), ...(Object.keys(style).length > 0 && { style: { ...style } }) })
   if (connection.sourceHandle) edge.sourceHandle = connection.sourceHandle
   if (connection.targetHandle) edge.targetHandle = connection.targetHandle
   if (diagram.edges.some((e) => e.id === edge.id)) return { diagram, edgeId: null }

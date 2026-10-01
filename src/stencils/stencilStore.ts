@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { readToken } from '@/lib/cssVar'
+import { readKey, writeKey } from '@/persistence/localStore'
+import { STORAGE_KEYS } from '@/persistence/storageKeys'
 import { BUILTIN_STENCILS, TEMPLATES } from './builtin'
 import type { ParsedFile, Stencil, StencilContent } from './format'
 import { createLibrary, LibraryError, type ClashChoice, type ImportPlan, type ImportResult, type Library, type StencilDetails } from './library'
@@ -41,11 +43,11 @@ export function builtinThumbnail(id: string): string {
   return svg
 }
 
-const RECENTS_KEY = 'chalkline.recentStencils'
+const RECENTS_KEY = STORAGE_KEYS.recentStencils.key
 
 function loadRecents(): string[] {
   try {
-    return cleanRecentStencils(JSON.parse(globalThis.localStorage?.getItem(RECENTS_KEY) ?? '[]'))
+    return cleanRecentStencils(JSON.parse(readKey(RECENTS_KEY) ?? '[]'))
   } catch {
     return []
   }
@@ -79,6 +81,8 @@ interface StencilState {
   planImport: (file: ParsedFile) => ImportPlan
   applyImport: (plan: ImportPlan, choice: ClashChoice) => Promise<ImportResult>
   exportOne: (stencil: Stencil) => { fileName: string; text: string }
+  /** Restoring a backup: the library becomes exactly these stencils. */
+  replaceAll: (stencils: Stencil[]) => Promise<void>
   exportAll: () => { fileName: string; text: string }
 }
 
@@ -118,11 +122,8 @@ export const useStencilStore = create<StencilState>()((set, get) => {
 
     noteUsed(id) {
       const recents = pushRecentStencil(get().recents, id)
-      try {
-        globalThis.localStorage?.setItem(RECENTS_KEY, JSON.stringify(recents))
-      } catch {
-        // Fine: just not remembered next time.
-      }
+      // If storage refuses, the list just isn't remembered next time.
+      writeKey(RECENTS_KEY, JSON.stringify(recents))
       set({ recents })
     },
 
@@ -134,6 +135,7 @@ export const useStencilStore = create<StencilState>()((set, get) => {
     planImport: (file) => lib().planImport(file),
     applyImport: (plan, choice) => change((l) => l.applyImport(plan, choice)),
     exportOne: (stencil) => lib().exportOne(stencil),
+    replaceAll: (stencils) => change((l) => l.replaceAll(stencils)),
     exportAll: () => lib().exportAll(),
   }
 })

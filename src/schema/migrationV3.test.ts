@@ -25,7 +25,7 @@ describe('migration v2 -> v3', () => {
     expect(diagram.nodes.map((n) => n.type)).toEqual(['rounded', 'rounded', 'database', 'actor'])
     const map = new Map([['chalkline.autosave', JSON.stringify(v2)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
-    expect(loadAutosave(storage)).toEqual(diagram)
+    expect(loadAutosave(storage)).toEqual({ status: 'ok', diagram })
   })
 
   it('still migrates v1 documents all the way', () => {

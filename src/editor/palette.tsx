@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils'
 import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
 import { byCategory, searchShapes } from './paletteModel'
-import { clampPaletteWidth, loadPalettePrefs, maxPaletteWidth, savePalettePrefs, shouldCollapse, type PalettePrefs } from './paletteWidth'
+import { clampPaletteWidth, maxPaletteWidth, shouldCollapse } from './paletteWidth'
+import { updateSettings, useSettingsStore } from '@/settings/settingsStore'
 import { useUiStore } from '@/store/uiStore'
 import { StencilBrowser } from './stencils/StencilBrowser'
 
@@ -415,7 +416,8 @@ export function PalettePanel() {
   const [query, setQuery] = useState('')
   const [view, setView] = useState<PaletteView>('shapes')
   const { itemProps, ghostElement } = usePaletteGestures({})
-  const [prefs, setPrefs] = useState(loadPalettePrefs)
+  const panels = useSettingsStore((s) => s.settings.panels)
+  const prefs = { width: panels.paletteWidth, collapsed: panels.paletteCollapsed }
   const limits = useMemo(() => {
     const min = readToken('--cl-palette-min-width', 200)
     return { min, max: maxPaletteWidth(min, readToken('--cl-palette-max-width', 480), window.innerWidth), initial: readToken('--cl-palette-width', 224) }
@@ -424,10 +426,9 @@ export function PalettePanel() {
   const [liveWidth, setLiveWidth] = useState<number | null>(null)
   const width = liveWidth ?? clampPaletteWidth(prefs.width ?? limits.initial, limits.min, limits.max)
 
-  const update = (next: PalettePrefs) => {
-    setPrefs(next)
+  const update = (next: { width: number | null; collapsed: boolean }) => {
     setLiveWidth(null)
-    savePalettePrefs(next)
+    updateSettings({ panels: { paletteWidth: next.width, paletteCollapsed: next.collapsed } })
   }
 
   if (prefs.collapsed) {

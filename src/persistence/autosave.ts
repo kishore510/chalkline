@@ -1,5 +1,7 @@
-import { safeParseDiagram, type Diagram } from '@/schema/diagram'
+import { safeParseDiagram, SCHEMA_VERSION, type Diagram } from '@/schema/diagram'
+import { appStorage, readKey, writeKey, type KeyValueStore, type WriteResult } from './localStore'
 import { serializeDiagram } from './serialize'
+import { STORAGE_KEYS } from './storageKeys'
 
 /*
  * Autosave to browser storage. Storage is per-origin and can be cleared,
@@ -7,51 +9,69 @@ import { serializeDiagram } from './serialize'
  * real backup.
  */
 
-export const AUTOSAVE_KEY = 'chalkline.autosave'
-/** Where an autosave that fails to load is moved, so it is never silently lost. */
-export const CORRUPT_KEY = 'chalkline.autosave.unreadable'
+export const AUTOSAVE_KEY = STORAGE_KEYS.autosave.key
+/** Where an autosave that fails to load is copied, so it is never silently lost. */
+export const CORRUPT_KEY = STORAGE_KEYS.recovered.key
 
-type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-
-const defaultStorage = (): Store | undefined => {
-  try {
-    return globalThis.localStorage
-  } catch {
-    return undefined
-  }
+/** 'ok', or why the diagram couldn't be written ('full' or 'blocked'). */
+export function saveAutosave(diagram: Diagram, storage: KeyValueStore | undefined = appStorage()): WriteResult {
+  return writeKey(AUTOSAVE_KEY, serializeDiagram(diagram), storage)
 }
 
-/** Returns true if the diagram was written. */
-export function saveAutosave(diagram: Diagram, storage: Store | undefined = defaultStorage()): boolean {
-  try {
-    if (!storage) return false
-    storage.setItem(AUTOSAVE_KEY, serializeDiagram(diagram))
-    return true
-  } catch {
-    return false
-  }
+export type AutosaveLoad =
+  | { status: 'none' }
+  | { status: 'ok'; diagram: Diagram }
+  /**
+   * Saved by a newer version. Left exactly as it is: the caller must not
+   * write over it (autosave pauses) so updating the app gets it back.
+   */
+  | { status: 'newer'; version: number; text: string }
+  /**
+   * Unreadable. Copied to CORRUPT_KEY, then removed from AUTOSAVE_KEY; if the
+   * copy couldn't be made (`kept: false`), the original stays where it was and
+   * the caller must not write over it either.
+   */
+  | { status: 'corrupt'; kept: boolean; text: string; problem: string }
+
+const versionOf = (raw: unknown) => {
+  const v = (raw as { schemaVersion?: unknown } | null)?.schemaVersion
+  return typeof v === 'number' ? v : null
 }
 
-/**
- * The autosaved diagram (migrated to the current schema), or null if there
- * isn't one. An unreadable autosave is set aside under CORRUPT_KEY.
- */
-export function loadAutosave(storage: Store | undefined = defaultStorage()): Diagram | null {
+/** Reads the autosave (migrated to the current schema) and says what it found. */
+export function loadAutosave(storage: KeyValueStore | undefined = appStorage()): AutosaveLoad {
+  const text = readKey(AUTOSAVE_KEY, storage)
+  if (!text) return { status: 'none' }
+  let raw: unknown
   try {
-    const text = storage?.getItem(AUTOSAVE_KEY)
-    if (!text) return null
-    let raw: unknown
+    raw = JSON.parse(text)
+  } catch (error) {
+    return setAside(text, `Not valid JSON: ${(error as Error).message}`, storage)
+  }
+  const version = versionOf(raw)
+  if (version !== null && version > SCHEMA_VERSION) return { status: 'newer', version, text }
+  const result = safeParseDiagram(raw)
+  if (result.success) return { status: 'ok', diagram: result.data }
+  return setAside(text, issueSummary(result.error), storage)
+}
+
+function setAside(text: string, problem: string, storage: KeyValueStore | undefined): AutosaveLoad {
+  const kept = writeKey(CORRUPT_KEY, text, storage) === 'ok' && readKey(CORRUPT_KEY, storage) === text
+  if (kept) {
     try {
-      raw = JSON.parse(text)
+      storage?.removeItem(AUTOSAVE_KEY)
     } catch {
-      raw = undefined
+      // Still readable from CORRUPT_KEY; the next save replaces it anyway.
     }
-    const result = safeParseDiagram(raw)
-    if (result.success) return result.data
-    storage?.setItem(CORRUPT_KEY, text)
-    storage?.removeItem(AUTOSAVE_KEY)
-    return null
-  } catch {
-    return null
   }
+  return { status: 'corrupt', kept, text, problem }
+}
+
+/** A short technical description of why a document failed validation (for a "Details" toggle). */
+export function issueSummary(error: unknown, max = 3): string {
+  const issues = (error as { issues?: { path: PropertyKey[]; message: string }[] } | null)?.issues
+  if (!Array.isArray(issues) || issues.length === 0) return error instanceof Error ? error.message : String(error)
+  const lines = issues.slice(0, max).map((i) => `${i.path.length ? i.path.map(String).join('.') : '(document)'}: ${i.message}`)
+  if (issues.length > max) lines.push(`…and ${issues.length - max} more`)
+  return lines.join('\n')
 }

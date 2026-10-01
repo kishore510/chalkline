@@ -9,8 +9,10 @@ import { UnseenDot } from '@/help/HelpEntry'
 import { useHelpStore } from '@/help/helpStore'
 import { useSearchStore } from '@/search/searchStore'
 import { cn } from '@/lib/utils'
-import { serializeDiagram, fileNameFor } from '@/persistence/serialize'
-import { safeParseDiagram } from '@/schema/diagram'
+import { friendlyError } from '@/errors/friendly'
+import { showError } from '@/errors/errorStore'
+import { saveJson } from '@/persistence/download'
+import { readDiagramFile } from '@/persistence/openFile'
 import { useStencilStore } from '@/stencils/stencilStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
@@ -18,12 +20,7 @@ import { ViewOptions } from './ViewMenu'
 
 const notify = (text: string) => useUiStore.getState().notify(text)
 
-/** Downloads the diagram as canonical JSON (the backup and sharing format). */
-export async function saveJson() {
-  const { downloadBlob } = await import('@/export/browser')
-  const { diagram } = useDiagramStore.getState()
-  downloadBlob(new Blob([serializeDiagram(diagram)], { type: 'application/json' }), fileNameFor(diagram.meta.title, 'json'))
-}
+export { saveJson }
 
 /** Exports what's visible, unless `includeHidden` asks for hidden layers too. */
 export async function exportAs(format: 'svg' | 'png' | 'pdf', includeHidden = false) {
@@ -100,16 +97,22 @@ export function FileMenu({ layout }: { layout: Layout }) {
   }
 
   const openFile = async (file: File) => {
+    let text: string
     try {
-      const result = safeParseDiagram(JSON.parse(await file.text()))
-      if (!result.success) throw result.error
-      // Loading is undoable, so there's no "are you sure?" step.
-      actions.load(result.data)
-      notify(`Opened “${result.data.meta.title}”. Undo to go back.`)
+      text = await file.text()
     } catch (error) {
-      const newer = error instanceof Error && error.message.includes('newer schema')
-      notify(newer ? 'That diagram was made by a newer version of Chalkline.' : 'That file isn’t a Chalkline diagram.')
+      showError(friendlyError('file-unreadable', (error as Error).message))
+      return
     }
+    // Checked completely before anything changes: a bad file never replaces the current diagram.
+    const result = readDiagramFile(file, text)
+    if (!result.ok) {
+      showError(result.error)
+      return
+    }
+    // Loading is undoable, so there's no "are you sure?" step.
+    actions.load(result.diagram)
+    notify(`Opened “${result.diagram.meta.title}”. Undo to go back.`)
   }
 
   return (
