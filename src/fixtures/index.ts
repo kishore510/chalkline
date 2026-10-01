@@ -9,6 +9,7 @@ import layers from './layers.json'
 import legacyV1 from './legacy-v1.json'
 import legacyV2 from './legacy-v2.json'
 import legacyV3 from './legacy-v3.json'
+import legacyV4 from './legacy-v4.json'
 import processFlow from './process-flow.json'
 import stencilCurrent from './stencil-current.json'
 import stencilLibrary from './stencil-library.json'
@@ -16,6 +17,7 @@ import stencilUnknownShape from './stencil-unknown-shape.json'
 import stencilV1 from './stencil-v1.json'
 import swimlanePool from './swimlane-pool.json'
 import templateSwimlane from './template-swimlane.json'
+import textStyles from './text-styles.json'
 import unknownShape from './unknown-shape.json'
 import webArchitecture from './web-architecture.json'
 
@@ -40,6 +42,8 @@ export const fixtures: Record<string, unknown> = {
   architecture,
   /** Base, "Security overlay" and a hidden "Notes" layer, with items and connectors crossing layers. */
   layers,
+  /** Every font, bold, italic, underline, strikethrough and alignment, diagram text defaults, and a font id this version doesn't know. */
+  'text-styles': textStyles,
 }
 
 /** Documents saved by older versions, exactly as written then; they must load through migration. */
@@ -47,6 +51,8 @@ export const legacyFixtures: Record<string, unknown> = {
   'v1-web-architecture': legacyV1,
   'v2-container': legacyV2,
   'v3-process-flow': legacyV3,
+  /** Three layers, one hidden; saved at v4, before text styling. */
+  'v4-layers': legacyV4,
 }
 
 /** Deliberately broken documents, used to check loading fails cleanly. */

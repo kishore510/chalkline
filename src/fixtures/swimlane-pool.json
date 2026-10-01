@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "meta": {"title": "Three-lane pool", "created": "2026-09-30T00:00:00.000Z", "updated": "2026-09-30T00:00:00.000Z"},
   "nodes": [
     {"id": "n_mobile", "type": "rectangle", "position": {"x": 120, "y": 40}, "size": {"width": 160, "height": 80}, "label": "Mobile app", "groupId": "g_lane_channels"},

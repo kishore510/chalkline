@@ -21,8 +21,9 @@ const NODE_KEYS = ['id', 'type', 'layerId', 'position', 'size', 'label', 'notes'
 const EDGE_KEYS = ['id', 'layerId', 'source', 'target', 'sourceHandle', 'targetHandle', 'label', 'notes', 'style'] as const
 const GROUP_KEYS = ['id', 'label', 'kind', 'layerId', 'parentId', 'orientation', 'headerSize', 'locked', 'position', 'size', 'style', 'collapsed'] as const
 const LAYER_KEYS = ['id', 'name', 'visible', 'locked'] as const
-const NODE_STYLE_KEYS = ['fill', 'stroke', 'strokeWidth', 'textColour', 'fontSize'] as const
-const EDGE_STYLE_KEYS = ['lineType', 'dashed', 'startArrow', 'endArrow', 'colour', 'width'] as const
+const TEXT_STYLE_KEYS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textDecoration'] as const
+const NODE_STYLE_KEYS = ['fill', 'stroke', 'strokeWidth', 'textColour', ...TEXT_STYLE_KEYS, 'textAlign'] as const
+const EDGE_STYLE_KEYS = ['lineType', 'dashed', 'startArrow', 'endArrow', 'colour', 'width', ...TEXT_STYLE_KEYS] as const
 
 function node(n: DiagramNode) {
   return ordered({ ...n, position: ordered(n.position, ['x', 'y']), size: ordered(n.size, ['width', 'height']), style: ordered(n.style, NODE_STYLE_KEYS) }, NODE_KEYS)
@@ -45,8 +46,9 @@ export function toCanonical(diagram: Diagram): { [key: string]: Json } {
       edges: diagram.edges.map(edge),
       groups: diagram.groups.map(group),
       layers: diagram.layers.map((l) => ordered(l, LAYER_KEYS)),
+      textDefaults: diagram.textDefaults && ordered(diagram.textDefaults, ['fontFamily', 'fontSize']),
     },
-    ['schemaVersion', 'meta', 'nodes', 'edges', 'groups', 'layers'],
+    ['schemaVersion', 'meta', 'textDefaults', 'nodes', 'edges', 'groups', 'layers'],
   )
 }
 

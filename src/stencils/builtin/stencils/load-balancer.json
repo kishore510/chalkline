@@ -1,6 +1,6 @@
 {
   "kind": "chalkline-stencil",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "builtin:load-balancer",
   "name": "Load balancer with two servers",
   "category": "Architecture",

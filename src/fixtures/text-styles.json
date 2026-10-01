@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 5,
+  "meta": { "title": "Text styles", "created": "2026-10-01T09:00:00.000Z", "updated": "2026-10-01T09:00:00.000Z" },
+  "textDefaults": { "fontFamily": "nunito", "fontSize": 16 },
+  "nodes": [
+    { "id": "n_default", "type": "rectangle", "position": { "x": 0, "y": 0 }, "size": { "width": 160, "height": 80 }, "label": "Uses the diagram defaults", "notes": "", "style": {}, "locked": false },
+    { "id": "n_serif", "type": "rounded", "position": { "x": 220, "y": 0 }, "size": { "width": 180, "height": 80 }, "label": "Serif, bold italic", "notes": "", "style": { "fontFamily": "source-serif-4", "fontWeight": 700, "fontStyle": "italic", "fontSize": 18 }, "locked": false },
+    { "id": "n_mono", "type": "rectangle", "position": { "x": 460, "y": 0 }, "size": { "width": 200, "height": 80 }, "label": "GET /api/orders\nPOST /api/orders", "notes": "", "style": { "fontFamily": "jetbrains-mono", "fontSize": 12, "textAlign": "left" }, "locked": false },
+    { "id": "n_chalk", "type": "sticky-note", "position": { "x": 0, "y": 160 }, "size": { "width": 180, "height": 140 }, "label": "Remember to review this with the team", "notes": "Caveat has no italic: this is stored italic but draws upright.", "style": { "fontFamily": "caveat", "fontSize": 22, "fontStyle": "italic", "textDecoration": "underline" }, "locked": false },
+    { "id": "n_struck", "type": "callout", "position": { "x": 240, "y": 160 }, "size": { "width": 200, "height": 100 }, "label": "Old service (retired)", "notes": "", "style": { "fontFamily": "inter", "textDecoration": "line-through", "textAlign": "right", "fontWeight": 400 }, "locked": false },
+    { "id": "n_unknown", "type": "rectangle", "position": { "x": 500, "y": 160 }, "size": { "width": 160, "height": 80 }, "label": "Font from a newer version", "notes": "", "style": { "fontFamily": "some-future-font" }, "locked": false }
+  ],
+  "edges": [
+    { "id": "e_styled", "source": "n_default", "target": "n_serif", "label": "reads", "notes": "", "style": { "fontFamily": "jetbrains-mono", "fontWeight": 700, "fontSize": 14 } },
+    { "id": "e_plain", "source": "n_serif", "target": "n_mono", "label": "calls", "notes": "", "style": { "fontStyle": "italic", "textDecoration": "underline" } }
+  ],
+  "groups": [],
+  "layers": [{ "id": "default", "name": "Base", "visible": true, "locked": false }]
+}

@@ -1,6 +1,6 @@
 {
   "kind": "chalkline-stencil",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "builtin:api-gateway",
   "name": "API gateway with three services",
   "category": "Architecture",

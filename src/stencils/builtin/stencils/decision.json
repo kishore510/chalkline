@@ -1,6 +1,6 @@
 {
   "kind": "chalkline-stencil",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "builtin:decision",
   "name": "Decision with two outcomes",
   "category": "Process",

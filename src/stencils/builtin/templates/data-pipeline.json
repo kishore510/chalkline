@@ -9,7 +9,7 @@
     "analytics"
   ],
   "diagram": {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "meta": {
       "title": "Data pipeline",
       "created": "2026-09-30T00:00:00.000Z",
