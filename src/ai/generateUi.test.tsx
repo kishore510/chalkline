@@ -85,7 +85,7 @@ async function until(text: string) {
   for (let i = 0; i < 600 && !dialog()?.textContent?.includes(text); i++) await settle(1)
 }
 async function open() {
-  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate or summarise with AI"]')!.click())
+  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Generate, summarise or review with AI"]')!.click())
   // The sheet loads on first open.
   for (let i = 0; i < 400 && !dialog(); i++) await settle(1)
   await settle(2)

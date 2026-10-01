@@ -45,4 +45,12 @@ describe('redaction', () => {
     expect(e.detail).not.toContain('FAKEkey')
     expect(e.detail).toContain(REDACTED)
   })
+
+  it('redacting twice changes nothing: a header whose key was already removed is left as it is', () => {
+    registerSecret(FAKE)
+    const once = redactSecrets(`invalid x-api-key: ${FAKE}`)
+    expect(once).toBe(`invalid x-api-key: ${REDACTED}`)
+    expect(redactSecrets(once)).toBe(once)
+    expect(containsSecret(once)).toBe(false)
+  })
 })

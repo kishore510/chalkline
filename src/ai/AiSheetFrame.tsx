@@ -10,7 +10,7 @@ import { useAiSheet, type AiMode } from './GenerateEntry'
 import { describeTotal, describeUsage, useUsageStore } from './usage'
 
 /*
- * The AI sheet's frame, shared by Generate and Summarise: a bottom sheet on
+ * The AI sheet's frame, shared by Generate, Summarise and Review: a bottom sheet on
  * phones, a side sheet from tablet up (like Settings), with a header (Back,
  * title, Close), a focus trap and a body that scrolls on its own.
  */
@@ -101,14 +101,15 @@ export function usePageFocus(page: string, bodyRef: RefObject<HTMLDivElement | n
 const MODES: { id: AiMode; label: string }[] = [
   { id: 'generate', label: 'Generate' },
   { id: 'summarise', label: 'Summarise' },
+  { id: 'review', label: 'Review' },
 ]
 
-/** Generate or Summarise, on each mode's first page. */
+/** Generate, Summarise or Review, on each mode's first page. */
 export function ModeSwitch() {
   const mode = useAiSheet((s) => s.mode)
   const setMode = useAiSheet((s) => s.setMode)
   return (
-    <div role="group" aria-label="AI action" className="grid grid-cols-2 gap-1 rounded-md border border-border bg-surface-muted p-1">
+    <div role="group" aria-label="AI action" className="grid grid-cols-(--cl-ai-mode-columns) gap-1 rounded-md border border-border bg-surface-muted p-1">
       {MODES.map((m) => (
         <button
           key={m.id}
