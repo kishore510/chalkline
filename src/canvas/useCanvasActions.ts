@@ -128,16 +128,25 @@ export function useCanvasActions() {
   )
 
   /**
-   * Centres a shape or group in the visible part of the canvas (above
-   * `coveredBelow`, the screen y where a bottom sheet starts), zooming in to a
-   * readable size if needed.
+   * Centres shapes, groups or connectors (all of them together) in the
+   * visible part of the canvas (above `coveredBelow`, the screen y where a
+   * bottom sheet starts), zooming in to a readable size if needed and out if
+   * they don't fit.
    */
-  const revealItem = useCallback(
-    (id: string, coveredBelow?: number) => {
+  const revealItems = useCallback(
+    (ids: readonly string[], coveredBelow?: number) => {
       const { diagram } = useDiagramStore.getState()
-      const group = diagram.groups.find((g) => g.id === id)
-      const node = diagram.nodes.find((n) => n.id === id)
-      const bounds = group ? (group.collapsed ? collapsedBox(group) : { ...group.position, ...group.size }) : node ? { ...node.position, ...node.size } : null
+      const boxOf = (id: string) => {
+        const group = diagram.groups.find((g) => g.id === id)
+        if (group) return group.collapsed ? collapsedBox(group) : { ...group.position, ...group.size }
+        const node = diagram.nodes.find((n) => n.id === id)
+        return node ? { ...node.position, ...node.size } : null
+      }
+      const boxes = ids.flatMap((id) => {
+        const edge = diagram.edges.find((e) => e.id === id)
+        return (edge ? [boxOf(edge.source), boxOf(edge.target)] : [boxOf(id)]).filter((b) => b !== null)
+      })
+      const bounds = unionBox(boxes.map((b) => ({ x: b.x, y: b.y, width: b.width, height: b.height })))
       const rect = rfStore.getState().domNode?.getBoundingClientRect()
       if (!bounds || !rect) return
       const visible = { width: rect.width, height: coveredBelow === undefined ? rect.height : Math.max(0, Math.min(rect.height, coveredBelow - rect.top)) }
@@ -147,6 +156,9 @@ export function useCanvasActions() {
     [flow, rfStore],
   )
 
+  /** Centres one shape or group (see revealItems). */
+  const revealItem = useCallback((id: string, coveredBelow?: number) => revealItems([id], coveredBelow), [revealItems])
+
   return useMemo(
     () => ({
       addAtCenter,
@@ -155,6 +167,7 @@ export function useCanvasActions() {
       insertStencilAtCenter,
       nudge,
       revealItem,
+      revealItems,
       zoomIn: () => void flow.zoomIn({ duration: duration() }),
       zoomOut: () => void flow.zoomOut({ duration: duration() }),
       fitView: () => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }),
@@ -164,6 +177,6 @@ export function useCanvasActions() {
         requestAnimationFrame(() => void flow.fitView({ padding: 0.2, duration: duration(), maxZoom: 1.5 }))
       },
     }),
-    [flow, addAtCenter, addAtScreenPoint, addPoolAtCenter, insertStencilAtCenter, nudge, revealItem],
+    [flow, addAtCenter, addAtScreenPoint, addPoolAtCenter, insertStencilAtCenter, nudge, revealItem, revealItems],
   )
 }

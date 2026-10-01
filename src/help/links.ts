@@ -16,4 +16,5 @@ export const LEARN_MORE = {
   ai: 'ai-features',
   generate: 'generating-diagrams',
   summarise: 'summarising-diagrams',
+  review: 'reviewing-diagrams',
 } as const
