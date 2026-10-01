@@ -3,8 +3,10 @@ import type { DockingTarget } from '@/canvas/docking'
 import type { Position } from '@/schema/diagram'
 import { cleanRecents, pushRecent } from '@/editor/paletteModel'
 import { useDiagramStore } from './diagramStore'
-import { loadRightPanelCollapsed, saveRightPanelCollapsed } from './panelPrefs'
-import { loadViewPrefs, saveViewPrefs, type GridDisplay, type ViewPrefs } from './viewPrefs'
+import { readKey, writeKey } from '@/persistence/localStore'
+import { STORAGE_KEYS } from '@/persistence/storageKeys'
+import type { GridDisplay } from '@/settings/schema'
+import { getSettings, updateSettings, useSettingsStore } from '@/settings/settingsStore'
 
 export type Tool = 'select' | 'pan' | 'link'
 
@@ -12,43 +14,26 @@ export type LinkTapResult = 'source' | 'linked' | 'cleared' | 'refused' | 'ignor
 
 export type EdgeEnd = 'source' | 'target'
 
-/** Auto-arrange and tidy choices, remembered between visits. */
+/** Auto-arrange and tidy choices; direction and spacing are remembered in settings. */
 export interface ArrangePrefs {
   direction: 'right' | 'down'
   spacing: 'compact' | 'normal' | 'roomy'
   clearPinned: boolean
 }
 
-const PREFS_KEY = 'chalkline.arrange'
-const DEFAULT_PREFS: ArrangePrefs = { direction: 'right', spacing: 'normal', clearPinned: false }
-
-function loadPrefs(): ArrangePrefs {
-  try {
-    const raw = JSON.parse(globalThis.localStorage?.getItem(PREFS_KEY) ?? 'null') as Partial<ArrangePrefs> | null
-    return {
-      direction: raw?.direction === 'down' ? 'down' : 'right',
-      spacing: raw?.spacing === 'compact' || raw?.spacing === 'roomy' ? raw.spacing : 'normal',
-      // "Also clear pinned sides" is deliberately not remembered: it's off by default every time.
-      clearPinned: false,
-    }
-  } catch {
-    return DEFAULT_PREFS
-  }
+/** View preferences: how the canvas behaves and looks for this person (kept in settings). */
+export interface ViewPrefs {
+  snapToGrid: boolean
+  smartGuides: boolean
+  /** Only changes what's drawn; snapping is separate. */
+  grid: GridDisplay
 }
 
-function savePrefs(prefs: ArrangePrefs) {
-  try {
-    globalThis.localStorage?.setItem(PREFS_KEY, JSON.stringify({ direction: prefs.direction, spacing: prefs.spacing }))
-  } catch {
-    // Fine: the choice just isn't remembered.
-  }
-}
-
-const RECENTS_KEY = 'chalkline.recentShapes'
+const RECENTS_KEY = STORAGE_KEYS.recentShapes.key
 
 function loadRecents(): string[] {
   try {
-    return cleanRecents(JSON.parse(globalThis.localStorage?.getItem(RECENTS_KEY) ?? '[]'))
+    return cleanRecents(JSON.parse(readKey(RECENTS_KEY) ?? '[]'))
   } catch {
     return []
   }
@@ -138,35 +123,35 @@ interface UiState {
   closeContextMenu: () => void
 }
 
-const initialView = loadViewPrefs()
+/** The parts of UI state that mirror settings (settings are the source of truth). */
+function fromSettings() {
+  const { canvas, arrange, panels } = getSettings()
+  return {
+    snapToGrid: canvas.snapToGrid,
+    smartGuides: canvas.smartGuides,
+    gridDisplay: canvas.grid,
+    rightPanelCollapsed: panels.rightCollapsed,
+    direction: arrange.direction,
+    spacing: arrange.spacing,
+  }
+}
 
-const viewPrefsOf = (s: Pick<UiState, 'snapToGrid' | 'smartGuides' | 'gridDisplay'>): ViewPrefs => ({
-  snapToGrid: s.snapToGrid,
-  smartGuides: s.smartGuides,
-  grid: s.gridDisplay,
-})
+const initial = fromSettings()
 
 export const useUiStore = create<UiState>()((set, get) => ({
   tool: 'select',
   linkSourceId: null,
-  snapToGrid: initialView.snapToGrid,
-  smartGuides: initialView.smartGuides,
-  gridDisplay: initialView.grid,
-  setViewPrefs(prefs) {
-    const next = { ...viewPrefsOf(get()), ...prefs }
-    saveViewPrefs(next)
-    set({ snapToGrid: next.snapToGrid, smartGuides: next.smartGuides, gridDisplay: next.grid })
-  },
+  snapToGrid: initial.snapToGrid,
+  smartGuides: initial.smartGuides,
+  gridDisplay: initial.gridDisplay,
+  setViewPrefs: (prefs) => updateSettings({ canvas: prefs }),
   editingId: null,
   connecting: false,
   paletteOpen: false,
   layersOpen: false,
   setLayersOpen: (layersOpen) => set({ layersOpen }),
-  rightPanelCollapsed: loadRightPanelCollapsed(),
-  setRightPanelCollapsed(rightPanelCollapsed) {
-    saveRightPanelCollapsed(rightPanelCollapsed)
-    set({ rightPanelCollapsed })
-  },
+  rightPanelCollapsed: initial.rightPanelCollapsed,
+  setRightPanelCollapsed: (rightCollapsed) => updateSettings({ panels: { rightCollapsed } }),
   contextMenu: null,
   saveStatus: 'off',
   setSaveStatus: (saveStatus) => set({ saveStatus }),
@@ -180,20 +165,16 @@ export const useUiStore = create<UiState>()((set, get) => ({
   noteShapeUsed: (id) =>
     set((s) => {
       const recentShapes = pushRecent(s.recentShapes, id)
-      try {
-        globalThis.localStorage?.setItem(RECENTS_KEY, JSON.stringify(recentShapes))
-      } catch {
-        // Fine: just not remembered next time.
-      }
+      // If storage refuses, the list just isn't remembered next time.
+      writeKey(RECENTS_KEY, JSON.stringify(recentShapes))
       return { recentShapes }
     }),
-  arrangePrefs: loadPrefs(),
-  setArrangePrefs: (prefs) =>
-    set((s) => {
-      const arrangePrefs = { ...s.arrangePrefs, ...prefs }
-      savePrefs(arrangePrefs)
-      return { arrangePrefs }
-    }),
+  // "Also clear pinned sides" is deliberately not remembered: it's off by default every time.
+  arrangePrefs: { direction: initial.direction, spacing: initial.spacing, clearPinned: false },
+  setArrangePrefs({ clearPinned, ...remembered }) {
+    if (clearPinned !== undefined) set((s) => ({ arrangePrefs: { ...s.arrangePrefs, clearPinned } }))
+    if (Object.keys(remembered).length) updateSettings({ arrange: remembered })
+  },
   dismissNotice: () => set({ notice: null }),
   edgeDrag: null,
   dropTargetId: null,
@@ -235,3 +216,17 @@ export const useUiStore = create<UiState>()((set, get) => ({
   openContextMenu: (contextMenu) => set({ contextMenu }),
   closeContextMenu: () => set({ contextMenu: null }),
 }))
+
+// Settings are the source of truth for these; the UI store mirrors them for its many readers.
+useSettingsStore.subscribe((state, previous) => {
+  if (state.settings === previous.settings) return
+  const next = fromSettings()
+  useUiStore.setState((s) => ({
+    snapToGrid: next.snapToGrid,
+    smartGuides: next.smartGuides,
+    gridDisplay: next.gridDisplay,
+    rightPanelCollapsed: next.rightPanelCollapsed,
+    arrangePrefs:
+      s.arrangePrefs.direction === next.direction && s.arrangePrefs.spacing === next.spacing ? s.arrangePrefs : { ...s.arrangePrefs, direction: next.direction, spacing: next.spacing },
+  }))
+})

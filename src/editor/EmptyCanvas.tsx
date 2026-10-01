@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { loadSample } from '@/fixtures/load'
+import { Welcome } from '@/onboarding/OnboardingEntry'
+import { useOnboardingStore } from '@/onboarding/onboardingStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { useStencilStore } from '@/stencils/stencilStore'
@@ -12,8 +14,16 @@ import { useStencilStore } from '@/stencils/stencilStore'
 /** Shown over the canvas while the diagram has no shapes. */
 export function EmptyCanvas({ layout }: { layout: Layout }) {
   const empty = useDiagramStore((s) => s.diagram.nodes.length === 0)
+  const welcome = useOnboardingStore((s) => s.welcome)
   const actions = useCanvasActions()
   if (!empty) return null
+  if (welcome) {
+    return (
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
+        <Welcome />
+      </div>
+    )
+  }
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
       <Panel className="pointer-events-auto max-w-sm bg-surface">

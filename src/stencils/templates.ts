@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createEmptyDiagram, parseDiagram, type Diagram } from '@/schema/diagram'
+import { createEmptyDiagram, parseDiagram, type Diagram, type TextDefaults } from '@/schema/diagram'
 import { pasteFragment } from '@/store/clipboard'
 
 /*
@@ -38,13 +38,15 @@ export function parseTemplate(raw: unknown): Template {
 /**
  * A new diagram from a template: fresh ids for every shape, connector and
  * group (ends, memberships and nesting remapped), current timestamps, the
- * template's name as title. Layers keep their ids and settings.
+ * template's name as title. Layers keep their ids and settings. Text defaults
+ * are the template's own, else `textDefaults` (from settings, for new diagrams).
  */
-export function diagramFromTemplate(template: Template, now = new Date()): Diagram {
+export function diagramFromTemplate(template: Template, now = new Date(), textDefaults?: TextDefaults): Diagram {
   const time = now.toISOString()
   const base: Diagram = { ...createEmptyDiagram(template.name), layers: template.diagram.layers.map((l) => ({ ...l })) }
   const { diagram } = pasteFragment(base, template.diagram, { x: 0, y: 0 })
-  return { ...diagram, meta: { title: template.name, created: time, updated: time } }
+  const text = template.diagram.textDefaults ?? textDefaults
+  return { ...diagram, meta: { title: template.name, created: time, updated: time }, ...(text && { textDefaults: { ...text } }) }
 }
 
 /** Whether replacing the current diagram would lose anything. */

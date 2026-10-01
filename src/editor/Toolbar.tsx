@@ -60,7 +60,7 @@ export function CanvasToolbar({ layout }: { layout: Layout }) {
           <div aria-hidden="true" className="mx-(--cl-toolbar-gap) h-6 w-px shrink-0 bg-border" />
         </>
       )}
-      <Segmented label={`Canvas mode: ${TOOL_NAMES[tool]}`} options={TOOL_OPTIONS} value={tool} onChange={setTool} className={round} />
+      <Segmented name="mode" label={`Canvas mode: ${TOOL_NAMES[tool]}`} options={TOOL_OPTIONS} value={tool} onChange={setTool} className={round} />
       {layout === 'phone' && (
         <Button variant="primary" size="icon" aria-label="Add shape" className="rounded-full" onClick={() => openPalette(true)}>
           <Plus />

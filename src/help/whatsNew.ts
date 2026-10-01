@@ -1,36 +1,20 @@
+import { appStorage, readKey, writeKey } from '@/persistence/localStore'
+import { STORAGE_KEYS } from '@/persistence/storageKeys'
+
 /*
  * "What's new" dot: the version whose notes were last opened is remembered
  * in this browser. Storage may be missing or blocked; then nothing is
  * remembered and the dot simply shows again next time.
  */
 
-export const LAST_SEEN_KEY = 'chalkline.lastSeenVersion'
+export const LAST_SEEN_KEY = STORAGE_KEYS.lastSeenVersion.key
 
-type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem'>
+type Store = Pick<Storage, 'getItem' | 'setItem'>
 
-const storage = (): Storage | undefined => {
-  try {
-    return globalThis.localStorage
-  } catch {
-    return undefined
-  }
-}
+export const readLastSeen = (store: Store | undefined = appStorage()): string | null => readKey(LAST_SEEN_KEY, store)
 
-export function readLastSeen(store: Storage | undefined = storage()): string | null {
-  try {
-    return store?.getItem(LAST_SEEN_KEY) ?? null
-  } catch {
-    return null
-  }
-}
-
-export function markSeen(version: string, store: Storage | undefined = storage()): void {
-  try {
-    store?.setItem(LAST_SEEN_KEY, version)
-  } catch {
-    // Fine: the dot shows again next visit.
-  }
-}
+/** If storage refuses, the dot just shows again next visit. */
+export const markSeen = (version: string, store: Store | undefined = appStorage()): void => void writeKey(LAST_SEEN_KEY, version, store)
 
 /** True when this version's notes haven't been opened in this browser yet. */
 export function hasUnseenChanges(lastSeen: string | null, current: string): boolean {

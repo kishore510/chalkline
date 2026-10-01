@@ -33,7 +33,8 @@ describe('migration v1 -> v2', () => {
   it('loads a v1 autosave from browser storage', () => {
     const map = new Map([['chalkline.autosave', JSON.stringify(legacy)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
-    const diagram = loadAutosave(storage)
+    const result = loadAutosave(storage)
+    const diagram = result.status === 'ok' ? result.diagram : undefined
     expect(diagram?.schemaVersion).toBe(SCHEMA_VERSION)
     expect(diagram?.groups[0]?.kind).toBe('container')
   })

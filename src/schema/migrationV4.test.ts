@@ -26,7 +26,7 @@ describe('migration v3 -> v4', () => {
     expect(diagram.nodes.every((n) => n.layerId === undefined)).toBe(true)
     const map = new Map([['chalkline.autosave', JSON.stringify(v3)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
-    expect(loadAutosave(storage)).toEqual(diagram)
+    expect(loadAutosave(storage)).toEqual({ status: 'ok', diagram })
   })
 
   it('migrates every older version all the way', () => {

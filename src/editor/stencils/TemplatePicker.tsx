@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
-import { createEmptyDiagram, type Diagram } from '@/schema/diagram'
+import type { Diagram } from '@/schema/diagram'
+import { createNewDiagram, newDiagramTextDefaults } from '@/settings/newDiagram'
 import { TEMPLATES } from '@/stencils/builtin'
 import { categoriesOf } from '@/stencils/search'
 import { builtinThumbnail, useStencilStore } from '@/stencils/stencilStore'
@@ -34,7 +35,7 @@ export function TemplatePicker() {
     close()
     useUiStore.getState().notify(name === 'Blank diagram' ? 'Started a new diagram. Undo to go back.' : `Started from “${name}”. Undo to go back.`)
   }
-  const pick = (t: Template) => start(t.name, () => diagramFromTemplate(t))
+  const pick = (t: Template) => start(t.name, () => diagramFromTemplate(t, undefined, newDiagramTextDefaults()))
 
   if (pending) {
     return (
@@ -72,7 +73,7 @@ export function TemplatePicker() {
       <CategoryChips categories={CATEGORIES} value={category} onChange={setCategory} />
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
         {!category && (
-          <button type="button" className={card} onClick={() => start('Blank diagram', () => createEmptyDiagram())} data-autofocus="">
+          <button type="button" className={card} onClick={() => start('Blank diagram', () => createNewDiagram())} data-autofocus="">
             <span className="flex h-(--cl-template-thumb-height) w-full items-center justify-center rounded-sm border border-dashed border-border-strong text-text-muted">
               <FilePlus className="size-7" aria-hidden="true" />
             </span>

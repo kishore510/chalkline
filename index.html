@@ -6,11 +6,13 @@
     <meta name="description" content="Chalkline: ideas to diagrams." />
     <title>Chalkline</title>
     <script>
-      // Apply the theme before first paint to avoid a flash. Mirrors src/lib/theme.ts.
+      // Apply the theme before first paint to avoid a flash. Mirrors storedPreference in src/lib/theme.ts.
       ;(function () {
         var pref = 'system'
         try {
-          pref = localStorage.getItem('chalkline.theme') || 'system'
+          var settings = localStorage.getItem('chalkline.settings')
+          if (settings === null) pref = localStorage.getItem('chalkline.theme') || 'system'
+          else pref = ((JSON.parse(settings) || {}).appearance || {}).theme || 'system'
         } catch (e) {}
         var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.dataset.theme = dark ? 'dark' : 'light'

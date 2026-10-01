@@ -23,7 +23,7 @@ describe('migration v4 -> v5', () => {
     expect(diagram.nodes.every((n) => n.style.fontFamily === undefined && n.style.fontWeight === undefined)).toBe(true)
     const map = new Map([['chalkline.autosave', JSON.stringify(v4)]])
     const storage = { getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v), removeItem: (k: string) => void map.delete(k) }
-    expect(loadAutosave(storage)).toEqual(diagram)
+    expect(loadAutosave(storage)).toEqual({ status: 'ok', diagram })
   })
 
   it('loads every older version all the way to v5', () => {

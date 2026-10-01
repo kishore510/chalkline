@@ -2,9 +2,6 @@ export const THEME_PREFERENCES = ['system', 'light', 'dark'] as const
 export type ThemePreference = (typeof THEME_PREFERENCES)[number]
 export type Theme = 'light' | 'dark'
 
-/** Also read by the inline script in index.html, which applies the theme before first paint. */
-export const THEME_STORAGE_KEY = 'chalkline.theme'
-
 export function parsePreference(value: unknown): ThemePreference {
   return THEME_PREFERENCES.includes(value as ThemePreference) ? (value as ThemePreference) : 'system'
 }
@@ -20,22 +17,16 @@ export function nextPreference(preference: ThemePreference): ThemePreference {
   return THEME_PREFERENCES[(index + 1) % THEME_PREFERENCES.length]!
 }
 
-// Storage can throw (private mode, blocked site data), so every access is guarded.
-export function loadPreference(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): ThemePreference {
+/**
+ * The stored preference, from settings text (or, before migration, the old
+ * one-word theme key). Mirrored by the inline script in index.html, which
+ * applies the theme before first paint; a test keeps the two in step.
+ */
+export function storedPreference(settingsText: string | null, legacyText: string | null): ThemePreference {
+  if (settingsText === null) return parsePreference(legacyText)
   try {
-    return parsePreference(storage?.getItem(THEME_STORAGE_KEY))
+    return parsePreference((JSON.parse(settingsText) as { appearance?: { theme?: unknown } } | null)?.appearance?.theme)
   } catch {
     return 'system'
-  }
-}
-
-export function savePreference(
-  preference: ThemePreference,
-  storage: Pick<Storage, 'setItem'> | undefined = globalThis.localStorage,
-): void {
-  try {
-    storage?.setItem(THEME_STORAGE_KEY, preference)
-  } catch {
-    // Not persisting is fine; the choice still applies for this session.
   }
 }

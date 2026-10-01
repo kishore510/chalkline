@@ -15,15 +15,18 @@ export function Segmented<T extends string>({
   onChange,
   className,
   label,
+  name,
 }: {
   options: SegmentedOption<T>[]
   value: T
   onChange: (value: T) => void
   className?: string
   label: string
+  /** Lets other UI (the tour) find this switch and its options: `data-segmented` and `data-value`. */
+  name?: string
 }) {
   return (
-    <div role="group" aria-label={label} className={cn('inline-flex gap-(--cl-toolbar-gap) rounded-md bg-surface-muted p-(--cl-toolbar-gap)', className)}>
+    <div role="group" aria-label={label} data-segmented={name} className={cn('inline-flex gap-(--cl-toolbar-gap) rounded-md bg-surface-muted p-(--cl-toolbar-gap)', className)}>
       {options.map((option) => (
         <Button
           key={option.value}
@@ -32,6 +35,7 @@ export function Segmented<T extends string>({
           aria-label={option.label}
           title={option.label}
           aria-pressed={option.value === value}
+          data-value={option.value}
           onClick={() => onChange(option.value)}
           className="aria-pressed:bg-surface aria-pressed:shadow-sm"
         >

@@ -13,7 +13,7 @@ Chalkline turns ideas into diagrams: add shapes, connect them, then style and sh
 4. Change a label: double-click a shape, or select it and type in the **Label** field.
 5. Your work saves in this browser as you go. Use **Save as JSON** in the menu to keep a copy.
 
-> Not sure where to begin? Choose **Start from a template** or **Load an example** on the empty canvas.
+> Not sure where to begin? Choose **Start from a template** or try an example diagram from the empty canvas. For a short guided tour of the modes, choose **Take the tour** in Help.
 
 ## The three modes
 
@@ -28,6 +28,7 @@ The mode switch sits in the toolbar.
 - **Palette**: shapes and stencils. On a phone it opens from **+**.
 - **Properties**: appear when something is selected. Style, notes, locking and more.
 - **Menu** (the three lines): new, open, save, export and example diagrams.
+- **Settings** (the gear; in the menu on a phone): theme, canvas and text defaults, backup and restore. See [Settings, backup and the tour](help:settings-and-backup).
 - **More room**: on desktop, the chevron buttons collapse the palette and the right panel to slim rails.
 
 Next: [Adding and editing shapes](help:shapes), [Connectors](help:connectors), [Gestures and shortcuts](help:gestures-and-shortcuts).

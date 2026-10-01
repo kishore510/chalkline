@@ -5,7 +5,7 @@ import { Panel } from '@/components/ui/panel'
 import type { Layout } from '@/hooks/useMediaQuery'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/store/uiStore'
-import type { GridDisplay } from '@/store/viewPrefs'
+import type { GridDisplay } from '@/settings/schema'
 import { ToggleField } from './fields'
 
 const GRID_OPTIONS: { value: GridDisplay; label: string }[] = [

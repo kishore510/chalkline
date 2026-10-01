@@ -20,6 +20,7 @@ import { createNode, MIN_NODE_SIZE } from '@/schema/factories'
 import { getShape, isKnownShape } from '@/shapes/registry'
 import { copyFragment, fragmentBounds, pasteFragment, type Fragment } from './clipboard'
 import type { LayoutChanges } from '@/layout/computeLayout'
+import { newConnectorStyle } from '@/settings/newDiagram'
 import { placeStencil } from '@/stencils/fragment'
 import type { StencilContent } from '@/stencils/format'
 import * as groups from './groups'
@@ -457,7 +458,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     connect(connection) {
       const active = usableActive()
       if (!active) return null
-      const { diagram, edgeId } = ops.connect(get().diagram, connection)
+      const { diagram, edgeId } = ops.connect(get().diagram, connection, undefined, newConnectorStyle())
       if (!edgeId) return null
       commit(layers.assignLayerOp(diagram, new Set([edgeId]), active))
       return edgeId

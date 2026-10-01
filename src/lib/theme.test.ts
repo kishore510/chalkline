@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { loadPreference, nextPreference, parsePreference, resolveTheme, savePreference, THEME_STORAGE_KEY } from './theme'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { nextPreference, parsePreference, resolveTheme, storedPreference } from './theme'
 
 describe('theme', () => {
   it('parses known preferences and falls back to system', () => {
@@ -23,25 +25,19 @@ describe('theme', () => {
     expect(nextPreference('dark')).toBe('system')
   })
 
-  it('round-trips through storage', () => {
-    const store = new Map<string, string>()
-    const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) }
-    savePreference('dark', storage)
-    expect(store.get(THEME_STORAGE_KEY)).toBe('dark')
-    expect(loadPreference(storage)).toBe('dark')
+  it('reads the stored preference from settings, else the old theme key', () => {
+    expect(storedPreference(JSON.stringify({ appearance: { theme: 'dark' } }), 'light')).toBe('dark')
+    expect(storedPreference(null, 'light')).toBe('light')
+    // Unreadable settings mean default settings, as in the app.
+    expect(storedPreference('{oops', 'dark')).toBe('system')
+    expect(storedPreference(JSON.stringify({ appearance: { theme: 'neon' } }), null)).toBe('system')
+    expect(storedPreference(null, null)).toBe('system')
   })
 
-  it('survives storage that throws', () => {
-    const broken = {
-      getItem: () => {
-        throw new Error('blocked')
-      },
-      setItem: () => {
-        throw new Error('blocked')
-      },
-    }
-    expect(loadPreference(broken)).toBe('system')
-    expect(() => savePreference('light', broken)).not.toThrow()
-    expect(loadPreference(undefined)).toBe('system')
+  it('the first-paint script in index.html reads the same keys', () => {
+    const html = readFileSync(join(import.meta.dirname, '..', '..', 'index.html'), 'utf8')
+    expect(html).toContain("localStorage.getItem('chalkline.settings')")
+    expect(html).toContain("localStorage.getItem('chalkline.theme')")
+    expect(html).toContain('appearance')
   })
 })
