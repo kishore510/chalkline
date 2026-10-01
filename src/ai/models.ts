@@ -17,10 +17,10 @@ export interface AiModel {
 }
 
 export const AI_MODELS = {
-  /** Fast and cheap: labels, summaries, annotation suggestions, and the key test. */
-  small: { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', use: 'Labels, summaries and testing your key' },
-  /** More capable: generating diagrams from text. */
-  large: { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', use: 'Generating diagrams' },
+  /** Fast and cheap: summaries, reviews, and the key test. */
+  small: { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', use: 'Summaries, reviews and testing your key' },
+  /** More capable: generating diagrams from text, and deeper reviews. */
+  large: { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', use: 'Generating diagrams and deeper reviews' },
 } as const satisfies Record<string, AiModel>
 
 export type ModelRole = keyof typeof AI_MODELS

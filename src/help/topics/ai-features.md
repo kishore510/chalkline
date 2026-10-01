@@ -1,11 +1,13 @@
 ---
 title: AI features and your API key
 order: 21
-keywords: ai, claude, anthropic, generate, summarise, summary, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
+keywords: ai, claude, anthropic, generate, summarise, summary, review, findings, deeper review, local checks, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
 ---
 Chalkline's AI features use **your own Anthropic API key**. You pay Anthropic for what you use, through your own account. Chalkline has no server: requests go straight from this browser to Anthropic's API (`api.anthropic.com`).
 
-With a key you can [generate a diagram from a description](help:generating-diagrams) and [summarise a diagram in words](help:summarising-diagrams). Both are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate** or **Summarise**.
+With a key you can [generate a diagram from a description](help:generating-diagrams), [summarise a diagram in words](help:summarising-diagrams) and [review a diagram](help:reviewing-diagrams) for things worth a second look. All three are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate**, **Summarise** or **Review**.
+
+**Review** also has **local checks** (unconnected shapes, duplicate or inconsistent names, empty labels). They run in this browser, need no key, and send nothing.
 
 ## Add your key
 
@@ -46,6 +48,8 @@ Nothing is sent until you press **Send**. Before every AI request, Chalkline sho
 
 **Summarise** sends your diagram, or just the selected shapes: ids, labels, shape types, connections and their direction, and groups. Notes are left out unless you turn on **Include notes**, and hidden layers unless you turn on **Include hidden layers**. Colours, styling, positions and images are never sent. Your labels and notes are sent as data, never as instructions to the model.
 
+**Review** sends the same as **Summarise** (with the same notes and hidden-layer switches), plus the focus areas you chose. Its local checks send nothing.
+
 The first time, Chalkline also reminds you that what you send leaves this device. Check your own or your organisation's rules before sending anything sensitive.
 
 Each AI action is a button you press: nothing is sent automatically, and Chalkline never retries on its own.
@@ -58,8 +62,12 @@ After each AI request, the AI sheet shows the model and the input and output tok
 
 ## Models
 
-- **Claude Haiku 4.5**: summarising diagrams and testing your key.
-- **Claude Sonnet 5.5**: generating diagrams.
+- **Claude Haiku 4.5**: summarising and reviewing diagrams, and testing your key.
+- **Claude Sonnet 5.5**: generating diagrams, and **Deeper review**. Sonnet costs more per token than Haiku, and a deeper review thinks before answering, so it uses more tokens: the check step always names the model.
+
+## How far to trust it
+
+AI answers can be wrong. Summaries can misdescribe a diagram, and a review can be wrong or miss things: treat it as a prompt for thought, not an audit. Results are never saved with your diagram or put in an export.
 
 ## When it doesn't work
 

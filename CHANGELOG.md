@@ -2,6 +2,24 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.24.0] - 2026-10-01
+
+### Added
+- **Review a diagram**: a short list of things worth a second look. Choose **AI** in the top bar, then **Review** (on a phone, **Review with AI…** in the menu). It never changes your diagram.
+- **Local checks**, instant and free, with nothing sent: shapes with no connections, duplicate labels, the same name written differently (such as *API gateway* and *API Gateway*), and empty or starting labels. Connectors without labels can be checked too. Text, sticky notes and callouts aren't counted as unconnected. No API key needed.
+- **AI review** with your own API key: choose the whole diagram or the selection, and what to look for (single points of failure, missing components, naming, data flow and direction, mixed levels of abstraction). Notes and hidden layers stay out unless you turn them on. The check step shows the model, the scope, the counts and the estimated size before anything is sent.
+- **Deeper review** uses Claude Sonnet 5.5 instead of Claude Haiku 4.5. It costs more, and the check step says so.
+- Findings show a severity (High, Medium or Low, as a word and an icon), an explanation and a suggestion, local checks first. **Show shapes** selects and centres the shapes a finding is about, offering to show hidden layers first. **Dismiss**, **Copy all (Markdown)** and **Download as .md**.
+- Results are never saved, aren't an undo step and aren't in any export. If you change the diagram afterwards, they're marked as out of date.
+- A Help topic on reviewing diagrams.
+
+### Changed
+- The AI sheet has three modes: **Generate**, **Summarise** and **Review**.
+- The AI help topic covers reviews, what they send, Deeper review's cost, and how far to trust AI answers.
+
+### Fixed
+- An API key echoed back in an error's details is now hidden once, cleanly, instead of leaving a stray "key removed]" after the placeholder.
+
 ## [0.23.0] - 2026-10-01
 
 ### Added
