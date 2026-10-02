@@ -140,7 +140,8 @@ function linkDir(selectedIsSource: boolean, dir: ReturnType<typeof edgeDirection
 }
 
 /**
- * The payload and the ref map. Pure and deterministic: the size shown before
+ * The payload and the ref maps (selected shapes, and neighbours). Also used
+ * by refine (6f) to describe its selection. Pure and deterministic: the size shown before
  * sending is the size sent.
  */
 export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode[], includeNotes: boolean) {
@@ -151,6 +152,8 @@ export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode
     refOf.set(n.id, `e${i + 1}`)
   })
   const neighbours: NotesNeighbour[] = []
+  /** Neighbour refs to their ids (shapes and groups). */
+  const neighbourRefs = new Map<string, string>()
   const counts: NotesCounts = { shapes: shapes.length, neighbours: 0, links: 0, linksLeftOut: 0, hiddenLeftOut: 0, notesSent: 0, notesMarked: 0 }
   const types = new Set<string>()
 
@@ -163,6 +166,7 @@ export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode
     if (node ? isNodeHidden(diagram, node) : !group || isGroupFrameHidden(diagram, group)) return null
     const ref = `n${neighbours.length + 1}`
     refOf.set(id, ref)
+    neighbourRefs.set(ref, id)
     if (node) {
       types.add(node.type)
       neighbours.push({ ref, shape: node.type, label: text(node.label) })
@@ -218,7 +222,7 @@ export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode
       return [id, `${def.name}: ${def.description}`]
     }),
   )
-  return { payload: { shapes: sent, neighbours, shapeTypes } satisfies NotesPayload, refs, counts }
+  return { payload: { shapes: sent, neighbours, shapeTypes } satisfies NotesPayload, refs, neighbourRefs, counts }
 }
 
 /** The rules every request shares. Stable: no dates, ids or diagram content. */

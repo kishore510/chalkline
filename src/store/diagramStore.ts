@@ -6,6 +6,8 @@ import {
   MAX_LAYERS,
   parseDiagram,
   type Diagram,
+  type DiagramEdge,
+  type DiagramNode,
   type EdgeStyle,
   type NodeStyle,
   type NodeType,
@@ -176,6 +178,15 @@ export interface DiagramState {
    * changes anything already there. Null if the active layer is hidden or locked.
    */
   insertGenerated: (content: StencilContent, viewCentre: Position, grid?: number) => string[] | null
+  /**
+   * Refine (AI): adds new, already placed shapes and connectors, some of
+   * which may end on existing shapes. ADD-ONLY: nothing already there is
+   * changed. Connectors go to existing shapes as manual connecting allows
+   * (locked shapes included). Active layer, selected. One undo step. A
+   * connector whose ends aren't a new shape plus a new or existing shape is
+   * left out. Null if the active layer is hidden or locked.
+   */
+  insertRefinement: (nodes: readonly DiagramNode[], edges: readonly DiagramEdge[]) => { ids: string[]; dropped: number } | null
 
   /* Layers. Add, rename, reorder, delete and move-to-layer are undo steps; visibility and locks are view state (saved, not undoable). */
   /** Where new items go. Not part of the document. */
@@ -680,6 +691,23 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const { diagram, ids } = placeStencil(current, content, centre, active)
       commit(diagram, { extra: { selection: ids } })
       return ids
+    },
+
+    insertRefinement(newNodes, newEdges) {
+      const active = usableActive()
+      if (!active) return null
+      const current = get().diagram
+      const existing = new Set(current.nodes.map((n) => n.id))
+      const taken = new Set([...existing, ...current.edges.map((e) => e.id), ...current.groups.map((g) => g.id)])
+      const nodes = newNodes.filter((n) => !taken.has(n.id)).map(({ groupId: _group, ...n }) => layers.withLayer({ ...n, locked: false }, active))
+      const fresh = new Set(nodes.map((n) => n.id))
+      const ok = (id: string) => fresh.has(id) || existing.has(id)
+      const edges = newEdges
+        .filter((e) => !taken.has(e.id) && e.source !== e.target && ok(e.source) && ok(e.target) && (fresh.has(e.source) || fresh.has(e.target)))
+        .map((e) => layers.withLayer(e, active))
+      const ids = [...nodes.map((n) => n.id), ...edges.map((e) => e.id)]
+      if (ids.length > 0) commit({ ...current, nodes: [...current.nodes, ...nodes], edges: [...current.edges, ...edges] }, { extra: { selection: ids } })
+      return { ids, dropped: newEdges.length - edges.length }
     },
 
     setActiveLayer(id) {
