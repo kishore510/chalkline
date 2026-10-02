@@ -2,6 +2,21 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.26.0] - 2026-10-02
+
+### Added
+- **Refine with AI**: select one or more shapes, say what to add (for example "add a cache between these two" or "add monitoring for the selected services"), and Claude suggests new shapes and connectors around them. Choose **AI** in the top bar, then **Refine** (on a phone, **Refine with AI…** in the menu).
+- Refine is **add-only**. It adds new shapes and new connectors, which can connect to your existing shapes. It never changes, moves, restyles, renames or deletes anything already there, and existing connectors are kept.
+- A preview shows the new shapes and connectors next to the shapes they attach to, which are faded. It also counts what will be added and lists anything that was fixed or left out. **Add to canvas** adds it all in one undo step, selects it and centres the view on it. **Regenerate**, **Edit instruction** and **Cancel** are there too.
+- New shapes are laid out on their own, then placed beside the selection (to the right, else below) without covering anything. They go on the active layer.
+- The check step shows the model (Claude Sonnet 5.5), the shapes sent and the estimated size. Only the selected shapes and the shapes they connect to are sent (labels, shape types and connector labels and directions), under stand-in names. Ids and positions are never sent, and notes only if you turn on **Include notes**. At most 30 shapes of context, 15 new shapes and 30 new connectors.
+- If nothing can be done by adding, the sheet says **Nothing to add**, with Claude's reason.
+- A Help topic on refining diagrams.
+
+### Changed
+- The AI sheet has five modes: **Generate**, **Summarise**, **Review**, **Notes** and **Refine**, three on the first row and two on the second. With large text they wrap instead of being cut off.
+- The AI help topic covers Refine: what it sends, the add-only rule, its cost and its limits.
+
 ## [0.25.0] - 2026-10-01
 
 ### Added

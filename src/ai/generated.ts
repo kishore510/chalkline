@@ -110,13 +110,29 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
  * over a cap: trimmed). An answer that isn't the expected JSON at all, or has
  * no shapes, fails.
  */
-export function validateGenerated(answer: string, { includeNotes }: { includeNotes: boolean }): ValidateResult {
+export function validateGenerated(answer: string, options: ValidateOptions): ValidateResult {
   let json: unknown
   try {
     json = JSON.parse(stripFences(answer))
   } catch {
     return { ok: false, reason: 'malformed', detail: 'The answer wasn’t valid JSON.' }
   }
+  return validateGeneratedJson(json, options)
+}
+
+export interface ValidateOptions {
+  includeNotes: boolean
+  /** Lower caps for a smaller request (refine). Default: CAPS. */
+  caps?: { nodes: number; edges: number; groups: number }
+  /**
+   * Refs of existing shapes a connector may end on (refine). A connector
+   * needs at least one new shape: one joining two existing shapes is left out.
+   */
+  existing?: ReadonlySet<string>
+}
+
+/** validateGenerated on already-parsed JSON. */
+export function validateGeneratedJson(json: unknown, { includeNotes, caps = CAPS, existing }: ValidateOptions): ValidateResult {
   const parsed = RawSchema.safeParse(json)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
@@ -131,11 +147,11 @@ export function validateGenerated(answer: string, { includeNotes }: { includeNot
   }
 
   // --- Shapes
-  if (raw.nodes.length > CAPS.nodes) warn(`Kept the first ${CAPS.nodes} shapes; ${plural(raw.nodes.length - CAPS.nodes, 'more was', 'more were')} left out.`)
+  if (raw.nodes.length > caps.nodes) warn(`Kept the first ${caps.nodes} shapes; ${plural(raw.nodes.length - caps.nodes, 'more was', 'more were')} left out.`)
   /** The model's id for each shape → its id here (the first, when the model reused one). */
   const ids = new Map<string, string>()
   const used = new Set<string>()
-  const nodes: GeneratedNode[] = raw.nodes.slice(0, CAPS.nodes).map((n, i) => {
+  const nodes: GeneratedNode[] = raw.nodes.slice(0, caps.nodes).map((n, i) => {
     const wanted = plainText(String(n.id)) || `n${i + 1}`
     let id = wanted
     for (let k = 2; used.has(id); k++) id = `${wanted}-${k}`
@@ -173,19 +189,29 @@ export function validateGenerated(answer: string, { includeNotes }: { includeNot
 
   // --- Connectors
   const rawEdges = raw.edges ?? []
-  if (rawEdges.length > CAPS.edges) warn(`Kept the first ${CAPS.edges} connectors; ${plural(rawEdges.length - CAPS.edges, 'more was', 'more were')} left out.`)
+  if (rawEdges.length > caps.edges) warn(`Kept the first ${caps.edges} connectors; ${plural(rawEdges.length - caps.edges, 'more was', 'more were')} left out.`)
   let dangling = 0
   let loops = 0
+  let bothExisting = 0
+  const fresh = new Set(ids.values())
+  const end = (value: string | number) => {
+    const key = plainText(String(value))
+    return ids.get(key) ?? (existing?.has(key) ? key : undefined)
+  }
   const edges: GeneratedEdge[] = []
-  for (const e of rawEdges.slice(0, CAPS.edges)) {
-    const from = ids.get(plainText(String(e.from)))
-    const to = ids.get(plainText(String(e.to)))
+  for (const e of rawEdges.slice(0, caps.edges)) {
+    const from = end(e.from)
+    const to = end(e.to)
     if (!from || !to) {
       dangling++
       continue
     }
     if (from === to) {
       loops++
+      continue
+    }
+    if (!fresh.has(from) && !fresh.has(to)) {
+      bothExisting++
       continue
     }
     const direction = plainText(e.direction).toLowerCase()
@@ -208,13 +234,14 @@ export function validateGenerated(answer: string, { includeNotes }: { includeNot
   }
   if (dangling) warn(`${plural(dangling, 'connector')} pointed at a shape that isn’t there and ${dangling === 1 ? 'was' : 'were'} left out.`)
   if (loops) warn(`${plural(loops, 'connector')} joined a shape to itself and ${loops === 1 ? 'was' : 'were'} left out.`)
+  if (bothExisting) warn(`${plural(bothExisting, 'connector')} joined two existing shapes and ${bothExisting === 1 ? 'was' : 'were'} left out: only connectors to new shapes are added.`)
 
   // --- Groups: each shape in at most one.
   const rawGroups = raw.groups ?? []
-  if (rawGroups.length > CAPS.groups) warn(`Kept the first ${CAPS.groups} groups; ${plural(rawGroups.length - CAPS.groups, 'more was', 'more were')} left out.`)
+  if (rawGroups.length > caps.groups) warn(`Kept the first ${caps.groups} groups; ${plural(rawGroups.length - caps.groups, 'more was', 'more were')} left out.`)
   const grouped = new Set<string>()
   const groups: GeneratedGroup[] = []
-  rawGroups.slice(0, CAPS.groups).forEach((g, i) => {
+  rawGroups.slice(0, caps.groups).forEach((g, i) => {
     const title = cap(plainText(g.title) || `Group ${i + 1}`, CAPS.label).text
     const members: string[] = []
     for (const m of g.members) {

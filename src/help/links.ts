@@ -18,4 +18,5 @@ export const LEARN_MORE = {
   summarise: 'summarising-diagrams',
   review: 'reviewing-diagrams',
   notes: 'suggesting-notes',
+  refine: 'refining-diagrams',
 } as const

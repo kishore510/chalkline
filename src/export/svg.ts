@@ -263,8 +263,15 @@ function edgeSvg(
   return out
 }
 
-/** `includeHidden`: also draw items on hidden layers (off by default: export what's visible). */
-export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: number; background?: boolean; includeHidden?: boolean } = {}): SvgExport {
+/**
+ * `includeHidden`: also draw items on hidden layers (off by default: export what's visible).
+ * `dim`: draw these shapes faded (the refine preview's read-only context).
+ */
+export function buildSvg(
+  diagram: Diagram,
+  env: ExportEnv,
+  options: { padding?: number; background?: boolean; includeHidden?: boolean; dim?: { ids: ReadonlySet<string>; opacity: number } } = {},
+): SvgExport {
   const padding = options.padding ?? 32
   const bounds = new Bounds()
   const faces = new Faces()
@@ -295,7 +302,10 @@ export function buildSvg(diagram: Diagram, env: ExportEnv, options: { padding?: 
       .join('')
     content += diagram.nodes
       .filter((n) => layerOf(n) === layer && shown.has(n.id))
-      .map((n) => nodeSvg(n, env, bounds, defaults, faces))
+      .map((n) => {
+        const svg = nodeSvg(n, env, bounds, defaults, faces)
+        return options.dim?.ids.has(n.id) ? `<g opacity="${options.dim.opacity}">${svg}</g>` : svg
+      })
       .join('')
   }
   if (bounds.empty) bounds.add({ x: 0, y: 0, width: 1, height: 1 })

@@ -1,11 +1,11 @@
 ---
 title: AI features and your API key
 order: 21
-keywords: ai, claude, anthropic, generate, summarise, summary, review, findings, suggest notes, notes, deeper review, local checks, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
+keywords: ai, claude, anthropic, generate, summarise, refine, extend, add-only, summary, review, findings, suggest notes, notes, deeper review, local checks, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
 ---
 Chalkline's AI features use **your own Anthropic API key**. You pay Anthropic for what you use, through your own account. Chalkline has no server: requests go straight from this browser to Anthropic's API (`api.anthropic.com`).
 
-With a key you can [generate a diagram from a description](help:generating-diagrams), [summarise a diagram in words](help:summarising-diagrams), [review a diagram](help:reviewing-diagrams) for things worth a second look, and [suggest notes](help:suggesting-notes) for selected shapes. All four are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate**, **Summarise**, **Review** or **Notes**.
+With a key you can [generate a diagram from a description](help:generating-diagrams), [summarise a diagram in words](help:summarising-diagrams), [review a diagram](help:reviewing-diagrams) for things worth a second look, [suggest notes](help:suggesting-notes) for selected shapes, and [refine](help:refining-diagrams) the selected part of a diagram by adding to it. All five are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate**, **Summarise**, **Review**, **Notes** or **Refine**.
 
 **Review** also has **local checks** (unconnected shapes, duplicate or inconsistent names, empty labels). They run in this browser, need no key, and send nothing.
 
@@ -52,6 +52,8 @@ Nothing is sent until you press **Send**. Before every AI request, Chalkline sho
 
 **Suggest notes** sends only the 1 to 5 selected shapes (labels, shape types and what each type is for) and the shapes they connect to, as context, with connector labels and directions (at most 8 connections per shape, none on hidden layers). Shapes go under stand-in names (e1, e2…), never their ids, and never with positions. Existing notes go only if you turn on **Use existing notes as context**.
 
+**Refine** sends the selected shapes (labels and shape types) and the shapes they connect to as read-only context (labels, shape types, connector labels and directions; at most 30 shapes in all, none on hidden layers), plus your instruction. Like Suggest notes, it uses stand-in names (e1, n1…): real ids and positions are never sent. Existing notes go only if you turn on **Include notes**.
+
 The first time, Chalkline also reminds you that what you send leaves this device. Check your own or your organisation's rules before sending anything sensitive.
 
 Each AI action is a button you press: nothing is sent automatically, and Chalkline never retries on its own.
@@ -65,13 +67,16 @@ After each AI request, the AI sheet shows the model and the input and output tok
 ## Models
 
 - **Claude Haiku 4.5**: summarising and reviewing diagrams, suggesting notes, and testing your key.
-- **Claude Sonnet 5.5**: generating diagrams, and **Deeper review**. Sonnet costs more per token than Haiku, and a deeper review thinks before answering, so it uses more tokens: the check step always names the model.
+- **Claude Sonnet 5.5**: generating diagrams, refining diagrams, and **Deeper review**. Sonnet costs more per token than Haiku, and a deeper review thinks before answering, so it uses more tokens: the check step always names the model.
 
 ## How far to trust it
 
 AI answers can be wrong. Summaries can misdescribe a diagram, and a review can be wrong or miss things: treat it as a prompt for thought, not an audit. Suggested notes can be wrong too, so check each one before accepting. Results are never saved with your diagram or put in an export.
 
-Suggest notes is the only AI action that writes to your diagram, and only when you accept a card: it only ever adds to a shape's notes field, never replaces a note, and never changes anything else. Each **Accept** or **Accept all** is one undo step.
+Only two AI actions write to your diagram, and only when you choose to:
+
+- **Suggest notes**, when you accept a card. It only ever adds to a shape's notes field, never replaces a note, and never changes anything else. Each **Accept** or **Accept all** is one undo step.
+- **Refine** (like **Generate**), when you choose **Add to canvas**. It is **add-only**: it adds new shapes and connectors, which may connect to existing shapes, but never changes, moves, restyles or deletes anything already there. Existing connectors are kept. Adding is one undo step.
 
 ## When it doesn't work
 

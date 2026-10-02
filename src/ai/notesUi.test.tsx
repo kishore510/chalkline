@@ -100,7 +100,7 @@ describe('Suggest notes sheet', () => {
     saveKey(FAKE, 'session')
     const { unmount } = await mount()
     await open()
-    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review', 'Notes'])
+    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review', 'Notes', 'Refine'])
     expect(document.querySelector('[data-mode="notes"]')!.getAttribute('aria-pressed')).toBe('true')
     expect(text()).toContain('Select 1 to 5 shapes first')
     expect(buttons('Suggest notes')[0]!.disabled).toBe(true)
