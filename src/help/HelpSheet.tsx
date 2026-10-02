@@ -16,7 +16,8 @@ import { CHANGELOG, CHANGELOG_TEXT, HELP_TOPICS, topicById } from './content'
 import { CREDITS, creditFor, HIGHLIGHTS } from './credits'
 import { currentView, useHelpStore, type HelpView } from './helpStore'
 import { HELP_AREAS } from './links'
-import { Markdown } from './Markdown'
+import { parseChangelogItem } from './changelog'
+import { InlineMarkdown, Markdown } from './Markdown'
 import { searchTopics } from './topics'
 
 /*
@@ -235,7 +236,9 @@ function WhatsNew() {
                 <h4 className="text-xs font-semibold tracking-wide text-text-muted uppercase">{section.title}</h4>
                 <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-text">
                   {section.items.map((item, i) => (
-                    <li key={i}>{item}</li>
+                    <li key={i}>
+                      <InlineMarkdown nodes={parseChangelogItem(item)} />
+                    </li>
                   ))}
                 </ul>
               </section>

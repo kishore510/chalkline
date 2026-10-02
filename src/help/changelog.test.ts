@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { VERSION_INFO } from '@/version'
-import { compareVersions, parseChangelog } from './changelog'
+import { compareVersions, parseChangelog, parseChangelogItem } from './changelog'
+import { inlineText } from './markdown'
 import { hasUnseenChanges, LAST_SEEN_KEY, markSeen, readLastSeen } from './whatsNew'
 
 const SAMPLE = `# Changelog
@@ -110,5 +111,32 @@ describe('lastSeenVersion', () => {
     expect(readLastSeen(broken)).toBeNull()
     expect(() => markSeen('0.13.0', broken)).not.toThrow()
     expect(readLastSeen(undefined)).toBeNull()
+  })
+})
+
+describe('parseChangelogItem', () => {
+  it('reads **bold** and `code`', () => {
+    expect(parseChangelogItem('**Refine with AI**: choose **AI**, then press `Ctrl Z`.')).toEqual([
+      { type: 'strong', children: [{ type: 'text', text: 'Refine with AI' }] },
+      { type: 'text', text: ': choose ' },
+      { type: 'strong', children: [{ type: 'text', text: 'AI' }] },
+      { type: 'text', text: ', then press ' },
+      { type: 'code', text: 'Ctrl Z' },
+      { type: 'text', text: '.' },
+    ])
+  })
+
+  it('never makes links, images or HTML', () => {
+    const nodes = parseChangelogItem('See [docs](https://example.com) ![logo](https://example.com/x.png) <img src="x"><b>hi</b>')
+    expect(JSON.stringify(nodes)).not.toMatch(/"link"/)
+    expect(inlineText(nodes)).toBe('See docs (https://example.com) logo hi')
+  })
+
+  it('leaves no stray ** or ` in the real CHANGELOG', () => {
+    for (const release of parseChangelog(readFileSync(new URL('../../CHANGELOG.md', import.meta.url), 'utf8'))!) {
+      for (const section of release.sections) {
+        for (const item of section.items) expect(inlineText(parseChangelogItem(item))).not.toMatch(/\*\*|`/)
+      }
+    }
   })
 })

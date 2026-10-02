@@ -9,6 +9,8 @@
  * it as plain text instead.
  */
 
+import { parseInline, type Inline } from './markdown'
+
 export interface ChangelogSection {
   /** "Added", "Changed", "Fixed", or whatever heading the file uses. */
   title: string
@@ -86,3 +88,9 @@ export function parseChangelog(text: string): ChangelogRelease[] | null {
   for (const r of releases) r.sections = r.sections.filter((s) => s.items.length > 0)
   return releases.sort((a, b) => compareVersions(b.version, a.version))
 }
+
+/**
+ * An item's inline Markdown (**bold**, _italic_, `code`), parsed the strict
+ * way used for AI answers: no links, no images, no HTML.
+ */
+export const parseChangelogItem = (item: string): Inline[] => parseInline(item, { untrusted: true })
