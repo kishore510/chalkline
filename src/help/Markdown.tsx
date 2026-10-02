@@ -52,6 +52,11 @@ function InlineView({ nodes, onTopic }: { nodes: Inline[]; onTopic: OnTopic }): 
   })
 }
 
+/** Inline content on its own, e.g. a What's new item. */
+export function InlineMarkdown({ nodes, onTopic = noTopic }: { nodes: Inline[]; onTopic?: OnTopic }) {
+  return <InlineView nodes={nodes} onTopic={onTopic} />
+}
+
 export function Markdown({ blocks, onTopic = noTopic }: { blocks: Block[]; onTopic?: OnTopic }) {
   return (
     <div className="flex flex-col gap-3 text-sm text-text">

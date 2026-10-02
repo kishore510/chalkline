@@ -2,6 +2,11 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.26.1] - 2026-10-02
+
+### Fixed
+- What's new now shows bold text and key names properly, instead of showing the Markdown markers (like the asterisks around a feature name).
+
 ## [0.26.0] - 2026-10-02
 
 ### Added
