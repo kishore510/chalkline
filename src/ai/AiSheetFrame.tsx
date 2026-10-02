@@ -10,7 +10,7 @@ import { useAiSheet, type AiMode } from './GenerateEntry'
 import { describeTotal, describeUsage, useUsageStore } from './usage'
 
 /*
- * The AI sheet's frame, shared by Generate, Summarise, Review and Notes: a bottom sheet on
+ * The AI sheet's frame, shared by Generate, Summarise, Review, Notes and Refine: a bottom sheet on
  * phones, a side sheet from tablet up (like Settings), with a header (Back,
  * title, Close), a focus trap and a body that scrolls on its own.
  */
@@ -98,19 +98,25 @@ export function usePageFocus(page: string, bodyRef: RefObject<HTMLDivElement | n
   }, [page, bodyRef, titleRef])
 }
 
-const MODES: { id: AiMode; label: string }[] = [
+export const MODES: { id: AiMode; label: string }[] = [
   { id: 'generate', label: 'Generate' },
   { id: 'summarise', label: 'Summarise' },
   { id: 'review', label: 'Review' },
   { id: 'notes', label: 'Notes' },
+  { id: 'refine', label: 'Refine' },
 ]
 
-/** Generate, Summarise, Review or Notes, on each mode's first page. */
+/**
+ * Generate, Summarise, Review, Notes or Refine, on each mode's first page.
+ * Three then two: each button starts at a third of the row and grows to fill
+ * it, and never shrinks below its word, so large text wraps them instead of
+ * cutting them off.
+ */
 export function ModeSwitch() {
   const mode = useAiSheet((s) => s.mode)
   const setMode = useAiSheet((s) => s.setMode)
   return (
-    <div role="group" aria-label="AI action" className="grid grid-cols-(--cl-ai-mode-columns) gap-1 rounded-md border border-border bg-surface-muted p-1">
+    <div role="group" aria-label="AI action" className="flex flex-wrap gap-1 rounded-md border border-border bg-surface-muted p-1">
       {MODES.map((m) => (
         <button
           key={m.id}
@@ -119,7 +125,7 @@ export function ModeSwitch() {
           data-mode={m.id}
           onClick={() => setMode(m.id)}
           className={cn(
-            'min-h-touch rounded-sm px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+            'min-h-touch shrink-0 grow basis-(--cl-ai-mode-basis) rounded-sm px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
             mode === m.id ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text',
           )}
         >

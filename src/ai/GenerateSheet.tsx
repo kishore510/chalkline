@@ -66,16 +66,18 @@ export function summary(g: Pick<Generation, 'content'>): string {
 }
 
 /** The preview as standalone SVG that fits its box. Labels are escaped by buildSvg; colours stay var(--cl-…) until shown. */
-function previewSvg(diagram: Diagram): string {
-  const { svg, width, height } = buildSvg(diagram, screenEnv(), { padding: 16, background: false })
+function previewSvg(diagram: Diagram, dim?: ReadonlySet<string>): string {
+  const faded = dim && dim.size > 0 ? { ids: dim, opacity: readToken('--cl-ai-anchor-opacity', 0.4) } : undefined
+  const { svg, width, height } = buildSvg(diagram, screenEnv(), { padding: 16, background: false, dim: faded })
   return svg
     .replace(`width="${width}" height="${height}"`, 'width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false"')
     .replace(/<title>[^<]*<\/title>/, '')
 }
 
-function Preview({ diagram }: { diagram: Diagram }) {
+/** A diagram drawn as the canvas draws it (`dim`: shapes to fade, as read-only context). Also used by Refine. */
+export function Preview({ diagram, dim }: { diagram: Diagram; dim?: ReadonlySet<string> }) {
   const theme = useThemeName()
-  const svg = useMemo(() => previewSvg(diagram), [diagram])
+  const svg = useMemo(() => previewSvg(diagram, dim), [diagram, dim])
   const html = useMemo(() => {
     const style = getComputedStyle(document.documentElement)
     return resolveTokenColours(svg, (token) => style.getPropertyValue(`--cl-${token}`).trim())

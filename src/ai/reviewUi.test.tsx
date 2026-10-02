@@ -118,7 +118,7 @@ describe('Review sheet', () => {
     const { unmount } = await mount()
     await open()
     expect(text()).toContain('Review your diagram')
-    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review', 'Notes'])
+    expect([...document.querySelectorAll('[data-mode]')].map((b) => b.textContent)).toEqual(['Generate', 'Summarise', 'Review', 'Notes', 'Refine'])
     expect(document.querySelector('[data-mode="review"]')!.getAttribute('aria-pressed')).toBe('true')
     await unmount()
   })

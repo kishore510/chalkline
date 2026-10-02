@@ -4,12 +4,12 @@ import { create } from 'zustand'
 import { Button } from '@/components/ui/button'
 
 /*
- * The small, always-loaded parts of the AI sheet (Generate, Summarise, Review and Notes):
+ * The small, always-loaded parts of the AI sheet (Generate, Summarise, Review, Notes and Refine):
  * whether it's open and in which mode, the top-bar button and the host. The
  * sheet, the request code and ELK load on first open.
  */
 
-export type AiMode = 'generate' | 'summarise' | 'review' | 'notes'
+export type AiMode = 'generate' | 'summarise' | 'review' | 'notes' | 'refine'
 
 interface AiSheetState {
   open: boolean
@@ -19,6 +19,7 @@ interface AiSheetState {
   openSummarise: () => void
   openReview: () => void
   openNotes: () => void
+  openRefine: () => void
   /** Opens in the last mode used. */
   openAi: () => void
   setMode: (mode: AiMode) => void
@@ -32,6 +33,7 @@ export const useAiSheet = create<AiSheetState>()((set) => ({
   openSummarise: () => set({ open: true, mode: 'summarise' }),
   openReview: () => set({ open: true, mode: 'review' }),
   openNotes: () => set({ open: true, mode: 'notes' }),
+  openRefine: () => set({ open: true, mode: 'refine' }),
   openAi: () => set({ open: true }),
   setMode: (mode) => set({ mode }),
   closeGenerate: () => set({ open: false }),
@@ -44,6 +46,7 @@ export const openGenerate = () => useAiSheet.getState().openGenerate()
 export const openSummarise = () => useAiSheet.getState().openSummarise()
 export const openReview = () => useAiSheet.getState().openReview()
 export const openNotes = () => useAiSheet.getState().openNotes()
+export const openRefine = () => useAiSheet.getState().openRefine()
 
 const AiSheet = lazy(() => import('./AiSheet'))
 
@@ -58,7 +61,7 @@ export function GenerateSheetHost() {
   )
 }
 
-export const AI_BUTTON_LABEL = 'Generate, summarise, review or suggest notes with AI'
+export const AI_BUTTON_LABEL = 'Generate, summarise, review, suggest notes or refine with AI'
 
 /** Top-bar button (tablet and desktop; phones use the ☰ menu). */
 export function AiButton() {
