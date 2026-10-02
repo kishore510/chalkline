@@ -7,7 +7,7 @@ import { buildSvg, type ExportEnv } from '@/export/svg'
 import { createEmptyDiagram } from '@/schema/diagram'
 import { createNode } from '@/schema/factories'
 import { diagramThumbnail } from '@/stencils/thumbnail'
-import { glyphIcon, iconPaths } from './glyphIcon'
+import { glyphIcon, iconPaths, outlineIcon, outlineIconPaths, outlinePaths } from './glyphIcon'
 import { LUCIDE } from './lucideGlyph'
 import { SHAPES } from './registry'
 
@@ -33,6 +33,9 @@ const env: ExportEnv = {
 
 const withGlyph = SHAPES.filter((s) => s.glyph)
 const withoutGlyph = SHAPES.filter((s) => !s.glyph)
+/** Shapes (pack 4 on) whose palette icon is drawn from their own outline rather than taken from Lucide. */
+const drawnOutline = withoutGlyph.filter((s) => s.icon === outlineIcon(s.geometry, s.defaultSize))
+const lucideOutline = withoutGlyph.filter((s) => !drawnOutline.includes(s))
 
 describe('shape icons', () => {
   it('covers the glyph shapes', () => {
@@ -74,8 +77,35 @@ describe('shape icons', () => {
     }
   })
 
-  it.each(withoutGlyph.map((s) => [s.id, s] as const))('%s: no glyph, so the palette shows an outline icon', (_id, shape) => {
+  it.each(lucideOutline.map((s) => [s.id, s] as const))('%s: no glyph, so the palette shows an outline icon', (_id, shape) => {
     expect(renderToStaticMarkup(createElement(shape.icon))).toMatch(/^<svg[^>]*lucide/)
+  })
+
+  it('draws the outline icon of every pack 4 shape from the shape itself', () => {
+    const ids = ['square', 'circle', 'triangle', 'trapezoid', 'cube', 'predefined-process', 'internal-storage', 'delay', 'display', 'tape', 'card', 'step', 'block-arrow', 'double-arrow']
+    expect(drawnOutline.map((s) => s.id).sort()).toEqual(ids.sort())
+  })
+
+  it.each(drawnOutline.map((s) => [s.id, s] as const))('%s: the palette icon, canvas, SVG export and stencil thumbnails draw the same outline', (_id, shape) => {
+    const paths = outlinePaths(shape.geometry, shape.defaultSize)
+    const icon = [...renderToStaticMarkup(createElement(shape.icon)).matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]!)
+    // The icon is the same geometry at icon proportions: equal path for path once the numbers are taken out.
+    expect(icon).toEqual(outlineIconPaths(shape.geometry, shape.defaultSize))
+    expect(icon.map(skeleton)).toEqual(paths.map(skeleton))
+    const canvas = renderToStaticMarkup(createElement(ShapeView, { type: shape.id, size: shape.defaultSize, label: shape.defaultLabel }))
+    const diagram = { ...createEmptyDiagram(), nodes: [createNode(shape.id, { x: 0, y: 0 })] }
+    const exported = buildSvg(diagram, env).svg
+    const thumbnail = diagramThumbnail(diagram, env)
+    for (const d of paths) {
+      expect(canvas).toContain(`d="${d}"`)
+      expect(exported).toContain(`d="${d}"`)
+      expect(thumbnail).toContain(`d="${d}"`)
+    }
+  })
+
+  it('every outline icon is distinct', () => {
+    const drawn = drawnOutline.map((s) => outlineIconPaths(s.geometry, s.defaultSize).join(' '))
+    expect(new Set(drawn).size).toBe(drawn.length)
   })
 })
 

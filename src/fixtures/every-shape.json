@@ -39,7 +39,21 @@
     {"id": "n_prompt-template", "type": "prompt-template", "position": {"x": 480, "y": 1600}, "size": {"width": 140, "height": 120}, "label": "Prompt template"},
     {"id": "n_mcp-client", "type": "mcp-client", "position": {"x": 720, "y": 1600}, "size": {"width": 160, "height": 100}, "label": "MCP client"},
     {"id": "n_mcp-server", "type": "mcp-server", "position": {"x": 0, "y": 1800}, "size": {"width": 160, "height": 100}, "label": "MCP server"},
-    {"id": "n_tool", "type": "tool", "position": {"x": 240, "y": 1800}, "size": {"width": 140, "height": 100}, "label": "Tool / plugin"}
+    {"id": "n_tool", "type": "tool", "position": {"x": 240, "y": 1800}, "size": {"width": 140, "height": 100}, "label": "Tool / plugin"},
+    {"id": "n_square", "type": "square", "position": {"x": 480, "y": 1800}, "size": {"width": 100, "height": 100}, "label": "Square"},
+    {"id": "n_circle", "type": "circle", "position": {"x": 720, "y": 1800}, "size": {"width": 120, "height": 120}, "label": "Circle"},
+    {"id": "n_triangle", "type": "triangle", "position": {"x": 0, "y": 2000}, "size": {"width": 160, "height": 140}, "label": "Triangle"},
+    {"id": "n_trapezoid", "type": "trapezoid", "position": {"x": 240, "y": 2000}, "size": {"width": 160, "height": 80}, "label": "Trapezoid"},
+    {"id": "n_cube", "type": "cube", "position": {"x": 480, "y": 2000}, "size": {"width": 140, "height": 120}, "label": "Cube"},
+    {"id": "n_predefined-process", "type": "predefined-process", "position": {"x": 720, "y": 2000}, "size": {"width": 160, "height": 80}, "label": "Predefined process"},
+    {"id": "n_internal-storage", "type": "internal-storage", "position": {"x": 0, "y": 2200}, "size": {"width": 160, "height": 80}, "label": "Internal storage"},
+    {"id": "n_delay", "type": "delay", "position": {"x": 240, "y": 2200}, "size": {"width": 140, "height": 80}, "label": "Delay"},
+    {"id": "n_display", "type": "display", "position": {"x": 480, "y": 2200}, "size": {"width": 160, "height": 80}, "label": "Display"},
+    {"id": "n_tape", "type": "tape", "position": {"x": 720, "y": 2200}, "size": {"width": 160, "height": 90}, "label": "Tape"},
+    {"id": "n_card", "type": "card", "position": {"x": 0, "y": 2400}, "size": {"width": 160, "height": 90}, "label": "Card"},
+    {"id": "n_step", "type": "step", "position": {"x": 240, "y": 2400}, "size": {"width": 160, "height": 80}, "label": "Step"},
+    {"id": "n_block-arrow", "type": "block-arrow", "position": {"x": 480, "y": 2400}, "size": {"width": 160, "height": 80}, "label": "Block arrow"},
+    {"id": "n_double-arrow", "type": "double-arrow", "position": {"x": 720, "y": 2400}, "size": {"width": 180, "height": 80}, "label": "Double arrow"}
   ],
   "edges": []
 }

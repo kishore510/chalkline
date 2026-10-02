@@ -1,12 +1,14 @@
 import { createElement } from 'react'
 import { r2 as n } from './outline'
 import { circle } from './paths'
-import type { Glyph, Pen, ShapeIconComponent } from './types'
+import type { Size } from '@/schema/diagram'
+import type { Glyph, Pen, ShapeGeometry, ShapeIconComponent } from './types'
 
 /*
  * Glyphs are drawn once, by the shape's own glyph function: on the canvas
  * inside the node, and in the palette as an icon. Nothing else maps a shape
- * to a picture, so the two can't drift apart.
+ * to a picture, so the two can't drift apart. Shapes added since pack 4
+ * have no glyph but follow the same rule: their icon is their own outline.
  */
 
 /** A pen that draws the unit square into the box (x, y) to (x + s, y + s). */
@@ -51,6 +53,62 @@ export function glyphIcon(glyph: Glyph): ShapeIconComponent {
         paths.map((d, i) => createElement('path', { key: i, d })),
       )
     cache.set(glyph, icon)
+  }
+  return icon
+}
+
+type GeometryFn = (size: Size) => ShapeGeometry
+
+/** The outline's paths as the canvas draws them at `size`, body then detail. */
+export const outlinePaths = (geometry: GeometryFn, size: Size) => {
+  const { body, detail } = geometry(size)
+  return [...body, ...detail]
+}
+
+/** Widest an outline icon gets (either way round), so long shapes stay legible at icon size. */
+const ICON_ASPECT = 1.5
+
+/** The size an outline icon is drawn at: the default size, made no more than 3:2. */
+export const outlineIconSize = ({ width, height }: Size): Size => ({ width: Math.min(width, height * ICON_ASPECT), height: Math.min(height, width * ICON_ASPECT) })
+
+/** The outline icon's paths: the shape's own geometry, drawn at outlineIconSize. */
+export const outlineIconPaths = (geometry: GeometryFn, size: Size) => outlinePaths(geometry, outlineIconSize(size))
+
+const outlineCache = new WeakMap<GeometryFn, ShapeIconComponent>()
+
+/**
+ * The palette icon for a shape without a glyph, drawn by the shape's own
+ * geometry function (the one the canvas and export use) at outlineIconSize,
+ * fitted into the same 24-unit box, margin and stroke weight as the Lucide
+ * icons.
+ */
+export function outlineIcon(geometry: GeometryFn, defaultSize: Size): ShapeIconComponent {
+  let icon = outlineCache.get(geometry)
+  if (!icon) {
+    const size = outlineIconSize(defaultSize)
+    const paths = outlinePaths(geometry, size)
+    const side = (Math.max(size.width, size.height) * ICON_SIZE) / (ICON_SIZE - 2 * ICON_MARGIN)
+    const viewBox = [(size.width - side) / 2, (size.height - side) / 2, side, side].map(n).join(' ')
+    const strokeWidth = n((2 * side) / ICON_SIZE)
+    icon = ({ className, 'aria-hidden': ariaHidden }) =>
+      createElement(
+        'svg',
+        {
+          xmlns: 'http://www.w3.org/2000/svg',
+          width: ICON_SIZE,
+          height: ICON_SIZE,
+          viewBox,
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          className,
+          'aria-hidden': ariaHidden,
+        },
+        paths.map((d, i) => createElement('path', { key: i, d })),
+      )
+    outlineCache.set(geometry, icon)
   }
   return icon
 }

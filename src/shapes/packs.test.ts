@@ -19,11 +19,11 @@ describe('shapes pack 2', () => {
     expect(new Set(SHAPE_IDS).size).toBe(SHAPE_IDS.length)
     expect(new Set(SHAPES.map((s) => s.name.toLowerCase())).size).toBe(SHAPES.length)
     for (const [category, ids] of Object.entries(PACK)) for (const id of ids) expect(getShape(id).category, id).toBe(category)
-    expect(SHAPES).toHaveLength(16 + 19 + 3)
+    expect(SHAPES).toHaveLength(16 + 19 + 3 + 14)
   })
 
   it('has the Networking and AI & ML categories', () => {
-    expect(CATEGORIES.map((c) => c.name)).toEqual(['Basic', 'Process', 'Architecture', 'Networking', 'AI & ML', 'Annotation'])
+    expect(CATEGORIES.map((c) => c.name)).toEqual(['Basic', 'Process', 'Arrows', 'Architecture', 'Networking', 'AI & ML', 'Annotation'])
   })
 
   it.each(Object.values(PACK).flat())('%s has an icon, sane sizes and search words', (id) => {

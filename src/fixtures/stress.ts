@@ -29,7 +29,26 @@ const WORDS = ['Orders', 'Payments', 'Gateway', 'Ledger', 'Cache', 'Queue', 'Sea
  * the stress diagrams, and the hashes that guard their output, stay the same
  * as the registry grows.
  */
-const ADDED_SINCE_GOLDEN = new Set(['mcp-client', 'mcp-server', 'tool'])
+const ADDED_SINCE_GOLDEN = new Set([
+  'mcp-client',
+  'mcp-server',
+  'tool',
+  // Shapes pack 4
+  'square',
+  'circle',
+  'triangle',
+  'trapezoid',
+  'cube',
+  'predefined-process',
+  'internal-storage',
+  'delay',
+  'display',
+  'tape',
+  'card',
+  'step',
+  'block-arrow',
+  'double-arrow',
+])
 
 export const STRESS_SIZES = [300, 1000] as const
 
