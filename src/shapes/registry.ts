@@ -19,6 +19,7 @@ import {
 import type { Size } from '@/schema/diagram'
 import { boxSidePoint, extremePoint, r2, rectOutline, sampleCubic, sampleEllipse } from './outline'
 import { AI, ARCHITECTURE, NETWORKING } from './packs'
+import { ARROWS, BASIC_4, PROCESS_4 } from './pack4'
 import { circle, cylinderRy, hexagonPoints, hexInset, polygon, roundedRect } from './paths'
 import { SIDES, type Box, type Point, type ShapeCategory, type ShapeDefinition, type Side } from './types'
 
@@ -40,7 +41,7 @@ const rectangle: ShapeDefinition = {
   category: 'basic',
   icon: Square,
   description: 'a generic component, system or step when nothing more specific fits',
-  keywords: ['box', 'square', 'component', 'block', 'generic'],
+  keywords: ['box', 'component', 'block', 'generic'],
   defaultSize: { width: 160, height: 80 },
   minSize: MIN,
   keepAspect: false,
@@ -281,7 +282,7 @@ const ellipse: ShapeDefinition = {
   category: 'process',
   icon: Ellipse,
   description: 'the start or end of a flow, or an event',
-  keywords: ['circle', 'oval', 'start', 'end', 'terminator', 'event'],
+  keywords: ['oval', 'start', 'end', 'terminator', 'event'],
   defaultSize: { width: 150, height: 90 },
   minSize: { width: 48, height: 32 },
   defaultLabel: 'Start',
@@ -614,12 +615,16 @@ export const SHAPES: readonly ShapeDefinition[] = [
   rectangle,
   rounded,
   actor,
+  ...BASIC_4,
   // Process
   diamond,
   ellipse,
   hexagon,
   parallelogram,
   documentShape,
+  ...PROCESS_4,
+  // Arrows
+  ...ARROWS,
   // Architecture
   database,
   cloud,
@@ -644,6 +649,7 @@ export const SHAPE_IDS: readonly string[] = SHAPES.map((s) => s.id)
 export const CATEGORIES: readonly { id: ShapeCategory; name: string }[] = [
   { id: 'basic', name: 'Basic' },
   { id: 'process', name: 'Process' },
+  { id: 'arrows', name: 'Arrows' },
   { id: 'architecture', name: 'Architecture' },
   { id: 'networking', name: 'Networking' },
   { id: 'ai', name: 'AI & ML' },

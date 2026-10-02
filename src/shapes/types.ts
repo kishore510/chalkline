@@ -7,7 +7,7 @@ import type { NodeStyle, Size } from '@/schema/diagram'
  * connector attachment and export all read from it.
  */
 
-export type ShapeCategory = 'basic' | 'process' | 'architecture' | 'networking' | 'ai' | 'annotation'
+export type ShapeCategory = 'basic' | 'process' | 'arrows' | 'architecture' | 'networking' | 'ai' | 'annotation'
 export type Side = 'top' | 'right' | 'bottom' | 'left'
 export const SIDES: readonly Side[] = ['top', 'right', 'bottom', 'left']
 
@@ -64,8 +64,9 @@ export interface ShapeDefinition {
   category: ShapeCategory
   /**
    * Palette icon. For a shape with a glyph this is generated from the glyph
-   * (glyphIcon), so the palette and canvas always show the same mark; shapes
-   * without one use an icon of their outline.
+   * (glyphIcon), so the palette and canvas always show the same mark. Shapes
+   * without one use an icon of their outline: a Lucide icon for the older
+   * shapes, or the shape's own geometry (outlineIcon) from pack 4 on.
    */
   icon: ShapeIconComponent
   /** The mark drawn inside the shape on the canvas (and in exports), if any. */

@@ -2,6 +2,18 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.27.0] - 2026-10-02
+
+### Added
+- Fourteen new shapes. In **Basic**: **Square** and **Circle** (both keep their proportions when resized), **Triangle**, **Trapezoid** and **Cube**. In **Process**: **Predefined process**, **Internal storage**, **Delay**, **Display**, **Tape**, **Card** and **Step** (a chevron).
+- A new **Arrows** category with a **Block arrow** and a **Double arrow**.
+- Each new shape's palette icon is drawn from the shape itself, so it matches what appears on the canvas and in exports.
+- Labels sit inside each new shape's outline (low in the triangle, along the shaft of the arrows), and the shape grows to fit a long label. Connectors attach to the drawn edge: the triangle's sloped sides, the arrow shafts, the step's notch and the cube's faces.
+- The AI can choose the new shapes when generating or refining a diagram.
+
+### Changed
+- Searching for "square" or "circle" now finds only the new Square or Circle, not Rectangle or Ellipse.
+
 ## [0.26.1] - 2026-10-02
 
 ### Fixed
