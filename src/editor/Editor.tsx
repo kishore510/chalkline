@@ -15,6 +15,8 @@ import { createNewDiagram } from '@/settings/newDiagram'
 import { SettingsSheetHost } from '@/settings/SettingsEntry'
 import { cn } from '@/lib/utils'
 import { SearchBar, SearchSheet } from '@/search/SearchPanel'
+import { RefineLogPanel, RefineLogSheet } from '@/ai/RefineLog'
+import { useRefineLog } from '@/ai/refineNarrative'
 import { useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
@@ -85,6 +87,7 @@ function EditorLayout() {
             {layout === 'desktop' && <div className="cl-safe-bottom" />}
           </div>
           {layout === 'tablet' && <PropertiesSlideOver />}
+          {layout !== 'phone' && <RefineLogPanel />}
         </main>
         {layout === 'desktop' && <PropertiesPanel />}
       </div>
@@ -127,6 +130,8 @@ function SkipToCanvas() {
 function PhoneBottom() {
   const open = useDiagramStore((s) => s.selection.length > 0)
   const searching = useSearchStore((s) => s.open)
+  const log = useRefineLog((s) => s.open)
+  if (log) return <RefineLogSheet />
   if (open) return <PropertiesSheet />
   if (searching) return <SearchSheet />
   return (

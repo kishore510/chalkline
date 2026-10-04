@@ -46,6 +46,8 @@ export interface NotesShape {
 
 /** One connection from a selected shape: "to" means its arrow points at the other end. */
 export interface NotesLink {
+  /** The connector's own ref (c1, c2…), sent only by refine so it can change or remove it. */
+  id?: string
   ref: string
   dir: 'to' | 'from' | 'both' | 'none'
   label?: string
@@ -144,8 +146,11 @@ function linkDir(selectedIsSource: boolean, dir: ReturnType<typeof edgeDirection
  * by refine (6f) to describe its selection. Pure and deterministic: the size shown before
  * sending is the size sent.
  */
-export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode[], includeNotes: boolean) {
+export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode[], includeNotes: boolean, { connectorRefs = false } = {}) {
   const refs = new Map<string, string>()
+  /** Connector refs (c1…) to their ids, when asked for. A connector between two selected shapes has one ref. */
+  const edgeRefs = new Map<string, string>()
+  const edgeRefOf = new Map<string, string>()
   const refOf = new Map<string, string>()
   shapes.forEach((n, i) => {
     refs.set(`e${i + 1}`, n.id)
@@ -200,7 +205,13 @@ export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode
         counts.hiddenLeftOut++
         continue
       }
-      links.push({ ref, dir: linkDir(isSource, edgeDirection(edge.style)), label: text(edge.label ?? '') })
+      let id: string | undefined
+      if (connectorRefs) {
+        id = edgeRefOf.get(edge.id) ?? `c${edgeRefs.size + 1}`
+        edgeRefOf.set(edge.id, id)
+        edgeRefs.set(id, edge.id)
+      }
+      links.push({ ...(id && { id }), ref, dir: linkDir(isSource, edgeDirection(edge.style)), label: text(edge.label ?? '') })
     }
     counts.links += links.length
     const has = node.notes.trim().length > 0
@@ -222,7 +233,7 @@ export function buildNotesPayload(diagram: Diagram, shapes: readonly DiagramNode
       return [id, `${def.name}: ${def.description}`]
     }),
   )
-  return { payload: { shapes: sent, neighbours, shapeTypes } satisfies NotesPayload, refs, neighbourRefs, counts }
+  return { payload: { shapes: sent, neighbours, shapeTypes } satisfies NotesPayload, refs, neighbourRefs, edgeRefs, counts }
 }
 
 /** The rules every request shares. Stable: no dates, ids or diagram content. */
