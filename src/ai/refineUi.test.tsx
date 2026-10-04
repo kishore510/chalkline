@@ -17,7 +17,7 @@ import { resetSecretsForTests } from './redact'
 import { RefineLogPanel, RefineLogSheet } from './RefineLog'
 import { useSettingsStore } from '@/settings/settingsStore'
 import { useRefineLog } from './refineNarrative'
-import { NOTHING_SILENT, REFINE_EXAMPLES } from './RefineSheet'
+import { GARBLED_RETRY, NOTHING_SILENT, REFINE_EXAMPLES } from './RefineSheet'
 import { useUsageStore } from './usage'
 
 /*
@@ -208,7 +208,7 @@ describe('Refine sheet', () => {
     await click('Send')
     expect(announced()).toContain(`Refining with ${AI_MODELS.large.name}`)
     await until('Apply')
-    expect(text()).toContain('1 new shape, 2 new connectors (2 to existing shapes)')
+    expect(text()).toContain('In this answer: 1 new shape, 2 new connectors, no changes to your shapes.')
     expect(text()).toContain(NOTHING_SILENT)
     expect(text()).toContain('Faded: 2 existing shapes')
     expect(announced()).toContain('Ready: 1 new shape')
@@ -335,7 +335,7 @@ describe('Refine sheet', () => {
     await settle(2)
     await click('Send')
     await until('Apply')
-    expect(text()).toContain('2 fixes')
+    expect(text()).toContain('In this answer: no new shapes, no new connectors, 2 fixes to your shapes or connectors.')
     expect(text()).toContain('Gave the API a clearer name')
     expect(text()).toContain('Renamed “API service” to “Orders API”')
     expect(text()).toContain('Why: Says what it serves.')
@@ -356,8 +356,112 @@ describe('Refine sheet', () => {
     const { entries, open: logOpen } = useRefineLog.getState()
     expect(logOpen).toBe(true)
     expect(entries).toHaveLength(1)
-    expect(entries[0]).toMatchObject({ instruction: 'Tidy this up.', summary: expect.stringContaining('clearer name') })
+    expect(entries[0]).toMatchObject({ instruction: 'Tidy this up.', summary: 'Applied 1 fix.', intent: expect.stringContaining('clearer name') })
     expect(entries[0]!.items.map((i) => [i.kind, i.text, i.why])).toEqual([['fixed', 'Renamed “API service” to “Orders API”', 'Says what it serves.']])
+    await unmount()
+  })
+})
+
+describe('Refine sheet: answers that went wrong, and effort', () => {
+  const sendWith = async (instruction: string) => {
+    await type(field(), instruction)
+    await click('Generate')
+    await settle(2)
+    await click('Send')
+  }
+
+  it('a garbled answer: says so, shows the raw answer, offers only Try again, which tells Claude what went wrong', async () => {
+    saveKey(FAKE, 'session')
+    store().setSelection(['web', 'api'])
+    const calls = respondWith(
+      JSON.stringify({
+        nodes: [{ id: 'cdn', label: 'CloudFront CDN', shape: 'cdn', why: "Edge caching.','note':'Caches static assets." }],
+        edges: [],
+        changes: [],
+        summary: 'Reshaped the boxes and added a CDN.',
+      }),
+    )
+    const { unmount } = await mount()
+    await open()
+    const before = store().diagram
+    await sendWith('Add a CDN.')
+    await until('came back garbled')
+    expect(text()).toContain("Edge caching.','note':'Caches static assets.")
+    expect(text()).toContain('Claude meant to: Reshaped the boxes and added a CDN.')
+    expect(text()).toContain('Show Claude’s raw answer')
+    expect(buttons('Apply')).toHaveLength(0)
+    expect(buttons('Apply anyway')).toHaveLength(0)
+    expect(announced()).toContain('came back garbled')
+    expect(store().diagram).toBe(before)
+
+    await click('Try again')
+    await settle(2)
+    expect(text()).toContain('Check before sending')
+    expect(text()).toContain('Claude is told what went wrong with its last answer.')
+    await click('Send')
+    await until('came back garbled')
+    expect(sentPrompt(calls[1]!)).toContain(`This is a second try. ${GARBLED_RETRY}`)
+    expect(sentPrompt(calls[0]!)).not.toContain('second try')
+    await unmount()
+  })
+
+  it('an incomplete answer: the facts, Claude’s words apart, the reasons, Try again first and Apply anyway second', async () => {
+    saveKey(FAKE, 'session')
+    store().setSelection(['web', 'api'])
+    respondWith(
+      JSON.stringify({
+        nodes: [
+          { id: 'cdn', label: 'CDN', shape: 'cdn', why: 'Edge caching.' },
+          { id: 'waf', label: 'WAF', shape: 'firewall', why: 'Filters attacks.' },
+        ],
+        edges: [],
+        changes: [],
+        summary: 'Reshaped the boxes and added a CDN and a WAF in front.',
+      }),
+    )
+    const { unmount } = await mount()
+    await open()
+    await sendWith('Add an edge layer.')
+    await until('looks incomplete')
+    expect(text()).toContain('In this answer: 2 new shapes, no new connectors, no changes to your shapes.')
+    expect(text()).toContain('Claude says: Reshaped the boxes')
+    expect(text()).toContain('None of the 2 new shapes is connected to anything.')
+    expect(text()).toContain('describes changes to your shapes or connectors, but the answer has none')
+    const labels = [...dialog()!.querySelectorAll('button')].map((b) => b.textContent?.trim())
+    expect(labels.indexOf('Try again')).toBeLessThan(labels.indexOf('Apply anyway'))
+    expect(buttons('Apply')).toHaveLength(0)
+    expect(announced()).toContain('looks incomplete')
+    // Apply anyway still works, and the log records what really happened.
+    await click('Apply anyway')
+    await settle(2)
+    expect(store().diagram.nodes.some((n) => n.label === 'WAF')).toBe(true)
+    expect(useRefineLog.getState().entries[0]).toMatchObject({ summary: 'Applied 2 new shapes.', intent: 'Reshaped the boxes and added a CDN and a WAF in front.' })
+    await unmount()
+  })
+
+  it('effort follows the ask; Deeper refine overrides it; the check step and the request say which', async () => {
+    saveKey(FAKE, 'session')
+    store().setSelection(['web', 'api'])
+    const calls = respondWith(JSON.stringify({ nodes: [], edges: [], changes: [], summary: 'Nothing needed.' }))
+    const { unmount } = await mount()
+    await open()
+    const deeper = () => [...dialog()!.querySelectorAll('label')].find((l) => l.textContent?.includes('Deeper refine'))!.querySelector<HTMLButtonElement>('[role="switch"]')!
+    await type(field(), 'Add a cache between these two.')
+    expect(text()).toContain('Medium effort')
+    expect(deeper().getAttribute('aria-checked')).toBe('false')
+    await type(field(), 'Modernise this with resilient best practices.')
+    expect(text()).toContain('High effort, because your instruction asks for a redesign.')
+    expect(deeper().getAttribute('aria-checked')).toBe('true')
+    // Turn it off: medium, because you said so.
+    await act(async () => deeper().click())
+    expect(text()).toContain('Medium effort, because you turned off Deeper refine.')
+    await click('Generate')
+    await settle(2)
+    expect(text()).toContain('Medium effort, because you turned off Deeper refine.')
+    await click('Send')
+    await until('Nothing to change')
+    const body = JSON.parse(String(calls[0]!.body)) as { output_config: { effort: string } }
+    expect(body.output_config.effort).toBe('medium')
     await unmount()
   })
 })

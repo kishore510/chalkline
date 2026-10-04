@@ -27,7 +27,7 @@ import type { RefineFix } from './refineFixes'
 import { placeRefinement, previewDiagram, type RefinePlacement } from './refineLayout'
 import { StoryLine } from './RefineLog'
 import { describeAdditions, describeFixes, useRefineLog, type StoryItem } from './refineNarrative'
-import { capMessage, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
+import { capMessage, effortText, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
 import { useUsageStore } from './usage'
 
 /*
@@ -56,11 +56,56 @@ export const REFINE_EXAMPLES = [
   { label: 'Guardrail', text: 'Add a guardrail before the selected model.' },
 ] as const
 
+/** Sent with Try again after a garbled answer. */
+export const GARBLED_RETRY =
+  'Your previous answer was garbled: some text values held other fields (quotes, braces or field names), so parts were lost. Put every shape, connector and change in its own object, and keep every value plain text.'
+
+/** Sent with Try again after an answer that looked incomplete. */
+export const incompleteRetry = (reasons: readonly string[]) =>
+  `Your previous answer looked incomplete. ${reasons.join(' ')} Connect every new shape, and put every fix your summary describes in "changes".`
+
 export const NOTHING_SILENT = 'Nothing changes until you choose Apply, and Undo puts everything back in one step.'
 
 const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 const nameOf = (label: string) => (label.trim() ? `“${label.trim()}”` : 'Untitled shape')
 const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id) => b.includes(id))
+
+/** What an answer actually holds, saying "no" where something's missing: "4 new shapes, no new connectors, no changes to your shapes". */
+export function factLine(p: Pick<RefinePlacement, 'nodes' | 'edges'>, fixes: number): string {
+  return [
+    p.nodes.length ? count(p.nodes.length, 'new shape') : 'no new shapes',
+    p.edges.length ? count(p.edges.length, 'new connector') : 'no new connectors',
+    fixes ? count(fixes, 'fix', 'fixes') + ' to your shapes or connectors' : 'no changes to your shapes',
+  ].join(', ')
+}
+
+/** Claude's answer as it came back: for checking what went wrong. Memory only. */
+function RawAnswer({ raw }: { raw: string }) {
+  return (
+    <details className="text-xs text-text-muted">
+      <summary className="flex min-h-touch cursor-pointer items-center font-medium">Show Claude’s raw answer</summary>
+      <pre className="max-h-(--cl-ai-preview-max-height) overflow-y-auto rounded-md border border-border bg-surface-muted p-2 font-mono whitespace-pre-wrap wrap-anywhere">{raw}</pre>
+    </details>
+  )
+}
+
+/** A problem with the answer: what's wrong, in a list. */
+function AnswerProblem({ title, items, children }: { title: string; items: readonly string[]; children?: ReactNode }) {
+  return (
+    <div role="group" aria-label={title} className="flex gap-2 rounded-md border border-danger p-3">
+      <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-danger" />
+      <div className="flex min-w-0 flex-col gap-1 wrap-anywhere">
+        <p className="font-semibold">{title}</p>
+        <ul className="flex list-disc flex-col gap-0.5 pl-5">
+          {items.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 /** What a refinement does, in words: "2 new shapes, 3 new connectors (2 to existing shapes), 1 fix". */
 export function refineSummary(p: Pick<RefinePlacement, 'nodes' | 'edges'>, fixes = 0): string {
@@ -142,6 +187,8 @@ export function RefinePanel({ active }: { active: boolean }) {
   const [page, setPage] = useState<Page>('compose')
   const [instruction, setInstruction] = useState('')
   const [includeNotes, setIncludeNotes] = useState(false)
+  /** Deeper refine: null follows the automatic choice; true or false is the person's. */
+  const [deeper, setDeeper] = useState<boolean | null>(null)
   const [captured, setCaptured] = useState<RefineInput | null>(null)
   /** The answer, with the input it was made for. */
   const [result, setResult] = useState<{ input: RefineInput; refinement: Refinement } | null>(null)
@@ -163,6 +210,11 @@ export function RefinePanel({ active }: { active: boolean }) {
   const trimmed = instruction.trim()
   const chars = [...instruction].length
   const selectionChanged = !sameIds(openedWith, selectionIds)
+  // The effort this instruction and selection would get: shown on the compose page, decided again at the check step.
+  const effort = useMemo(
+    () => (selection.kind === 'ok' ? refineInput(diagram, selection.shapes, instruction, includeNotes, { deeper }).effort : null),
+    [diagram, selection, instruction, includeNotes, deeper],
+  )
 
   // The preview, placed in the diagram as it is now (Apply places it again, the same way).
   const placement = useMemo(
@@ -196,14 +248,14 @@ export function RefinePanel({ active }: { active: boolean }) {
   usePageFocus(page, bodyRef, titleRef)
 
   /** Opens the check step with a snapshot: what is sent, whatever happens to the selection after. */
-  function check(ids: readonly string[]) {
+  function check(ids: readonly string[], retryNote = '') {
     const now = useDiagramStore.getState().diagram
     const chosen = refineSelection(now, ids)
     if (chosen.kind !== 'ok') {
       announce(refineHint(chosen))
       return
     }
-    setCaptured(refineInput(now, chosen.shapes, instruction, includeNotes))
+    setCaptured(refineInput(now, chosen.shapes, instruction, includeNotes, { deeper, retryNote }))
     setProblem(null)
     setPage('confirm')
   }
@@ -240,14 +292,18 @@ export function RefinePanel({ active }: { active: boolean }) {
       setResult({ input, refinement: outcome.value })
       setOff(new Set())
       setPage('preview')
-      if (outcome.value.kind === 'nothing') {
+      if (outcome.value.kind === 'garbled') {
+        announce('Claude’s answer came back garbled, so nothing can be applied. Choose Try again.')
+      } else if (outcome.value.kind === 'nothing') {
         announce(`Nothing to change.${outcome.value.summary ? ` ${outcome.value.summary}` : ''}`)
       } else {
         const p = placeRefinement(useDiagramStore.getState().diagram, outcome.value.laid, input.selectedIds, gridNow())
-        const warnings = outcome.value.warnings.length
-        announce(
-          `Ready: ${refineSummary(p, outcome.value.fixes.length)}${warnings ? `, with ${count(warnings, 'note')} on what was left out` : ''}. ${outcome.value.summary} Choose Apply to make these changes.`,
-        )
+        const facts = factLine(p, outcome.value.fixes.length)
+        if (outcome.value.incomplete.length) announce(`This answer looks incomplete: ${facts}. ${outcome.value.incomplete.join(' ')} Choose Try again, or Apply anyway.`)
+        else {
+          const warnings = outcome.value.warnings.length
+          announce(`Ready: ${facts}${warnings ? `, with ${count(warnings, 'note')} on what was left out` : ''}. Choose Apply to make these changes.`)
+        }
       }
     } catch {
       const error = aiError('ai-unexpected', 'Refining failed before an answer could be read.')
@@ -290,7 +346,8 @@ export function RefinePanel({ active }: { active: boolean }) {
     }
     const added = new Set(applied.ids)
     const fixed = applied.results.filter((x) => x.status === 'applied').length
-    const what = refineSummary({ nodes: placed.nodes.filter((n) => added.has(n.id)), edges: placed.edges.filter((e) => added.has(e.id)) }, fixed)
+    const addedItems = { nodes: placed.nodes.filter((n) => added.has(n.id)), edges: placed.edges.filter((e) => added.has(e.id)) }
+    const what = refineSummary(addedItems, fixed)
     const skipped = applied.results.length - fixed
     const dropped = placed.droppedLinks + applied.dropped
     const extra = [
@@ -302,7 +359,9 @@ export function RefinePanel({ active }: { active: boolean }) {
       feature: 'refine',
       at: Date.now(),
       instruction: result.input.instruction,
-      summary: r.summary,
+      // What was actually applied, from the result; Claude's own summary is kept apart, as its intent.
+      summary: `Applied ${what}.`,
+      intent: r.summary,
       items: [
         ...describeFixes(before, chosen, applied.results),
         ...describeAdditions(
@@ -400,6 +459,15 @@ export function RefinePanel({ active }: { active: boolean }) {
           </div>
         </div>
         <ToggleField label="Include notes" pressed={includeNotes} onChange={setIncludeNotes} />
+        <div className="flex flex-col gap-1">
+          <ToggleField label="Deeper refine" pressed={effort?.level === 'high'} onChange={setDeeper} />
+          {effort && (
+            <p role="status" className="text-xs text-text-muted">
+              {effortText(effort)}
+              {effort.manual ? '' : ' Chosen from your instruction and selection; change it with Deeper refine.'}
+            </p>
+          )}
+        </div>
         <p className="text-xs text-text-muted">
           Model: <span className="font-medium text-text">{refineModel.name}</span>. The selected shapes and the shapes they connect to (labels and shape types) are sent to Anthropic’s API when you press Send. Ids and positions are never sent.
         </p>
@@ -435,6 +503,8 @@ export function RefinePanel({ active }: { active: boolean }) {
           needsNotice={needsNotice}
           details={[
             { term: 'Scope', value: `${count(captured.counts.shapes, 'selected shape')} and ${count(captured.counts.neighbours, 'connected shape')} (${captured.contextShapes} of at most ${REFINE_CAPS.context}).` },
+            { term: 'Effort', value: effortText(captured.effort) },
+            ...(captured.retryNote ? [{ term: 'Second try', value: 'Claude is told what went wrong with its last answer.' }] : []),
             {
               term: 'Result',
               value: `A preview of at most ${REFINE_CAPS.nodes} new shapes, ${REFINE_CAPS.edges} new connectors and ${REFINE_CAPS.changes} fixes to the selected shapes and their connectors, each with a reason. Nothing changes until you choose Apply.`,
@@ -468,7 +538,19 @@ export function RefinePanel({ active }: { active: boolean }) {
     const moved = !sameIds(result.input.selectedIds, selectionIds)
     body = (
       <div className="flex flex-col gap-4 pt-4 text-sm text-text">
-        {r.kind === 'nothing' || !placement || !preview || !story ? (
+        {r.kind === 'garbled' ? (
+          <>
+            <h3 tabIndex={-1} data-autofocus="" className="font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+              Claude’s answer came back garbled
+            </h3>
+            <AnswerProblem title="Why it can’t be applied" items={r.samples.map((x) => `“${x}”`)}>
+              <p className="text-xs text-text-muted">
+                Some of its text holds pieces of other fields, which means Claude lost its place and parts of the answer are missing. Nothing has been changed. Try again: Claude is told what went wrong.
+              </p>
+            </AnswerProblem>
+            {r.summary && <p className="text-xs text-text-muted">Claude meant to: {r.summary}</p>}
+          </>
+        ) : r.kind === 'nothing' || !placement || !preview || !story ? (
           <>
             <h3 tabIndex={-1} data-autofocus="" className="font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
               Nothing to change
@@ -480,14 +562,19 @@ export function RefinePanel({ active }: { active: boolean }) {
         ) : (
           <>
             <div className="flex flex-col gap-1">
-              <p className="font-medium">{refineSummary(placement, r.fixes.length)}</p>
+              <p className="font-medium">In this answer: {factLine(placement, r.fixes.length)}.</p>
               {r.summary && (
-                <p className="rounded-md border-l-2 border-accent bg-accent-subtle px-3 py-2">
-                  <span className="sr-only">The AI’s summary: </span>
+                <p className="rounded-md border-l-2 border-accent bg-accent-subtle px-3 py-2 wrap-anywhere">
+                  <span className="font-medium">Claude says: </span>
                   {r.summary}
                 </p>
               )}
             </div>
+            {r.incomplete.length > 0 && (
+              <AnswerProblem title="This answer looks incomplete" items={r.incomplete}>
+                <p className="text-xs text-text-muted">Try again (Claude is told what was missing), or Apply anyway and finish it by hand.</p>
+              </AnswerProblem>
+            )}
             <Preview diagram={preview.diagram} dim={preview.context} />
             <p className="text-xs text-text-muted">
               {preview.context.size ? `Faded: ${count(preview.context.size, 'existing shape')} shown for context. ` : ''}
@@ -514,17 +601,37 @@ export function RefinePanel({ active }: { active: boolean }) {
             )}
           </>
         )}
+        <RawAnswer raw={r.raw} />
         <div className="flex flex-col gap-2">
-          {r.kind === 'refine' && placement && (
-            <Button variant="primary" className={WRAP} onClick={apply} disabled={placement.nodes.length + placement.edges.length + chosen.length === 0} data-autofocus="">
-              <Check />
-              Apply
+          {(r.kind === 'garbled' || (r.kind === 'refine' && r.incomplete.length > 0)) && (
+            <Button
+              variant="primary"
+              className={WRAP}
+              data-autofocus={r.kind === 'refine' ? '' : undefined}
+              onClick={() => check(result.input.selectedIds, r.kind === 'garbled' ? GARBLED_RETRY : incompleteRetry(r.kind === 'refine' ? r.incomplete : []))}
+            >
+              <RotateCcw />
+              Try again
             </Button>
           )}
-          <Button variant="secondary" className={WRAP} onClick={() => check(result.input.selectedIds)}>
-            <RotateCcw />
-            Regenerate
-          </Button>
+          {r.kind === 'refine' && placement && (
+            <Button
+              variant={r.incomplete.length ? 'secondary' : 'primary'}
+              className={WRAP}
+              onClick={apply}
+              disabled={placement.nodes.length + placement.edges.length + chosen.length === 0}
+              data-autofocus={r.incomplete.length ? undefined : ''}
+            >
+              <Check />
+              {r.incomplete.length ? 'Apply anyway' : 'Apply'}
+            </Button>
+          )}
+          {!(r.kind === 'garbled' || (r.kind === 'refine' && r.incomplete.length > 0)) && (
+            <Button variant="secondary" className={WRAP} onClick={() => check(result.input.selectedIds)}>
+              <RotateCcw />
+              Regenerate
+            </Button>
+          )}
           <Button variant="secondary" className={WRAP} onClick={() => setPage('compose')}>
             <Pencil />
             Edit instruction

@@ -2,6 +2,21 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.29.1] - 2026-10-04
+
+### Fixed
+- **Refine no longer applies half an answer as if it were whole.** Sometimes Claude loses its place partway through an answer and writes parts of the answer inside other text, so pieces go missing (in one case, four unconnected shapes and none of the promised fixes). Refine now spots this, says **Claude's answer came back garbled**, quotes the broken text and won't apply it.
+- **The summary can't promise what isn't there.** The preview now starts with what's actually in the answer ("In this answer: 4 new shapes, no new connectors, no changes to your shapes"), with Claude's own words shown separately as **Claude says**. The AI change log records what was actually applied the same way. Claude now writes its summary after the changes, not before.
+- **Incomplete answers are flagged before you apply.** If none of the new shapes is connected, or the summary describes fixes the answer doesn't contain, the preview says **This answer looks incomplete**. **Try again** comes first, and **Apply anyway** is still there.
+
+### Added
+- **Try again** re-asks through the check step and tells Claude what went wrong with its last answer.
+- **Effort that fits the request.** Redesigns ("modernise", "best practice", "resilient", "outdated"…), long instructions and big selections get high effort; small additions get medium. **Deeper refine** overrides it, and the check step shows which and why. High effort gets more room to think.
+- **Show Claude's raw answer** under the preview, to see exactly what came back (kept only while the sheet is open).
+
+### Changed
+- Refine asks for every new shape to be connected, and for redesigns to rework the flow (route it through the new parts, remove the old direct connectors and fix shape types) rather than add shapes beside it.
+
 ## [0.29.0] - 2026-10-04
 
 ### Added

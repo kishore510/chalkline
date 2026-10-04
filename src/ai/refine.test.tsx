@@ -14,7 +14,9 @@ import { edgeKey, validateRefine } from './refineContract'
 import { applyFixes } from './refineFixes'
 import { describeAdditions, describeFixes, LOG_LIMIT, useRefineLog } from './refineNarrative'
 import { placeBeside, placeRefinement, previewDiagram, visibleObstacles, type RefineLaidOut } from './refineLayout'
-import { buildSystemPrompt, capMessage, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
+import { autoEffort, buildSystemPrompt, capMessage, chooseEffort, effortText, maxTokensFor, outputSchema, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
+import { MAX_OUTPUT_TOKENS } from './generatePrompt'
+import { garbledSamples } from './refineContract'
 import { registerSecret, resetSecretsForTests } from './redact'
 import { DIAGRAM_CLOSE, DIAGRAM_OPEN } from './summaryPrompt'
 import { sizeText } from './plan'
@@ -75,7 +77,7 @@ function laidOf(r: Refinement): RefineLaidOut {
 async function runThrough(ids: string[], answer: unknown) {
   const input = inputFor(ids)
   const r = ok((await refine(input, answer)).outcome)
-  if (r.kind === 'nothing') return { r, added: null }
+  if (r.kind !== 'refine') return { r, added: null }
   const placed = placeRefinement(store().diagram, r.laid, input.selectedIds, GRID)
   const added = store().applyRefinement({ nodes: placed.nodes, edges: placed.edges, fixes: r.fixes })
   return { r, placed, added }
@@ -602,7 +604,7 @@ describe('five canned answers, through check, layout and apply', () => {
         { from: 'g', to: 'e2' },
       ],
     })
-    expect(r.warnings).toEqual([])
+    expect(r).toMatchObject({ kind: 'refine', warnings: [], incomplete: [] })
     expect(added!.ids).toHaveLength(3)
   })
 
@@ -817,5 +819,158 @@ describe('safety', () => {
   it('the system prompt has no diagram content, dates or ids', () => {
     const system = buildSystemPrompt(false)
     expect(system).not.toMatch(/Web app|Postgres|20\d\d-\d\d/)
+  })
+})
+
+/*
+ * The 0.29.0 field report: "modernise this flow with AWS" on three plain
+ * boxes. The answer lost its place (fields written inside "why" text), so
+ * only four unconnected shapes survived while the summary promised reshapes
+ * and eight additions. These pin down each fix.
+ */
+describe('a garbled or incomplete answer (the 0.29.0 field report)', () => {
+  const USER_ASK =
+    'This flow of ui to api to db feels too simple and outdated. can you refine it to reflect modern architecture using aws cloud elements and resilient architecture and industry best practices'
+  const SCREENSHOT = {
+    nodes: [
+      { id: 'cdn', label: 'CloudFront CDN', shape: 'cdn', why: "Serves the UI from the edge for low latency and offloads the origin.','note':'Caches static UI assets close to users." },
+      { id: 'waf', label: 'AWS WAF', shape: 'firewall', why: "Filters malicious traffic before it reaches the API.','note':'Blocks common web exploits and bots." },
+      { id: 'gw', label: 'API Gateway', shape: 'api-gateway', why: "Single entry point for authentication, throttling and routing.'},{" },
+      { id: 'lb', label: 'Load Balancer', shape: 'load-balancer', why: 'Spreads requests across API instances.' },
+    ],
+    edges: [],
+    changes: [],
+    summary: 'Reshaped the boxes to proper UI, API and database types, then added a CDN, WAF, API gateway, load balancer, cache, queue, worker and object storage for a resilient AWS-style flow.',
+  }
+  const refs = { includeNotes: false, existing: new Set(['e1', 'e2', 'e3']), editable: new Set(['e1', 'e2', 'e3']), connectors: new Set(['c1', 'c2']) }
+
+  it('the screenshot answer is garbled: never applied, with samples of what went wrong', async () => {
+    // The ask itself now gets high effort.
+    expect(inputFor(['web', 'api'], USER_ASK).effort).toMatchObject({ level: 'high', reason: 'your instruction asks for a redesign' })
+    const r = validateRefine(JSON.stringify(SCREENSHOT), refs)
+    expect(r).toMatchObject({ ok: true, kind: 'garbled' })
+    if (!r.ok || r.kind !== 'garbled') throw new Error('expected garbled')
+    expect(r.samples.join(' ')).toContain("','note':'")
+    expect(r.samples).toHaveLength(3)
+    // End to end: nothing to apply, the raw answer kept for "Show Claude's raw answer".
+    const before = store().diagram
+    const { outcome } = await refine(inputFor(['web', 'api']), SCREENSHOT)
+    const value = ok(outcome)
+    expect(value).toMatchObject({ kind: 'garbled' })
+    expect(value.raw).toContain('CloudFront CDN')
+    expect(store().diagram).toBe(before)
+  })
+
+  it('spots leaked structure in any text, without flagging ordinary quotes and apostrophes', () => {
+    for (const bad of ["ok.','label':'x", 'ok."},{"id":"n2', "{'id': 'n3'", "routing.'}", 'see "note": "x"', 'a}, {b'])
+      expect(garbledSamples({ nodes: [{ why: bad }] }), bad).toHaveLength(1)
+    expect(garbledSamples({ summary: "ok.','why':'x" })).toHaveLength(1)
+    expect(garbledSamples({ changes: [{ label: "x','y':'z" }] })).toHaveLength(1)
+    for (const fine of ["The user's cart", "Reads 'hot' keys first", 'Caches "static" assets: images, CSS', 'Routes /api/* to the service', 'Uses {tenant} in the path', 'Retries (3x), then gives up.'])
+      expect(garbledSamples({ nodes: [{ why: fine, label: fine }], summary: fine }), fine).toEqual([])
+  })
+
+  it('a whole answer with only unconnected shapes, and a summary claiming fixes that aren’t there, is incomplete', () => {
+    const clean = { ...SCREENSHOT, nodes: SCREENSHOT.nodes.map((n) => ({ ...n, why: 'A reason.' })) }
+    const r = validateRefine(JSON.stringify(clean), refs)
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.incomplete).toEqual([
+      'None of the 4 new shapes is connected to anything.',
+      'Claude’s summary describes changes to your shapes or connectors, but the answer has none.',
+    ])
+    // Some loose: only a warning. Connected and honest: complete.
+    const some = validateRefine(JSON.stringify({ ...clean, edges: [{ from: 'e1', to: 'cdn' }], summary: 'Added an edge layer.' }), refs)
+    if (!some.ok || some.kind !== 'refine') throw new Error('expected refine')
+    expect(some.incomplete).toEqual([])
+    expect(some.warnings).toContain('3 new shapes aren’t connected to anything.')
+    const whole = validateRefine(
+      JSON.stringify({
+        nodes: [{ id: 'cdn', label: 'CDN', shape: 'cdn', why: 'Edge caching.' }],
+        edges: [{ from: 'e1', to: 'cdn' }],
+        changes: [{ action: 'reshape', ref: 'e3', shape: 'database', why: 'It stores data.' }],
+        summary: 'Added a CDN in front of the UI and changed the DB box to a database.',
+      }),
+      refs,
+    )
+    if (!whole.ok || whole.kind !== 'refine') throw new Error('expected refine')
+    expect(whole.incomplete).toEqual([])
+  })
+
+  it('the answer format: summary LAST, "why" required on new shapes, "note" always allowed (dropped when notes are off)', () => {
+    const schema = outputSchema(false) as { properties: Record<string, unknown>; required: string[] }
+    expect(Object.keys(schema.properties)).toEqual(['nodes', 'edges', 'changes', 'summary'])
+    expect(schema.required).toEqual(['nodes', 'edges', 'changes', 'summary'])
+    const node = (schema.properties.nodes as { items: { properties: Record<string, unknown>; required: string[] } }).items
+    expect(Object.keys(node.properties)).toContain('note')
+    expect(node.required).toContain('why')
+    // A note with notes off is dropped, quietly.
+    const r = validateRefine(JSON.stringify({ nodes: [{ id: 'c', label: 'Cache', shape: 'cache', note: 'Hot keys.', why: 'Speed.' }], edges: [{ from: 'e1', to: 'c' }], changes: [], summary: 'Added a cache.' }), refs)
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram!.nodes[0]!.note).toBeUndefined()
+    expect(r.warnings).toEqual([])
+  })
+
+  it('the prompt asks for connected shapes, plain values, a summary written last, and real rework for redesigns', () => {
+    const system = buildSystemPrompt(false)
+    for (const rule of [
+      'Every new shape connects to at least one other shape',
+      '"summary", written LAST',
+      'Describe only what is in your "nodes", "edges" and "changes"',
+      'Never put quotes, braces, field names or other JSON inside a value',
+      'rework it rather than decorating it',
+      '"remove" the old direct connectors they replace',
+    ])
+      expect(system, rule).toContain(rule)
+    expect(system).not.toContain('prefer fewer')
+  })
+
+  it('Try again sends a note on what went wrong; a first try has none', () => {
+    const d = store().diagram
+    const shapes = d.nodes.filter((n) => n.id === 'web')
+    expect(refineInput(d, shapes, 'Add a cache.', false).request.prompt).not.toContain('second try')
+    const retry = refineInput(d, shapes, 'Add a cache.', false, { retryNote: 'Your previous answer was garbled.' })
+    expect(retry.request.prompt).toContain('This is a second try. Your previous answer was garbled.')
+    expect(retry.retryNote).toBe('Your previous answer was garbled.')
+  })
+})
+
+describe('effort: from the ask and the context, with Deeper refine to override', () => {
+  const small = { shapes: 2, neighbours: 2 }
+
+  it('a redesign, a long instruction or a big context gets high effort; small asks get medium', () => {
+    expect(autoEffort('This flow feels too simple and outdated. Refine it to reflect modern architecture and industry best practices.', small)).toMatchObject({
+      level: 'high',
+      reason: 'your instruction asks for a redesign',
+    })
+    for (const ask of ['Make it resilient.', 'Harden this for production', 'Migrate the queue to SQS', 'Redesign the checkout'])
+      expect(autoEffort(ask, small).level, ask).toBe('high')
+    for (const ask of ['Add a cache between these two.', 'Add monitoring for the selected services.', 'Add the missing database.', 'Extend this with a queue'])
+      expect(autoEffort(ask, small).level, ask).toBe('medium')
+    expect(autoEffort(`Add ${'a small thing and '.repeat(15)}done`, small)).toMatchObject({ level: 'high', reason: 'your instruction is long and asks for several things' })
+    expect(autoEffort('Add a cache.', { shapes: 6, neighbours: 0 })).toMatchObject({ level: 'high', reason: 'the selection brings a lot of context' })
+    expect(autoEffort('Add a cache.', { shapes: 4, neighbours: 9 }).level).toBe('high')
+    // A word start, not anywhere inside a word.
+    expect(autoEffort('Add an unsecured test box', small).level).toBe('medium')
+  })
+
+  it('Deeper refine overrides either way, and says so', () => {
+    expect(chooseEffort('Add a cache.', small, true)).toEqual({ level: 'high', reason: 'you turned on Deeper refine', manual: true })
+    expect(chooseEffort('Redesign this.', small, false)).toEqual({ level: 'medium', reason: 'you turned off Deeper refine', manual: true })
+    // Agreeing with the automatic choice keeps its reason.
+    expect(chooseEffort('Redesign this.', small, true)).toMatchObject({ level: 'high', manual: false })
+    expect(effortText(chooseEffort('Redesign this.', small, null))).toBe('High effort, because your instruction asks for a redesign. It takes longer and uses more tokens.')
+    expect(effortText(chooseEffort('Add a cache.', small, null))).toBe('Medium effort: enough for adding or fixing a few things.')
+  })
+
+  it('high effort sends effort "high" with more room for thinking, within the output cap', async () => {
+    const medium = inputFor(['web', 'api'], 'Add a cache between these two.')
+    const high = inputFor(['web', 'api'], 'Modernise this flow with resilient AWS best practices.')
+    expect(medium.request.effort).toBe('medium')
+    expect(high.request.effort).toBe('high')
+    expect(high.request.maxTokens).toBeGreaterThan(medium.request.maxTokens)
+    for (const notes of [false, true]) expect(maxTokensFor(notes, 'high')).toBeLessThanOrEqual(MAX_OUTPUT_TOKENS)
+    const { calls } = await refine(high, { nodes: [], edges: [], changes: [], summary: 'Nothing.' })
+    const body = JSON.parse(String(calls[0]!.init.body)) as { output_config: { effort: string } }
+    expect(body.output_config.effort).toBe('high')
   })
 })
