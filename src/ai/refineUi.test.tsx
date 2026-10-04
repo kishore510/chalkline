@@ -14,7 +14,8 @@ import { AI_BUTTON_LABEL, GenerateSheetHost, openRefine, useAiSheet } from './Ge
 import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
 import { resetSecretsForTests } from './redact'
-import { RefineLogPanel } from './RefineLog'
+import { RefineLogPanel, RefineLogSheet } from './RefineLog'
+import { useSettingsStore } from '@/settings/settingsStore'
 import { useRefineLog } from './refineNarrative'
 import { NOTHING_SILENT, REFINE_EXAMPLES } from './RefineSheet'
 import { useUsageStore } from './usage'
@@ -346,6 +347,79 @@ describe('Refine sheet', () => {
 })
 
 describe('AI change log', () => {
+  beforeEach(() => updateSettings({ panels: { logWidth: null, logCollapsed: false } }))
+
+  async function mountLog(node: React.ReactNode) {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    await act(async () => root.render(<ReactFlowProvider>{node}</ReactFlowProvider>))
+    await act(async () =>
+      useRefineLog.getState().add({
+        at: Date.now(),
+        instruction: 'x'.repeat(300),
+        summary: 'A'.repeat(400),
+        items: [{ key: 'f1', kind: 'fixed', text: `Renamed “${'Supercalifragilistic'.repeat(10)}”`, why: 'Long.', ids: ['api'] }],
+        historySize: store().past.length,
+      }),
+    )
+    return () => act(() => root.unmount())
+  }
+
+  it('docked beside the canvas on desktop: resizable from its inner edge, remembered, within the token limits', async () => {
+    const unmount = await mountLog(<RefineLogPanel docked />)
+    const aside = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
+    // Docked: part of the layout, not floating over the canvas.
+    expect(aside().className).toContain('relative')
+    expect(aside().className).not.toContain('absolute')
+    expect(aside().className).toContain('shrink-0')
+    const handle = aside().querySelector<HTMLElement>('[role="separator"]')!
+    expect(handle.getAttribute('aria-label')).toBe('Resize the AI change log')
+    expect(handle.className).toContain('left-0')
+    const start = Number(handle.getAttribute('aria-valuenow'))
+    // On a right-hand panel, Left grows it (towards the canvas).
+    await act(async () => handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBe(start + 16)
+    await act(async () => handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBe(Number(handle.getAttribute('aria-valuemin')))
+    await act(async () => handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBeNull()
+    // Long text wraps rather than bleeding sideways.
+    const scroller = aside().firstElementChild as HTMLElement
+    expect(scroller.className).toContain('overflow-x-hidden')
+    expect(scroller.className).toContain('min-w-0')
+    expect(aside().querySelector('article')!.className).toContain('wrap-anywhere')
+    await unmount()
+  })
+
+  it('collapses to a rail and expands again, remembered; the tablet version floats over the canvas', async () => {
+    const unmount = await mountLog(<RefineLogPanel />)
+    const aside = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
+    expect(aside().className).toContain('absolute')
+    await act(async () => aside().querySelector<HTMLButtonElement>('button[aria-label="Collapse the AI change log"]')!.click())
+    expect(useSettingsStore.getState().settings.panels.logCollapsed).toBe(true)
+    expect(aside().className).toContain('w-rail')
+    expect(aside().querySelector('article')).toBeNull()
+    for (const b of aside().querySelectorAll('button')) expect(b.getAttribute('aria-label')).toBeTruthy()
+    await act(async () => aside().querySelector<HTMLButtonElement>('button[aria-label="Expand the AI change log"]')!.click())
+    expect(useSettingsStore.getState().settings.panels.logCollapsed).toBe(false)
+    expect(aside().querySelector('article')).not.toBeNull()
+    await unmount()
+  })
+
+  it('phone: a bottom sheet that collapses to a slim bar', async () => {
+    const unmount = await mountLog(<RefineLogSheet />)
+    const sheet = () => document.querySelector<HTMLElement>('section[aria-label="AI change log"]')!
+    expect(sheet().className).toContain('max-h-(--cl-sheet-max-height)')
+    expect(sheet().className).toContain('overflow-x-hidden')
+    await act(async () => sheet().querySelector<HTMLButtonElement>('button[aria-label="Collapse the AI change log"]')!.click())
+    expect(sheet().querySelector('article')).toBeNull()
+    expect(sheet().className).toContain('min-h-touch')
+    await act(async () => sheet().querySelector<HTMLButtonElement>('button[aria-label="Expand the AI change log"]')!.click())
+    expect(sheet().querySelector('article')).not.toBeNull()
+    await unmount()
+  })
+
   it('lists each refinement with its summary and reasons; a line selects its items; Undo works while nothing else changed', async () => {
     const host = document.createElement('div')
     document.body.append(host)
@@ -358,7 +432,7 @@ describe('AI change log', () => {
       ),
     )
     const panel = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
-    expect(panel().getAttribute('aria-hidden')).toBe('true')
+    expect(document.querySelector('aside[aria-label="AI change log"]')).toBeNull()
 
     store().applyRefinement({ nodes: [], edges: [], fixes: [{ key: 'f1', why: 'Says what it serves.', action: 'relabel', target: 'node', id: 'api', label: 'Orders API' }] })
     await act(async () =>
@@ -370,7 +444,7 @@ describe('AI change log', () => {
         historySize: store().past.length,
       }),
     )
-    expect(panel().getAttribute('aria-hidden')).toBe('false')
+    expect(panel()).not.toBeNull()
     const content = panel().textContent ?? ''
     expect(content).toContain('You asked: “Tidy this up.”')
     expect(content).toContain('A clearer name for the API.')

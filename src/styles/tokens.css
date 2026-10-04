@@ -191,6 +191,10 @@
   --cl-palette-resize-hit: 12px;
   --cl-rail-width: 64px;
   --cl-properties-width: 288px;
+  /* AI change log (tablet and desktop): resizable between these. */
+  --cl-log-width: 320px;
+  --cl-log-min-width: 240px;
+  --cl-log-max-width: 560px;
   --cl-minimap-width: 160px;
   --cl-minimap-height: 112px;
   --cl-sheet-max-height: 45dvh;

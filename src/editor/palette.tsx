@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils'
 import { getShape } from '@/shapes/registry'
 import type { ShapeDefinition } from '@/shapes/types'
 import { byCategory, searchShapes } from './paletteModel'
-import { clampPaletteWidth, maxPaletteWidth, shouldCollapse } from './paletteWidth'
+import { PanelResizer } from './PanelResizer'
+import { clampPaletteWidth, maxPaletteWidth } from './paletteWidth'
 import { updateSettings, useSettingsStore } from '@/settings/settingsStore'
 import { useUiStore } from '@/store/uiStore'
 import { StencilBrowser } from './stencils/StencilBrowser'
@@ -323,90 +324,6 @@ function CompactPalette({ itemProps, onStencils }: { itemProps: (type: string) =
   )
 }
 
-const KEY_STEP = 16
-
-/**
- * The palette's right edge: drag (mouse, pen or touch) or use the arrow keys
- * to resize. Released well below the minimum, the palette collapses.
- * Double-click restores the default width.
- */
-function PaletteResizer({
-  width,
-  min,
-  max,
-  onResize,
-  onCommit,
-  onCollapse,
-  onReset,
-}: {
-  width: number
-  min: number
-  max: number
-  onResize: (width: number) => void
-  onCommit: (width: number) => void
-  onCollapse: () => void
-  onReset: () => void
-}) {
-  const drag = useRef<{ pointerId: number; x: number; width: number; raw: number } | null>(null)
-  const [active, setActive] = useState(false)
-  const end = (e: React.PointerEvent) => {
-    const d = drag.current
-    if (!d || d.pointerId !== e.pointerId) return
-    drag.current = null
-    setActive(false)
-    if (shouldCollapse(d.raw, min)) {
-      onResize(d.width)
-      onCollapse()
-    } else {
-      onCommit(clampPaletteWidth(d.raw, min, max))
-    }
-  }
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize palette"
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuenow={width}
-      title="Drag to resize. Double-click for the default width."
-      tabIndex={0}
-      className="group absolute inset-y-0 right-0 z-10 flex w-(--cl-palette-resize-hit) translate-x-1/2 cursor-col-resize touch-none justify-center outline-none"
-      onPointerDown={(e) => {
-        if (e.pointerType === 'mouse' && e.button !== 0) return
-        e.preventDefault()
-        e.currentTarget.setPointerCapture(e.pointerId)
-        drag.current = { pointerId: e.pointerId, x: e.clientX, width, raw: width }
-        setActive(true)
-      }}
-      onPointerMove={(e) => {
-        const d = drag.current
-        if (!d || d.pointerId !== e.pointerId) return
-        d.raw = d.width + e.clientX - d.x
-        onResize(clampPaletteWidth(d.raw, min, max))
-      }}
-      onPointerUp={end}
-      onPointerCancel={end}
-      onDoubleClick={onReset}
-      onKeyDown={(e) => {
-        const next =
-          e.key === 'ArrowLeft' ? width - KEY_STEP : e.key === 'ArrowRight' ? width + KEY_STEP : e.key === 'Home' ? min : e.key === 'End' ? max : null
-        if (next === null) return
-        e.preventDefault()
-        onCommit(clampPaletteWidth(next, min, max))
-      }}
-    >
-      <div
-        aria-hidden="true"
-        className={cn(
-          'h-full w-0.5 transition-colors group-hover:bg-accent group-focus-visible:bg-accent',
-          active ? 'bg-accent' : 'bg-transparent',
-        )}
-      />
-    </div>
-  )
-}
-
 /**
  * Desktop: persistent left panel with search and category headings. Its
  * width can be dragged or set with the keyboard, and it can collapse to an
@@ -478,7 +395,9 @@ export function PalettePanel() {
           </>
         )}
       </div>
-      <PaletteResizer
+      <PanelResizer
+        edge="right"
+        label="Resize palette"
         width={width}
         min={limits.min}
         max={limits.max}

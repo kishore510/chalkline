@@ -1,7 +1,7 @@
 ---
 title: Refining a diagram with AI
 order: 26
-keywords: refine, extend, add, fix, improve, rename, relabel, reshape, redirect, remove, ai refine, add shapes, add cache, monitoring, guardrail, selection, context, preview, apply, change log, why, reasons, rationale, narrative, claude, sonnet, cost
+keywords: refine, extend, add, fix, improve, rename, relabel, reshape, redirect, remove, ai refine, add shapes, add cache, monitoring, guardrail, selection, context, preview, apply, change log, why, reasons, rationale, narrative, claude, sonnet, cost, resize, collapse, panel
 ---
 **Refine** asks Claude to improve the part of your diagram you select. It **adds** what's missing and **fixes** what looks wrong, and it **explains every change**. For example: "add a cache between these two", "add monitoring for the selected services" or "tidy this up and fix anything that looks off". You see a preview with Claude's reasons first, and nothing changes until you choose **Apply**. It uses your own Anthropic API key: see [AI features and your API key](help:ai-features).
 
@@ -50,13 +50,21 @@ If Claude finds nothing to add or fix (or the instruction isn't clear), the shee
 
 ## The AI change log
 
-After **Apply**, the **AI change log** opens beside the canvas (on a phone, at the bottom of the screen). It tells the story of each refinement, newest first: when it happened, what you asked, Claude's summary, and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
+After **Apply**, the **AI change log** opens. It tells the story of each refinement, newest first: when it happened, what you asked, Claude's summary, and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
 
 - Choose a line to select and show those items on the canvas.
 - **Undo this refinement** on the newest entry undoes it, while nothing else has changed since.
 - Close it with **×**. To open it again, choose **AI**, then **Refine**, then **Show the AI change log**.
 
-The log lasts until you reload the page. It isn't saved with the diagram or in any export.
+Where it goes, and how to make room:
+
+- **Desktop**: a panel docked beside the canvas, between the canvas and the properties panel, so it never covers the canvas, minimap or controls.
+- **Tablet**: it slides over the right edge of the canvas.
+- On both, **drag its left edge** to make it wider or narrower (or focus the edge and use the arrow keys; `Home` and `End` jump to the narrowest and widest). Double-click the edge for the default width. Drag it well past the narrowest width to collapse it. The chevron button collapses it to a slim rail; the rail's chevron expands it again.
+- **Phone**: a sheet at the bottom of the screen. The chevron shrinks it to a slim bar above the toolbar, so you can keep drawing; the bar's chevron opens it again.
+- Long labels wrap inside the panel; it never scrolls sideways.
+
+The width and whether it's collapsed are remembered in this browser, like the palette's. The log itself lasts until you reload the page. It isn't saved with the diagram or in any export.
 
 ## Where new shapes go
 

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { SearchBar, SearchSheet } from '@/search/SearchPanel'
 import { RefineLogPanel, RefineLogSheet } from '@/ai/RefineLog'
 import { useRefineLog } from '@/ai/refineNarrative'
+import { useSettingsStore } from '@/settings/settingsStore'
 import { useSearchStore } from '@/search/searchStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { MEDIA } from '@/styles/breakpoints'
@@ -87,8 +88,9 @@ function EditorLayout() {
             {layout === 'desktop' && <div className="cl-safe-bottom" />}
           </div>
           {layout === 'tablet' && <PropertiesSlideOver />}
-          {layout !== 'phone' && <RefineLogPanel />}
+          {layout === 'tablet' && <RefineLogPanel />}
         </main>
+        {layout === 'desktop' && <RefineLogPanel docked />}
         {layout === 'desktop' && <PropertiesPanel />}
       </div>
       {layout === 'phone' && <PaletteDrawer />}
@@ -126,18 +128,33 @@ function SkipToCanvas() {
   )
 }
 
-/** Phone: the properties sheet (while something is selected) or the search sheet replaces the toolbar. */
+/**
+ * Phone: the AI change log, the properties sheet (while something is
+ * selected) or the search sheet replaces the toolbar. A collapsed change log
+ * is a slim bar above whichever of the others shows.
+ */
 function PhoneBottom() {
   const open = useDiagramStore((s) => s.selection.length > 0)
   const searching = useSearchStore((s) => s.open)
   const log = useRefineLog((s) => s.open)
-  if (log) return <RefineLogSheet />
-  if (open) return <PropertiesSheet />
-  if (searching) return <SearchSheet />
-  return (
+  const logCollapsed = useSettingsStore((s) => s.settings.panels.logCollapsed)
+  if (log && !logCollapsed) return <RefineLogSheet />
+  const rest = open ? (
+    <PropertiesSheet />
+  ) : searching ? (
+    <SearchSheet />
+  ) : (
     <div className="cl-safe-bottom px-(--cl-gutter)">
       <CanvasToolbar layout="phone" />
     </div>
+  )
+  return log ? (
+    <>
+      <RefineLogSheet />
+      {rest}
+    </>
+  ) : (
+    rest
   )
 }
 

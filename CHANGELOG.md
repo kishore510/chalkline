@@ -9,6 +9,7 @@ All notable changes to Chalkline are listed here, newest first. The format follo
 - **Every change comes with a reason.** The preview shows Claude's summary of what it changed and why, then each fix and each new shape in plain words with "Why: …" under it.
 - **Choose which fixes to keep.** Each fix has a tick box in the preview; untick any you don't want before choosing **Apply**.
 - **AI change log**: after **Apply**, a panel beside the canvas (at the bottom on a phone) tells the story of each refinement: what you asked, Claude's summary, and each change with its reason, including any fix that was skipped and why. Choose a line to show those items on the canvas, or **Undo this refinement**. Reopen it from **AI**, **Refine**, **Show the AI change log**. It lasts until you reload.
+- The AI change log behaves like the other panels. On desktop it's docked beside the canvas, so it never covers the canvas, minimap or controls; on a tablet it slides over the canvas edge. Drag its edge (or use the arrow keys on it) to resize it, double-click the edge for the default width, and collapse it to a slim rail with its chevron. On a phone it shrinks to a slim bar above the toolbar. Its width and collapsed state are remembered, and long labels wrap instead of spilling out of the panel.
 
 ### Changed
 - Refine's **Add to canvas** is now **Apply**: fixes and additions together, still one undo step.
