@@ -1,7 +1,7 @@
 ---
 title: Suggesting notes
 order: 25
-keywords: suggest notes, notes, annotate, annotation, ai notes, describe shape, accept, accept all, append, dismiss, show shape, changed since, claude, haiku, cost
+keywords: suggest notes, notes, annotate, annotation, ai notes, describe shape, accept, accept all, append, dismiss, show shape, changed since, claude, haiku, cost, change log, why
 ---
 **Suggest notes** asks Claude for a short note on each of the shapes you select: what the component does in this diagram, or one thing worth considering about it. You check every suggestion before anything is written, and accepting one **only ever adds to that shape's notes**. Nothing else in your diagram is touched. It uses your own Anthropic API key: see [AI features and your API key](help:ai-features).
 
@@ -21,7 +21,7 @@ Each shape gets a card with its label and type, its current note (if it has one)
 - **Dismiss** hides a card. **Show dismissed suggestions** brings it back.
 - **Show shape** selects the shape and centres the view on it. Choose **AI** again to come back to the cards.
 
-Each **Accept** or **Accept all** is **one undo step**: **Undo** puts the previous notes back exactly. Accepted notes are ordinary notes: they show the note badge, they're found by **Find in diagram**, and they're saved and exported like any note. Suggestions you haven't accepted are never saved, aren't an undo step and aren't in any export.
+Each **Accept** or **Accept all** is **one undo step**: **Undo** puts the previous notes back exactly. Each is also recorded in the [AI change log](help:ai-features), one line per note with the AI's reason for it. Accepted notes are ordinary notes: they show the note badge, they're found by **Find in diagram**, and they're saved and exported like any note. Suggestions you haven't accepted are never saved, aren't an undo step and aren't in any export.
 
 If you change a shape's label or note after sending, its card says **changed since this suggestion**, and you need to tick **I've checked: accept it anyway** first. A shape you delete drops off the list. A shape on a hidden layer can't be accepted until you show its layer.
 

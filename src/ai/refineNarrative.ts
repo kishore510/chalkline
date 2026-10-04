@@ -6,8 +6,10 @@ import type { FixResult, FixStatus, RefineFix } from './refineFixes'
 /*
  * The story of a refinement: each fix and each new item in plain words, with
  * the model's reason. Shown in the preview (before anything changes) and kept
- * in the AI change log after Apply. The log is view state: never saved, never
- * an undo step, never exported; gone on reload.
+ * in the AI change log after Apply. The log records every AI feature that
+ * changes the diagram: Refine, Generate and Suggest notes (Summarise and
+ * Review change nothing). It is view state: never saved, never an undo step,
+ * never exported; gone on reload.
  */
 
 export type StoryKind = 'added' | 'connected' | 'fixed' | 'removed' | 'skipped'
@@ -94,8 +96,14 @@ export function describeFixes(diagram: Diagram, fixes: readonly RefineFix[], res
   })
 }
 
+/** The AI features that change the diagram, and so write to the log. */
+export type AiLogFeature = 'refine' | 'generate' | 'notes'
+
+export const FEATURE_NAMES: Record<AiLogFeature, string> = { refine: 'Refine', generate: 'Generate', notes: 'Suggest notes' }
+
 export interface LogEntry {
   id: number
+  feature: AiLogFeature
   /** When it was applied (ms since epoch). */
   at: number
   instruction: string
@@ -111,7 +119,8 @@ export const LOG_LIMIT = 20
 interface RefineLogState {
   entries: LogEntry[]
   open: boolean
-  add: (entry: Omit<LogEntry, 'id'>) => void
+  /** Adds an entry, newest first. `open` (default true) also shows the log. */
+  add: (entry: Omit<LogEntry, 'id'>, options?: { open?: boolean }) => void
   show: () => void
   hide: () => void
   /** For tests. */
@@ -121,7 +130,8 @@ interface RefineLogState {
 export const useRefineLog = create<RefineLogState>()((set) => ({
   entries: [],
   open: false,
-  add: (entry) => set((s) => ({ entries: [{ ...entry, id: (s.entries[0]?.id ?? 0) + 1 }, ...s.entries].slice(0, LOG_LIMIT), open: true })),
+  add: (entry, { open = true } = {}) =>
+    set((s) => ({ entries: [{ ...entry, id: (s.entries[0]?.id ?? 0) + 1 }, ...s.entries].slice(0, LOG_LIMIT), ...(open && { open: true }) })),
   show: () => set({ open: true }),
   hide: () => set({ open: false }),
   reset: () => set({ entries: [], open: false }),

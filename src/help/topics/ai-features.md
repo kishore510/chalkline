@@ -73,10 +73,22 @@ After each AI request, the AI sheet shows the model and the input and output tok
 
 AI answers can be wrong. Summaries can misdescribe a diagram, and a review can be wrong or miss things: treat it as a prompt for thought, not an audit. Suggested notes can be wrong too, so check each one before accepting. Results are never saved with your diagram or put in an export.
 
-Only two AI actions write to your diagram, and only when you choose to:
+Only three AI actions write to your diagram, and only when you choose to:
 
+- **Generate**, when you choose **Add to canvas**. It only adds a new diagram beside yours; nothing already there changes. Adding is one undo step.
 - **Suggest notes**, when you accept a card. It only ever adds to a shape's notes field, never replaces a note, and never changes anything else. Each **Accept** or **Accept all** is one undo step.
 - **Refine**, when you choose **Apply**. It adds new shapes and connectors and can fix the **selected** shapes and their connectors (rename, change shape type, turn an arrow round, remove), each with a reason you read first. You can untick any fix. It never moves or restyles anything, and never changes locked items or the shapes around your selection. Applying is one undo step, and the AI change log keeps the story.
+
+## The AI change log
+
+Every time an AI feature changes your diagram, the **AI change log** records it, newest first: which feature (**Refine**, **Generate** or **Suggest notes**), when, what you asked, a one-line summary and each change. Where the AI gave a reason, it's shown as "Why: …" under the change. Summarise and Review never change your diagram, so they don't appear.
+
+- **Refine** opens the log when you apply, because its reasons are the point. Generate and Suggest notes record quietly.
+- To open it any time, choose **AI**, then **Show the AI change log** under the mode buttons (shown once there's something in it).
+- Choose a line to select and show those items. **Undo this change** on the newest entry undoes it, while nothing else has changed since.
+- Desktop docks it beside the canvas, tablet slides it over the canvas edge; drag its edge to resize it, and collapse it to a rail with its chevron. On a phone it's a bottom sheet that shrinks to a slim bar. See [Refining a diagram with AI](help:refining-diagrams) for the details.
+
+The log lasts until you reload the page. It isn't saved with the diagram or in any export.
 
 ## When it doesn't work
 

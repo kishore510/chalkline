@@ -25,7 +25,7 @@ import { aiError } from './messages'
 import type { Refinement } from './refine'
 import type { RefineFix } from './refineFixes'
 import { placeRefinement, previewDiagram, type RefinePlacement } from './refineLayout'
-import { ShowLogButton, StoryLine } from './RefineLog'
+import { StoryLine } from './RefineLog'
 import { describeAdditions, describeFixes, useRefineLog, type StoryItem } from './refineNarrative'
 import { capMessage, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
 import { useUsageStore } from './usage'
@@ -299,6 +299,7 @@ export function RefinePanel({ active }: { active: boolean }) {
     ].join(' ')
     // The story, against the diagram as it was, so names read as they were.
     useRefineLog.getState().add({
+      feature: 'refine',
       at: Date.now(),
       instruction: result.input.instruction,
       summary: r.summary,
@@ -421,7 +422,6 @@ export function RefinePanel({ active }: { active: boolean }) {
             Back to the last preview
           </Button>
         )}
-        <ShowLogButton className={WRAP} onOpen={close} />
         <UsageLine />
         <LearnMore topic={LEARN_MORE.refine} className="self-start px-0" />
       </div>

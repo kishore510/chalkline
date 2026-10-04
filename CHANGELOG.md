@@ -2,6 +2,15 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.29.0] - 2026-10-04
+
+### Added
+- The **AI change log** now records every AI feature that changes your diagram, not just Refine. **Generate** logs your description and what was added, with a line per shape. **Suggest notes** logs each accepted note with the AI's reason for it. Each entry says which feature made it.
+- **Show the AI change log** is now under the mode buttons in every AI mode, once there's something in it.
+
+### Changed
+- Generate and Suggest notes record in the log without opening it; Refine still opens it after **Apply**. The log's undo button is now **Undo this change**.
+
 ## [0.28.0] - 2026-10-04
 
 ### Added
