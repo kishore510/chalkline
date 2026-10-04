@@ -779,7 +779,7 @@ describe('the story', () => {
 
   it('the change log keeps the newest entries first, up to its limit, and opens on a new entry', () => {
     useRefineLog.getState().reset()
-    for (let i = 0; i < LOG_LIMIT + 3; i++) useRefineLog.getState().add({ at: i, instruction: `#${i}`, summary: '', items: [], historySize: i })
+    for (let i = 0; i < LOG_LIMIT + 3; i++) useRefineLog.getState().add({ feature: 'refine', at: i, instruction: `#${i}`, summary: '', items: [], historySize: i })
     const { entries, open } = useRefineLog.getState()
     expect(entries).toHaveLength(LOG_LIMIT)
     expect(entries[0]!.instruction).toBe(`#${LOG_LIMIT + 2}`)

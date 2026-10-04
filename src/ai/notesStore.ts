@@ -3,6 +3,7 @@ import type { Diagram } from '@/schema/diagram'
 import { useDiagramStore } from '@/store/diagramStore'
 import type { AiModel } from './models'
 import { acceptCheck, cardState, type NoteCard } from './noteSuggestions'
+import { useRefineLog } from './refineNarrative'
 
 /*
  * Suggested notes: view state only. Never saved, never an undo step, never
@@ -101,8 +102,30 @@ export function acceptNotes(only?: string): AcceptPlan {
   const store = useDiagramStore.getState()
   const plan = acceptPlan(store.diagram, run, ui, only)
   if (plan.changes.length > 0) {
+    const before = store.diagram
     store.acceptSuggestedNotes(plan.changes.map(({ id, notes }) => ({ id, notes })))
     markWritten(new Map(plan.changes.map((c) => [c.ref, c.notes])))
+    // The AI change log: each note with the AI's reason for it. Recorded without opening the log.
+    const card = new Map(run?.cards.map((c) => [c.ref, c]))
+    const name = (id: string) => before.nodes.find((n) => n.id === id)?.label.trim()
+    const n = plan.changes.length
+    useRefineLog.getState().add(
+      {
+        feature: 'notes',
+        at: Date.now(),
+        instruction: '',
+        summary: `Added ${n === 1 ? 'a suggested note' : `${n} suggested notes`}.`,
+        items: plan.changes.map((c) => ({
+          key: c.ref,
+          kind: 'added' as const,
+          text: `Added a note to ${name(c.id) ? `“${name(c.id)}”` : 'an untitled shape'}`,
+          why: card.get(c.ref)?.reason ?? '',
+          ids: [c.id],
+        })),
+        historySize: useDiagramStore.getState().past.length,
+      },
+      { open: false },
+    )
   }
   return plan
 }

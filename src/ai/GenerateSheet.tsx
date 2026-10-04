@@ -31,6 +31,7 @@ import { useGenerateSheet } from './GenerateEntry'
 import { getApiKey, useKeyStatus } from './keyStore'
 import { aiError } from './messages'
 import { AI_MODELS } from './models'
+import { describeAdditions, useRefineLog } from './refineNarrative'
 import { useUsageStore } from './usage'
 
 /*
@@ -49,6 +50,9 @@ const TITLES: Record<Page, string> = {
   sending: 'Generating…',
   preview: 'Preview',
 }
+
+/** The longest description quoted in the AI change log. */
+const LOG_DESCRIPTION = 200
 
 /** Generic starting points: they only fill in the description. */
 export const EXAMPLES = [
@@ -227,6 +231,22 @@ export function GeneratePanel({ active }: { active: boolean }) {
     }
     const what = summary(generation)
     const historySize = past.length
+    // The log: what was added, as one line that selects it all, then each shape.
+    const shapes = diagram.nodes.filter((n) => added.has(n.id))
+    useRefineLog.getState().add(
+      {
+        feature: 'generate',
+        at: Date.now(),
+        instruction: [...description.trim()].length > LOG_DESCRIPTION ? `${[...description.trim()].slice(0, LOG_DESCRIPTION - 1).join('')}…` : description.trim(),
+        summary: `Generated a new diagram: ${what}.`,
+        items: [
+          { key: 'all', kind: 'added', text: `Added ${what}`, why: '', ids },
+          ...describeAdditions(diagram, shapes, [], new Map()).map((item) => ({ ...item, key: `n:${item.key}` })),
+        ],
+        historySize,
+      },
+      { open: false },
+    )
     useUiStore.getState().notify(`Added ${what}.`, {
       label: 'Undo',
       run: () => {

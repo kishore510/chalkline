@@ -8,6 +8,7 @@ import { parseDiagram } from '@/schema/diagram'
 import { updateSettings } from '@/settings/settingsStore'
 import { useSettingsSheet } from '@/settings/SettingsEntry'
 import { useDiagramStore } from '@/store/diagramStore'
+import { useRefineLog } from './refineNarrative'
 import { AI_BUTTON_LABEL, AiButton, GenerateSheetHost, useGenerateSheet } from './GenerateEntry'
 import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
@@ -95,6 +96,7 @@ beforeEach(() => {
   useDiagramStore.getState().load(parseDiagram(fixtures['web-architecture']), { undoable: false })
   updateSettings({ ai: { noticeAcknowledged: false } })
   useUsageStore.getState().reset()
+  useRefineLog.getState().reset()
 })
 afterEach(async () => {
   useGenerateSheet.getState().closeGenerate()
@@ -162,6 +164,15 @@ describe('Generate diagram sheet', () => {
     expect(after.past).toHaveLength(1)
     expect(after.selection).toHaveLength(4 + 2)
     expect(useGenerateSheet.getState().open).toBe(false)
+    // Recorded in the AI change log, without opening it.
+    const log = useRefineLog.getState()
+    expect(log.open).toBe(false)
+    expect(log.entries).toHaveLength(1)
+    expect(log.entries[0]).toMatchObject({ feature: 'generate', instruction: 'An AI gateway, an MCP client and an MCP server.', summary: 'Generated a new diagram: 4 shapes, 2 connectors.' })
+    expect(log.entries[0]!.items[0]).toMatchObject({ kind: 'added', text: 'Added 4 shapes, 2 connectors' })
+    expect(log.entries[0]!.items[0]!.ids).toHaveLength(6)
+    expect(log.entries[0]!.items).toHaveLength(5)
+    expect(log.entries[0]!.historySize).toBe(1)
     after.undo()
     expect(useDiagramStore.getState().diagram.nodes).toEqual(before.nodes)
     await unmount()

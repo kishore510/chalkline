@@ -159,6 +159,22 @@ describe('five modes', () => {
     await unmount()
   })
 
+  it('once anything is logged, every mode offers Show the AI change log, which closes the sheet and opens the log', async () => {
+    saveKey(FAKE, 'session')
+    const { unmount } = await mount()
+    await open()
+    expect(buttons('Show the AI change log')).toHaveLength(0)
+    await act(async () => useRefineLog.getState().add({ feature: 'generate', at: 0, instruction: '', summary: '', items: [], historySize: 0 }, { open: false }))
+    for (const mode of ['generate', 'summarise', 'review', 'notes', 'refine']) {
+      await act(async () => document.querySelector<HTMLButtonElement>(`[data-mode="${mode}"]`)!.click())
+      expect(buttons('Show the AI change log'), mode).toHaveLength(1)
+    }
+    await click('Show the AI change log')
+    expect(useAiSheet.getState().open).toBe(false)
+    expect(useRefineLog.getState().open).toBe(true)
+    await unmount()
+  })
+
   it('with no key: explains and links to Settings', async () => {
     const { unmount } = await mount()
     await open()
@@ -356,6 +372,7 @@ describe('AI change log', () => {
     await act(async () => root.render(<ReactFlowProvider>{node}</ReactFlowProvider>))
     await act(async () =>
       useRefineLog.getState().add({
+        feature: 'refine',
         at: Date.now(),
         instruction: 'x'.repeat(300),
         summary: 'A'.repeat(400),
@@ -437,6 +454,7 @@ describe('AI change log', () => {
     store().applyRefinement({ nodes: [], edges: [], fixes: [{ key: 'f1', why: 'Says what it serves.', action: 'relabel', target: 'node', id: 'api', label: 'Orders API' }] })
     await act(async () =>
       useRefineLog.getState().add({
+        feature: 'refine',
         at: Date.now(),
         instruction: 'Tidy this up.',
         summary: 'A clearer name for the API.',
@@ -455,11 +473,11 @@ describe('AI change log', () => {
     await act(async () => line.click())
     expect(store().selection).toEqual(['api'])
 
-    const undo = [...panel().querySelectorAll('button')].find((b) => b.textContent?.includes('Undo this refinement'))!
+    const undo = [...panel().querySelectorAll('button')].find((b) => b.textContent?.includes('Undo this change'))!
     await act(async () => undo.click())
     expect(store().diagram.nodes.find((n) => n.id === 'api')!.label).toBe('API service')
     // Undone: the button goes (the history no longer matches).
-    expect([...panel().querySelectorAll('button')].some((b) => b.textContent?.includes('Undo this refinement'))).toBe(false)
+    expect([...panel().querySelectorAll('button')].some((b) => b.textContent?.includes('Undo this change'))).toBe(false)
 
     const close = panel().querySelector<HTMLButtonElement>('button[aria-label="Close the AI change log"]')!
     await act(async () => close.click())

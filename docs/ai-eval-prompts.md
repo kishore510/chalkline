@@ -10,6 +10,7 @@ What to check each time:
 - **Warnings**: what does "What was changed" list, and is each one fair?
 - **Size and cost**: the estimated size on the check step, and roughly how long it took.
 - **Add to canvas**: placed beside existing content, selected, removed by one Undo.
+- **AI change log**: a **Generate** entry with your description and what was added; the log doesn't open by itself, and its first line selects everything that was added.
 
 Record results as: date, version (Help, About), notes on, and a short verdict (good / usable / poor).
 

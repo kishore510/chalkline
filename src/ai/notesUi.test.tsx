@@ -8,6 +8,7 @@ import { fixtures } from '@/fixtures'
 import { parseDiagram } from '@/schema/diagram'
 import { updateSettings } from '@/settings/settingsStore'
 import { useDiagramStore } from '@/store/diagramStore'
+import { useRefineLog } from './refineNarrative'
 import { GenerateSheetHost, openNotes, useAiSheet } from './GenerateEntry'
 import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
@@ -82,6 +83,7 @@ const ANSWER = JSON.stringify({
 })
 
 beforeEach(() => {
+  useRefineLog.getState().reset()
   useDiagramStore.getState().load(parseDiagram(fixtures['web-architecture']), { undoable: false })
   updateSettings({ ai: { noticeAcknowledged: false } })
   useUsageStore.getState().reset()
@@ -180,6 +182,14 @@ describe('Suggest notes sheet', () => {
     await act(async () => useDiagramStore.getState().undo())
     expect(notesOf('api')).toBe('Stateless; scales horizontally.')
     expect(notesOf('db')).toBe('Stores orders.')
+    // Each accept is in the AI change log, with the AI's reasons; the log doesn't open by itself.
+    const log = useRefineLog.getState()
+    expect(log.open).toBe(false)
+    expect(log.entries.map((e) => [e.feature, e.summary])).toEqual([
+      ['notes', 'Added a suggested note.'],
+      ['notes', 'Added a suggested note.'],
+    ])
+    expect(log.entries[0]!.items).toEqual([{ key: 'e1', kind: 'added', text: 'Added a note to “API service”', why: 'Its two connectors.', ids: ['api'] }])
     await unmount()
   })
 

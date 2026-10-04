@@ -10,11 +10,11 @@ import { updateSettings, useSettingsStore } from '@/settings/settingsStore'
 import { cn } from '@/lib/utils'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
-import { useRefineLog, type LogEntry, type StoryItem, type StoryKind } from './refineNarrative'
+import { FEATURE_NAMES, useRefineLog, type LogEntry, type StoryItem, type StoryKind } from './refineNarrative'
 
 /*
- * The AI change log: what each Refine did to the diagram and why, newest
- * first. Non-modal, so the canvas stays usable while reading it, and it
+ * The AI change log: what each AI change (Refine, Generate, Suggest notes)
+ * did to the diagram and why, newest first. Non-modal, so the canvas stays usable while reading it, and it
  * follows the other panels' rules: desktop docks it beside the canvas (never
  * over it); tablet slides it over the canvas's right edge; both can be
  * resized (drag or arrow keys on its inner edge) and collapsed to a rail,
@@ -76,7 +76,7 @@ function Entry({ entry, latest, coveredBelow }: { entry: LogEntry; latest: boole
   return (
     <article className="flex min-w-0 flex-col gap-2 border-b border-border pb-4 wrap-anywhere last:border-b-0">
       <p className="text-xs text-text-muted">
-        {timeOf(entry.at)}
+        <span className="font-semibold text-text">{FEATURE_NAMES[entry.feature]}</span> · {timeOf(entry.at)}
         {entry.instruction && <> · You asked: “{entry.instruction}”</>}
       </p>
       {entry.summary && <p className="text-sm text-text">{entry.summary}</p>}
@@ -91,12 +91,12 @@ function Entry({ entry, latest, coveredBelow }: { entry: LogEntry; latest: boole
           className="self-start"
           onClick={() => {
             useDiagramStore.getState().undo()
-            useUiStore.getState().notify('Undid the last refinement.')
-            announce('Undid the last refinement.')
+            useUiStore.getState().notify(`Undid the last AI change (${FEATURE_NAMES[entry.feature]}).`)
+            announce(`Undid the last AI change (${FEATURE_NAMES[entry.feature]}).`)
           }}
         >
           <Undo2 />
-          Undo this refinement
+          Undo this change
         </Button>
       )}
     </article>
@@ -106,7 +106,7 @@ function Entry({ entry, latest, coveredBelow }: { entry: LogEntry; latest: boole
 function LogBody({ coveredBelow }: { coveredBelow: () => number | undefined }) {
   const entries = useRefineLog((s) => s.entries)
   if (entries.length === 0)
-    return <p className="py-4 text-sm text-text-muted">Nothing yet. When you apply a refinement, what changed and why shows here.</p>
+    return <p className="py-4 text-sm text-text-muted">Nothing yet. When an AI feature changes your diagram (Refine, Generate or Suggest notes), what changed and why shows here.</p>
   return (
     <div className="flex min-w-0 flex-col gap-4 py-4">
       {entries.map((entry, i) => (

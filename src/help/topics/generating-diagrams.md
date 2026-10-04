@@ -1,7 +1,7 @@
 ---
 title: Generating diagrams with AI
 order: 22
-keywords: ai, generate, text to diagram, describe, prompt, claude, sonnet, preview, warnings, add to canvas, regenerate, cost, tokens, limits, mcp
+keywords: ai, generate, text to diagram, describe, prompt, claude, sonnet, preview, warnings, add to canvas, regenerate, cost, tokens, limits, mcp, change log
 ---
 Describe a diagram in plain words and Chalkline asks Claude to draw it. You see a preview first, and nothing is added until you choose **Add to canvas**. It uses your own Anthropic API key: see [AI features and your API key](help:ai-features).
 
@@ -42,6 +42,8 @@ From the preview you can **Add to canvas**, **Regenerate** (a new request, so it
 ## Only ever adds
 
 Generating never changes, moves or deletes anything already in your diagram. If the layer you're adding to is hidden or locked, Chalkline says so and offers **Switch layer**; the preview is kept.
+
+Each **Add to canvas** is recorded in the [AI change log](help:ai-features): your description, what was added, and a line per shape that selects it. Choose **AI**, then **Show the AI change log** to see it.
 
 ## Limits
 

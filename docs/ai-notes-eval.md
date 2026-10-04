@@ -10,6 +10,7 @@ What to check each time:
 - **Plain text**: no Markdown, links or instructions to the reader. Did the result warn that formatting was removed?
 - **Append only**: on a shape with a note, is the only option **Append to existing note**, and is the old note kept after accepting?
 - **Undo**: after **Accept all**, does one **Undo** put every note back exactly?
+- **AI change log**: a **Suggest notes** entry per Accept, one line per note with the AI's reason; choosing a line selects the shape.
 - **Cost**: the input and output tokens from the usage line.
 
 Record results as: date, version (Help, About), existing notes on or off, tokens in / out, and a short verdict (useful / mixed / poor).

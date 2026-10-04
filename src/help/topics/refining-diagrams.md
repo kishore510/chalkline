@@ -50,11 +50,11 @@ If Claude finds nothing to add or fix (or the instruction isn't clear), the shee
 
 ## The AI change log
 
-After **Apply**, the **AI change log** opens. It tells the story of each refinement, newest first: when it happened, what you asked, Claude's summary, and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
+After **Apply**, the **AI change log** opens. (It records [Generate and Suggest notes](help:ai-features) too.) It tells the story of each refinement, newest first: when it happened, what you asked, Claude's summary, and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
 
 - Choose a line to select and show those items on the canvas.
-- **Undo this refinement** on the newest entry undoes it, while nothing else has changed since.
-- Close it with **×**. To open it again, choose **AI**, then **Refine**, then **Show the AI change log**.
+- **Undo this change** on the newest entry undoes it, while nothing else has changed since.
+- Close it with **×**. To open it again, choose **AI**, then **Show the AI change log** under the mode buttons.
 
 Where it goes, and how to make room:
 
