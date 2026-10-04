@@ -79,7 +79,13 @@ function Entry({ entry, latest, coveredBelow }: { entry: LogEntry; latest: boole
         <span className="font-semibold text-text">{FEATURE_NAMES[entry.feature]}</span> · {timeOf(entry.at)}
         {entry.instruction && <> · You asked: “{entry.instruction}”</>}
       </p>
-      {entry.summary && <p className="text-sm text-text">{entry.summary}</p>}
+      {entry.summary && <p className="text-sm font-medium text-text">{entry.summary}</p>}
+      {entry.intent && (
+        <p className="text-sm text-text">
+          <span className="text-text-muted">Claude says: </span>
+          {entry.intent}
+        </p>
+      )}
       <ul className="flex flex-col gap-2">
         {entry.items.map((item) => (
           <StoryLine key={item.key} item={item} onShow={item.ids.some((id) => present.has(id)) ? () => show(item.ids) : undefined} />

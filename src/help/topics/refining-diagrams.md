@@ -1,7 +1,7 @@
 ---
 title: Refining a diagram with AI
 order: 26
-keywords: refine, extend, add, fix, improve, rename, relabel, reshape, redirect, remove, ai refine, add shapes, add cache, monitoring, guardrail, selection, context, preview, apply, change log, why, reasons, rationale, narrative, claude, sonnet, cost, resize, collapse, panel
+keywords: refine, extend, add, fix, improve, rename, relabel, reshape, redirect, remove, ai refine, add shapes, add cache, monitoring, guardrail, selection, context, preview, apply, change log, why, reasons, rationale, narrative, claude, sonnet, cost, resize, collapse, panel, effort, deeper refine, try again, incomplete, garbled, raw answer
 ---
 **Refine** asks Claude to improve the part of your diagram you select. It **adds** what's missing and **fixes** what looks wrong, and it **explains every change**. For example: "add a cache between these two", "add monitoring for the selected services" or "tidy this up and fix anything that looks off". You see a preview with Claude's reasons first, and nothing changes until you choose **Apply**. It uses your own Anthropic API key: see [AI features and your API key](help:ai-features).
 
@@ -30,9 +30,18 @@ Refine never moves, resizes or restyles anything, and never changes groups or la
 
 The request uses the shapes selected when you pressed **Generate**. Changing the selection while you wait doesn't change it.
 
+## Effort and Deeper refine
+
+Refine thinks harder when the request calls for it. Chalkline picks the effort from your request, without asking Claude, and shows it under **Deeper refine** before you send:
+
+- **High effort** when your instruction asks for a redesign (words such as redesign, modernise, rework, best practice, resilient, production, scalable, secure, harden, migrate, outdated or too simple), when it's long (over 200 characters), or when the selection brings a lot of context (more than 5 selected shapes, or more than 12 selected and connected).
+- **Medium effort** for everything else: adding a cache, a missing piece, monitoring, or extending the diagram.
+
+Turn **Deeper refine** on or off to override it. The check step shows the effort and why. High effort takes longer and uses more tokens, and the size estimate on the check step allows for that.
+
 ## The preview and the reasons
 
-The preview starts with a count (for example "1 new shape, 2 new connectors, 2 fixes") and **Claude's summary**: a sentence or two on what it changed and why. Below it:
+The preview starts with **what's actually in the answer**, counted by Chalkline, for example "In this answer: 1 new shape, 2 new connectors, no changes to your shapes." Under it, labelled **Claude says**, is Claude's own summary of what it did and why. If the two don't match, believe the count. Below them:
 
 - a drawing of the result: the new shapes where they'll land, and the shapes the fixes touch as they'll look. Shapes shown only for context are **faded**;
 - **Fixes to what's there**: each fix in plain words, with Claude's reason under it ("Why: …"). Each has a tick box, on by default. **Untick any fix you don't want**;
@@ -48,9 +57,26 @@ Then:
 
 If Claude finds nothing to add or fix (or the instruction isn't clear), the sheet says **Nothing to change**, with Claude's summary.
 
+### When an answer looks incomplete
+
+Chalkline checks that the answer hangs together. It says **This answer looks incomplete** when:
+
+- none of the new shapes is connected to anything, or
+- Claude's summary describes renaming, reshaping, rerouting or removing things, but the answer has no fixes.
+
+Then **Try again** comes first and **Apply** becomes **Apply anyway** (for when you'd rather wire things up yourself). If only some new shapes are unconnected, the list of things left out says so.
+
+### When an answer comes back garbled
+
+Sometimes Claude loses its place partway through an answer and writes parts of the answer inside other text, so pieces go missing. Chalkline spots this and says **Claude's answer came back garbled**, quoting the broken text. Nothing can be applied, and nothing has changed. Choose **Try again**.
+
+**Try again** goes through the check step as usual (it says "Second try") and tells Claude what went wrong with its last answer.
+
+**Show Claude's raw answer**, under the preview, shows exactly what came back. It's for checking what went wrong, and it's kept only while the sheet is open.
+
 ## The AI change log
 
-After **Apply**, the **AI change log** opens. (It records [Generate and Suggest notes](help:ai-features) too.) It tells the story of each refinement, newest first: when it happened, what you asked, Claude's summary, and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
+After **Apply**, the **AI change log** opens. (It records [Generate and Suggest notes](help:ai-features) too.) It tells the story of each refinement, newest first: when it happened, what you asked, what was actually applied, Claude's own summary (as **Claude says**), and each change with its reason. Fixes that were skipped (because the item was deleted, locked or hidden since) are listed too, with why.
 
 - Choose a line to select and show those items on the canvas.
 - **Undo this change** on the newest entry undoes it, while nothing else has changed since.
@@ -93,6 +119,6 @@ Shapes and connectors are sent under stand-in names (e1, n1, c1…). **Real ids 
 
 ## Cost and usage
 
-Each **Generate** (and each **Regenerate**) is one request to Claude Sonnet 5.5, paid from your Anthropic account. Sonnet costs more per token than Haiku. The reasons make answers a little longer. After it, the sheet shows the tokens Anthropic reported, plus a total for this visit. The preview and your instruction aren't saved, aren't an undo step and aren't in any export.
+Each **Generate** (and each **Regenerate** or **Try again**) is one request to Claude Sonnet 5.5, paid from your Anthropic account. Sonnet costs more per token than Haiku. The reasons make answers a little longer, and high effort uses more tokens again. A garbled or incomplete answer is still billed by Anthropic. After it, the sheet shows the tokens Anthropic reported, plus a total for this visit. The preview and your instruction aren't saved, aren't an undo step and aren't in any export.
 
 > **AI suggestions can be wrong, and so can its reasons.** Read the fixes before applying, untick any you don't agree with, and Undo if the result isn't what you wanted.

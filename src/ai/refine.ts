@@ -18,11 +18,13 @@ import type { Usage } from './usage'
 
 /** Like generating: the answer can be a few thousand tokens, after some thinking. */
 export const REFINE_TIMEOUT_MS = 180_000
-export const REFINE_EFFORT = 'medium' as const
 
+/** `raw`: the model's answer as it came back, kept in memory only for "Show Claude's raw answer". Never saved. */
 export type Refinement =
-  | { kind: 'refine'; laid: RefineLaidOut; fixes: RefineFix[]; warnings: string[]; summary: string; usage: Usage | null }
-  | { kind: 'nothing'; warnings: string[]; summary: string; usage: Usage | null }
+  | { kind: 'refine'; laid: RefineLaidOut; fixes: RefineFix[]; warnings: string[]; summary: string; incomplete: string[]; usage: Usage | null; raw: string }
+  | { kind: 'nothing'; warnings: string[]; summary: string; usage: Usage | null; raw: string }
+  /** The answer lost its place (text fields hold pieces of JSON): shown, never applied. */
+  | { kind: 'garbled'; samples: string[]; summary: string; usage: Usage | null; raw: string }
 
 export interface RefineOptions extends SendOptions {
   elk: ElkLike
@@ -35,7 +37,7 @@ export async function refineDiagram(key: string, input: RefineInput, options: Re
   const { request } = input
   const outcome = await sendMessage(
     key,
-    { model: request.model, system: request.system, prompt: request.prompt, maxTokens: request.maxTokens, cacheSystem: true, outputSchema: request.schema, effort: REFINE_EFFORT },
+    { model: request.model, system: request.system, prompt: request.prompt, maxTokens: request.maxTokens, cacheSystem: true, outputSchema: request.schema, effort: request.effort },
     { timeoutMs: REFINE_TIMEOUT_MS, ...send },
   )
   if (!outcome.ok) return outcome
@@ -50,10 +52,11 @@ export async function refineDiagram(key: string, input: RefineInput, options: Re
     connectors: new Set(input.connectors.keys()),
   })
   if (!checked.ok) return failure('malformed', checked.detail, { usage })
-  if (checked.kind === 'nothing') return { ok: true, value: { kind: 'nothing', warnings: checked.warnings, summary: checked.summary, usage }, requestId: outcome.requestId }
+  if (checked.kind === 'garbled') return { ok: true, value: { kind: 'garbled', samples: checked.samples, summary: checked.summary, usage, raw: text }, requestId: outcome.requestId }
+  if (checked.kind === 'nothing') return { ok: true, value: { kind: 'nothing', warnings: checked.warnings, summary: checked.summary, usage, raw: text }, requestId: outcome.requestId }
 
   const laid = await layoutRefinement(checked.diagram, checked.bridges, input.refs, elk, { grid, arrowhead, why: checked.why })
   if (!laid.ok) return failure('unexpected', laid.message, { usage })
   const fixes = resolveFixes(checked.changes, input, arrowhead)
-  return { ok: true, value: { kind: 'refine', laid: laid.value, fixes, warnings: checked.warnings, summary: checked.summary, usage }, requestId: outcome.requestId }
+  return { ok: true, value: { kind: 'refine', laid: laid.value, fixes, warnings: checked.warnings, summary: checked.summary, incomplete: checked.incomplete, usage, raw: text }, requestId: outcome.requestId }
 }

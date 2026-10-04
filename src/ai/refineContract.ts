@@ -47,10 +47,54 @@ export interface RefineAnswer {
 }
 
 export type RefineChecked =
-  | ({ ok: true; kind: 'refine'; warnings: string[]; summary: string } & RefineAnswer)
+  | ({
+      ok: true
+      kind: 'refine'
+      warnings: string[]
+      summary: string
+      /** Why this answer looks incomplete (empty when it looks whole): shown before Apply, with Try again. */
+      incomplete: string[]
+    } & RefineAnswer)
+  /** Text fields hold pieces of JSON: the model lost its place, so parts are missing. Never applied. */
+  | { ok: true; kind: 'garbled'; warnings: string[]; summary: string; samples: string[] }
   /** Nothing valid to add or fix: the summary (if any) says why. */
   | { ok: true; kind: 'nothing'; warnings: string[]; summary: string }
   | { ok: false; reason: 'malformed'; detail: string }
+
+/*
+ * Garbled answers. With structured output the JSON itself is always valid, but
+ * a model that loses its place writes the next fields INSIDE a text value:
+ * "why": "…origin.','note':'Caches…" or "…routing.'},{". Whatever it meant
+ * to write after that is lost, so the whole answer is unusable.
+ */
+const GARBLED = [
+  // ','note': or ","label":
+  /['"]\s*,\s*['"]\s*[a-z_]+\s*['"]\s*:/i,
+  // 'note':'  or "why": "
+  /['"][a-z_]+['"]\s*:\s*['"[{]/i,
+  // '},{  or "}, {
+  /['"]?\s*\}\s*,\s*\{/,
+  // {'id':  or {"from":
+  /\{\s*['"][a-z_]+['"]\s*:/i,
+  // ends with '} or "}]
+  /['"]\s*[}\]]+\s*,?\s*$/,
+]
+
+/** Text values that hold pieces of JSON, as short samples (none: the answer reads as plain text). */
+export function garbledSamples(json: Record<string, unknown>): string[] {
+  const samples: string[] = []
+  const visit = (v: unknown) => {
+    if (typeof v === 'string') {
+      if (GARBLED.some((re) => re.test(v))) samples.push(cap(plainText(v), 120))
+    } else if (Array.isArray(v)) v.forEach(visit)
+    else if (isObject(v)) Object.values(v).forEach(visit)
+  }
+  for (const key of ['nodes', 'edges', 'changes', 'summary', 'reason']) visit(json[key])
+  return samples.slice(0, 3)
+}
+
+/** Words in a summary that claim changes to existing items. */
+const CLAIMS_FIXES = /\b(renam|relabel|reshap|rerout|redirect|re-?point|remov|replac|convert|swap|turn(?:ed|s)? (?:the |your |an? )?\w+ (?:in)?to|chang(?:e|ed|es|ing) (?:the |your )?\w+(?: \w+)? (?:in)?to)/i
 
 /** The key a new connector's "why" is filed under. */
 export const edgeKey = (from: string, to: string) => `${from}→${to}`
@@ -179,6 +223,16 @@ export function validateRefine(answer: string, refs: RefineRefs): RefineChecked 
     return { ok: false, reason: 'malformed', detail: 'The answer wasn’t valid JSON.' }
   }
   if (!isObject(json)) return { ok: false, reason: 'malformed', detail: 'The answer didn’t match the refine format (at the top level).' }
+  const garbled = garbledSamples(json)
+  if (garbled.length) {
+    return {
+      ok: true,
+      kind: 'garbled',
+      warnings: [],
+      summary: textOf(json.summary ?? json.reason, REFINE_CAPS.summary),
+      samples: garbled,
+    }
+  }
   for (const key of ['nodes', 'edges', 'changes'] as const) {
     if (json[key] !== undefined && json[key] !== null && !Array.isArray(json[key]))
       return { ok: false, reason: 'malformed', detail: `The answer didn’t match the refine format (${key === 'changes' ? 'changes' : 'nodes or edges'}).` }
@@ -260,5 +314,16 @@ export function validateRefine(answer: string, refs: RefineRefs): RefineChecked 
   }
 
   if (!diagram && bridges.length === 0 && changes.length === 0) return { ok: true, kind: 'nothing', warnings, summary }
-  return { ok: true, kind: 'refine', diagram, bridges, changes, why: { nodes: nodeWhy, edges: edgeWhy }, warnings, summary }
+
+  // Does it hang together? New shapes with no connector, and a summary that claims fixes that aren't there.
+  const incomplete: string[] = []
+  const newIds = diagram?.nodes.map((n) => n.id) ?? []
+  const linked = new Set(diagram?.edges.flatMap((e) => [e.from, e.to]) ?? [])
+  const loose = newIds.filter((id) => !linked.has(id)).length
+  if (loose > 0 && loose === newIds.length)
+    incomplete.push(newIds.length === 1 ? 'The new shape isn’t connected to anything.' : `None of the ${newIds.length} new shapes is connected to anything.`)
+  else if (loose > 0) warn(`${plural(loose, 'new shape')} ${loose === 1 ? 'isn’t' : 'aren’t'} connected to anything.`)
+  if (changes.length === 0 && CLAIMS_FIXES.test(summary)) incomplete.push('Claude’s summary describes changes to your shapes or connectors, but the answer has none.')
+
+  return { ok: true, kind: 'refine', diagram, bridges, changes, why: { nodes: nodeWhy, edges: edgeWhy }, warnings, summary, incomplete }
 }

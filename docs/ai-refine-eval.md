@@ -1,12 +1,14 @@
 # Refine with AI: evaluation cases
 
-Ten cases for checking **Refine** by hand with a real API key. They are not run automatically, because each request is paid. Draw each case in the deployed app, select the shapes named, choose **AI**, **Refine**, type the instruction, then **Generate** and **Send**. Record what happened in the table under the case.
+Eleven cases for checking **Refine** by hand with a real API key. They are not run automatically, because each request is paid. Draw each case in the deployed app, select the shapes named, choose **AI**, **Refine**, type the instruction, then **Generate** and **Send**. Record what happened in the table under the case.
 
 What to check each time:
 
 - **Scope of fixes**: after **Apply**, did only the **selected** shapes and their connectors change? Neighbours, locked items, groups and layers are untouched, and nothing is moved, resized or restyled.
 - **Fixes are justified**: is every fix a clear improvement, and does its "Why" actually explain it? Note any fix that renames for taste or removes something for no good reason.
-- **Narrative**: does the summary say, in a sentence or two, what changed and why? Does it match what was applied?
+- **Narrative**: does "Claude says" tell, in a sentence or two, what changed and why? Does it match the "In this answer" count above it?
+- **Effort**: is the effort shown on the check step (medium or high, and why) the one you'd expect for the request?
+- **Answer health**: any "looks incomplete" or "came back garbled" message? If so, note it, open **Show Claude's raw answer**, and record what went wrong. Then **Try again** and note whether the second try fixed it.
 - **Tick boxes**: untick one fix before **Apply**; is it left alone, and missing from the change log?
 - **Relevant**: does it add what the instruction asks for, and no more? Are there no duplicates of shapes or connectors that already exist?
 - **Connected**: do new connectors go to the right existing shapes, in the right direction?
@@ -140,3 +142,17 @@ Expect: Claude may suggest renaming **Svc**, but it's locked: the change log lis
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
 |      |         |          |                 |         |               |
+
+## 11. "Too simple and outdated": a redesign of a plain flow
+
+Shapes: **Tickets UI** → **Tickets API** → **Tickets db**, all plain rectangles. Select all three.
+
+Instruction: "This flow of ui to api to db feels too simple and outdated. can you refine it to reflect modern architecture using aws cloud elements and resilient architecture and industry best practices"
+
+This is the request that, in 0.29.0, returned four unconnected shapes, no fixes and a summary describing far more.
+
+Expect: **high effort**, "because your instruction asks for a redesign". A connected flow such as UI → CDN → WAF → API gateway → load balancer → API → cache or database, with the old direct connectors removed, and **Tickets UI**, **Tickets API** and **Tickets db** reshaped to their proper types. No "looks incomplete" message, and the "In this answer" count matches "Claude says". If it does come back incomplete or garbled, **Try again** should fix it.
+
+| Date | Version | Notes on | Effort | Tokens in / out | Verdict | What happened |
+| ---- | ------- | -------- | ------ | --------------- | ------- | ------------- |
+|      |         |          |        |                 |         |               |

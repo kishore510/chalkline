@@ -69,6 +69,8 @@ After each AI request, the AI sheet shows the model and the input and output tok
 - **Claude Haiku 4.5**: summarising and reviewing diagrams, suggesting notes, and testing your key.
 - **Claude Sonnet 5.5**: generating diagrams, refining diagrams, and **Deeper review**. Sonnet costs more per token than Haiku, and a deeper review thinks before answering, so it uses more tokens: the check step always names the model.
 
+Refine also picks an **effort**: high for redesigns, long instructions and big selections, medium for small additions. **Deeper refine** overrides it, and the check step says which and why. See [Refining a diagram with AI](help:refining-diagrams).
+
 ## How far to trust it
 
 AI answers can be wrong. Summaries can misdescribe a diagram, and a review can be wrong or miss things: treat it as a prompt for thought, not an audit. Suggested notes can be wrong too, so check each one before accepting. Results are never saved with your diagram or put in an export.

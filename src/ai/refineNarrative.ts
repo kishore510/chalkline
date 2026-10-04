@@ -107,7 +107,10 @@ export interface LogEntry {
   /** When it was applied (ms since epoch). */
   at: number
   instruction: string
+  /** What happened, from the result (never the model's word for it). */
   summary: string
+  /** The model's own summary, shown apart as its intent (Refine only). */
+  intent?: string
   items: StoryItem[]
   /** The undo history length right after applying: Undo here works only while nothing else changed. */
   historySize: number
