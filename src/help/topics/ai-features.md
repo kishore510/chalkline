@@ -1,11 +1,11 @@
 ---
 title: AI features and your API key
 order: 21
-keywords: ai, claude, anthropic, generate, summarise, refine, extend, add-only, summary, review, findings, suggest notes, notes, deeper review, local checks, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
+keywords: ai, claude, anthropic, generate, summarise, refine, extend, fix, change log, summary, review, findings, suggest notes, notes, deeper review, local checks, usage, tokens, api key, key, byok, bring your own key, model, haiku, sonnet, test key, remove key, privacy, sent, data, blocked, network, rate limit, cost
 ---
 Chalkline's AI features use **your own Anthropic API key**. You pay Anthropic for what you use, through your own account. Chalkline has no server: requests go straight from this browser to Anthropic's API (`api.anthropic.com`).
 
-With a key you can [generate a diagram from a description](help:generating-diagrams), [summarise a diagram in words](help:summarising-diagrams), [review a diagram](help:reviewing-diagrams) for things worth a second look, [suggest notes](help:suggesting-notes) for selected shapes, and [refine](help:refining-diagrams) the selected part of a diagram by adding to it. All five are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate**, **Summarise**, **Review**, **Notes** or **Refine**.
+With a key you can [generate a diagram from a description](help:generating-diagrams), [summarise a diagram in words](help:summarising-diagrams), [review a diagram](help:reviewing-diagrams) for things worth a second look, [suggest notes](help:suggesting-notes) for selected shapes, and [refine](help:refining-diagrams) the selected part of a diagram: add to it, fix it, and read why each change was made. All five are in the AI sheet: choose **AI** in the top bar (on a phone, the **☰** menu), then **Generate**, **Summarise**, **Review**, **Notes** or **Refine**.
 
 **Review** also has **local checks** (unconnected shapes, duplicate or inconsistent names, empty labels). They run in this browser, need no key, and send nothing.
 
@@ -52,7 +52,7 @@ Nothing is sent until you press **Send**. Before every AI request, Chalkline sho
 
 **Suggest notes** sends only the 1 to 5 selected shapes (labels, shape types and what each type is for) and the shapes they connect to, as context, with connector labels and directions (at most 8 connections per shape, none on hidden layers). Shapes go under stand-in names (e1, e2…), never their ids, and never with positions. Existing notes go only if you turn on **Use existing notes as context**.
 
-**Refine** sends the selected shapes (labels and shape types) and the shapes they connect to as read-only context (labels, shape types, connector labels and directions; at most 30 shapes in all, none on hidden layers), plus your instruction. Like Suggest notes, it uses stand-in names (e1, n1…): real ids and positions are never sent. Existing notes go only if you turn on **Include notes**.
+**Refine** sends the selected shapes (labels and shape types) and the shapes they connect to as read-only context (labels, shape types, connector labels and directions; at most 30 shapes in all, none on hidden layers), plus your instruction. Like Suggest notes, it uses stand-in names (e1, n1, c1…): real ids and positions are never sent. Existing notes go only if you turn on **Include notes**.
 
 The first time, Chalkline also reminds you that what you send leaves this device. Check your own or your organisation's rules before sending anything sensitive.
 
@@ -76,7 +76,7 @@ AI answers can be wrong. Summaries can misdescribe a diagram, and a review can b
 Only two AI actions write to your diagram, and only when you choose to:
 
 - **Suggest notes**, when you accept a card. It only ever adds to a shape's notes field, never replaces a note, and never changes anything else. Each **Accept** or **Accept all** is one undo step.
-- **Refine** (like **Generate**), when you choose **Add to canvas**. It is **add-only**: it adds new shapes and connectors, which may connect to existing shapes, but never changes, moves, restyles or deletes anything already there. Existing connectors are kept. Adding is one undo step.
+- **Refine**, when you choose **Apply**. It adds new shapes and connectors and can fix the **selected** shapes and their connectors (rename, change shape type, turn an arrow round, remove), each with a reason you read first. You can untick any fix. It never moves or restyles anything, and never changes locked items or the shapes around your selection. Applying is one undo step, and the AI change log keeps the story.
 
 ## When it doesn't work
 

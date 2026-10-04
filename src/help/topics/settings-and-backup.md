@@ -5,6 +5,8 @@ keywords: settings, preferences, ai, api key, theme, dark, light, grid, snap, ar
 ---
 Open **Settings** from the gear button at the top, or from the menu (the three lines) on a phone. Changes apply straight away and are remembered in this browser. Settings are never saved inside a diagram file.
 
+Panel sizes are remembered the same way: the palette's width, the AI change log's width, and which panels you collapsed. They're part of a backup too.
+
 ## Appearance
 
 - **Theme**: System (follows your device), Light or Dark. The sun and moon button at the top switches it too.

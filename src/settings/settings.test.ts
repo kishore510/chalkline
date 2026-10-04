@@ -24,7 +24,7 @@ describe('settings validation', () => {
       canvas: { snapToGrid: true, smartGuides: true, grid: 'dots', arrowhead: 'arrow' },
       text: {},
       arrange: { direction: 'right', spacing: 'normal' },
-      panels: { paletteWidth: null, paletteCollapsed: false, rightCollapsed: false },
+      panels: { paletteWidth: null, paletteCollapsed: false, rightCollapsed: false, logWidth: null, logCollapsed: false },
       onboarding: { firstRunDone: false, tourDone: false },
       ai: { keyStorage: 'session', noticeAcknowledged: false, includeNotes: false },
     })
@@ -81,14 +81,13 @@ describe('settings v1 to v2: the AI section', () => {
     onboarding: { firstRunDone: true, tourDone: true },
   }
 
-  it('is version 2', () => {
-    expect(SETTINGS_VERSION).toBe(2)
+  it('has a step to version 2', () => {
     expect(SETTINGS_MIGRATIONS[1]).toBeTypeOf('function')
   })
 
   it('adds the AI section with safe defaults and keeps every v1 choice', () => {
     const s = parseSettings(v1)
-    expect(s.settingsVersion).toBe(2)
+    expect(s.settingsVersion).toBe(SETTINGS_VERSION)
     expect(s.ai).toEqual({ keyStorage: 'session', noticeAcknowledged: false, includeNotes: false })
     const { settingsVersion: _, ...rest } = v1
     expect(s).toMatchObject(rest)
@@ -119,15 +118,15 @@ describe('settings v1 to v2: the AI section', () => {
     expect(JSON.stringify(s)).not.toContain('sk-ant')
   })
 
-  it('unversioned and corrupt settings still load as v2 defaults', () => {
+  it('unversioned and corrupt settings still load as current defaults', () => {
     expect(parseSettings({}).ai.keyStorage).toBe('session')
-    expect(parseSettingsText('{oops').settingsVersion).toBe(2)
+    expect(parseSettingsText('{oops').settingsVersion).toBe(SETTINGS_VERSION)
   })
 
-  it('a v1 settings key in storage loads as v2', () => {
+  it('a v1 settings key in storage loads as the current version', () => {
     const storage = memoryStorage({ [SETTINGS_KEY]: JSON.stringify(v1) })
     const { settings } = loadSettings(storage)
-    expect(settings.settingsVersion).toBe(2)
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION)
     expect(settings.appearance.theme).toBe('dark')
     expect(settings.ai.keyStorage).toBe('session')
   })
@@ -177,7 +176,7 @@ describe('loading settings and migrating old preference keys', () => {
     expect(settings.appearance.theme).toBe('dark')
     expect(settings.canvas).toMatchObject({ snapToGrid: false, smartGuides: false, grid: 'lines' })
     expect(settings.arrange).toEqual({ direction: 'down', spacing: 'roomy' })
-    expect(settings.panels).toEqual({ paletteWidth: 320, paletteCollapsed: true, rightCollapsed: true })
+    expect(settings.panels).toEqual({ paletteWidth: 320, paletteCollapsed: true, rightCollapsed: true, logWidth: null, logCollapsed: false })
     expect(settings.onboarding.firstRunDone).toBe(true)
     expect(migrated.sort()).toEqual(Object.keys(legacy).sort())
     expect(removed.sort()).toEqual(Object.keys(legacy).sort())
@@ -234,5 +233,38 @@ describe('loading settings and migrating old preference keys', () => {
   it('works with storage blocked or missing', () => {
     expect(loadSettings(throwing).settings).toEqual(defaultSettings())
     expect(loadSettings(undefined).settings).toEqual(defaultSettings())
+  })
+})
+
+describe('settings v2 to v3: the AI change log panel', () => {
+  // Exactly what 0.21.0 to 0.28.0 wrote.
+  const v2 = {
+    settingsVersion: 2,
+    appearance: { theme: 'light' },
+    panels: { paletteWidth: 320, paletteCollapsed: true, rightCollapsed: false },
+    ai: { keyStorage: 'device', noticeAcknowledged: true, includeNotes: true },
+  }
+
+  it('is version 3', () => {
+    expect(SETTINGS_VERSION).toBe(3)
+    expect(SETTINGS_MIGRATIONS[2]).toBeTypeOf('function')
+  })
+
+  it('adds the log width and collapsed state, keeping every v2 panel and AI choice', () => {
+    const s = parseSettings(v2)
+    expect(s.settingsVersion).toBe(3)
+    expect(s.panels).toEqual({ paletteWidth: 320, paletteCollapsed: true, rightCollapsed: false, logWidth: null, logCollapsed: false })
+    expect(s.ai).toEqual(v2.ai)
+    expect(s.appearance.theme).toBe('light')
+  })
+
+  it('the step copes with a missing or broken panels section', () => {
+    expect(SETTINGS_MIGRATIONS[2]!({ settingsVersion: 2 })).toEqual({ settingsVersion: 3, panels: { logWidth: null, logCollapsed: false } })
+    expect(SETTINGS_MIGRATIONS[2]!({ settingsVersion: 2, panels: 'x' })).toEqual({ settingsVersion: 3, panels: { logWidth: null, logCollapsed: false } })
+  })
+
+  it('reads v3 choices and falls back field by field', () => {
+    expect(parseSettings({ settingsVersion: 3, panels: { logWidth: 400, logCollapsed: true } }).panels).toMatchObject({ logWidth: 400, logCollapsed: true })
+    expect(parseSettings({ settingsVersion: 3, panels: { logWidth: -5, logCollapsed: 'yes' } }).panels).toMatchObject({ logWidth: null, logCollapsed: false })
   })
 })

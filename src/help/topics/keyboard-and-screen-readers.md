@@ -1,7 +1,7 @@
 ---
 title: Keyboard and screen readers
 order: 19
-keywords: keyboard, screen reader, accessibility, a11y, tab, focus, voiceover, nvda, jaws, talkback, reduced motion, skip, without a mouse
+keywords: keyboard, screen reader, accessibility, a11y, tab, focus, voiceover, nvda, jaws, talkback, reduced motion, skip, without a mouse, resize panel, collapse panel
 ---
 You can make and edit diagrams with the keyboard alone. Every button, menu and field is reachable with `Tab`, and the full list of keys is on the [keyboard shortcuts page](help:gestures-and-shortcuts) (press `?`).
 
@@ -42,6 +42,10 @@ Shapes are read as their label and type, for example "Orders, database". Connect
 - **Reattaching a connector end to a different shape**: drag its end grip. With the keyboard, choose the start and end sides in its properties, or delete it and link the shapes again.
 - **Resizing a group or container**: drag its edge. Shapes have width and height fields, and lanes have a size field.
 - **Panning freely**: use **Fit to screen** (`F`), zoom (`+` and `-`), or move focus with `Tab`; the view follows the focused shape.
+
+## Resizing panels
+
+The edge of the palette (desktop) and of the AI change log (tablet and desktop) is a separator you can reach with `Tab`. The arrow keys make the panel wider or narrower, `Home` and `End` jump to its narrowest and widest. Each panel also has a collapse button, so nothing needs dragging.
 
 ## Reduced motion
 

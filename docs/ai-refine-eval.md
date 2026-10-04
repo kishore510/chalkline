@@ -1,16 +1,20 @@
 # Refine with AI: evaluation cases
 
-Eight cases for checking **Refine** by hand with a real API key. They are not run automatically, because each request is paid. Draw each case in the deployed app, select the shapes named, choose **AI**, **Refine**, type the instruction, then **Generate** and **Send**. Record what happened in the table under the case.
+Ten cases for checking **Refine** by hand with a real API key. They are not run automatically, because each request is paid. Draw each case in the deployed app, select the shapes named, choose **AI**, **Refine**, type the instruction, then **Generate** and **Send**. Record what happened in the table under the case.
 
 What to check each time:
 
-- **Add-only**: after **Add to canvas**, is every existing shape, connector and group exactly as before? Nothing is moved, renamed, restyled or deleted, and old connectors are still there.
-- **Relevant**: does it add what the instruction asks for, and no more? Are there no duplicates of shapes that already exist?
+- **Scope of fixes**: after **Apply**, did only the **selected** shapes and their connectors change? Neighbours, locked items, groups and layers are untouched, and nothing is moved, resized or restyled.
+- **Fixes are justified**: is every fix a clear improvement, and does its "Why" actually explain it? Note any fix that renames for taste or removes something for no good reason.
+- **Narrative**: does the summary say, in a sentence or two, what changed and why? Does it match what was applied?
+- **Tick boxes**: untick one fix before **Apply**; is it left alone, and missing from the change log?
+- **Relevant**: does it add what the instruction asks for, and no more? Are there no duplicates of shapes or connectors that already exist?
 - **Connected**: do new connectors go to the right existing shapes, in the right direction?
 - **Naming**: are the labels short and in the same style as the existing ones?
 - **Placement**: are the new shapes beside the selection (right, else below), on the grid, covering nothing? Note any long or crossing connectors.
-- **Preview**: are the anchor shapes faded? Is the warnings list empty or sensible? Is "Existing connectors are not changed." shown?
-- **Undo**: does one **Undo** remove everything that was added, and nothing else?
+- **Preview**: are context shapes faded and fixed shapes shown as they'll look? Is the warnings list empty or sensible?
+- **AI change log**: does it open after **Apply** with the summary and each change's reason? Does choosing a line select those items? On desktop it is docked (not over the canvas); its edge resizes it and the chevron collapses it.
+- **Undo**: does one **Undo** (or **Undo this refinement** in the log) put everything back, and nothing else?
 - **Cost**: the input and output tokens from the usage line.
 
 Record results as: date, version (Help, About), notes on or off, tokens in / out, and a short verdict (useful / mixed / poor).
@@ -23,7 +27,7 @@ Shapes: **Web app** (rounded) → **Orders service** (microservice) → **Orders
 
 Instruction: "Add a cache between these two."
 
-Expect: one cache shape, connected from **Orders service** and to **Orders DB** (or the read path shown some other sensible way). The old connector from **Orders service** to **Orders DB** stays.
+Expect: one cache shape, connected from **Orders service** and to **Orders DB** (or the read path shown some other sensible way). The old direct connector is probably removed, with a reason such as "requests now go through the cache". If it's kept, the summary should say why.
 
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
@@ -47,7 +51,7 @@ Shapes: actor **User** → **Chat app** (rounded) → **LLM** (LLM shape). Selec
 
 Instruction: "Add a guardrail before the model."
 
-Expect: an AI guardrails shape, connected from **Chat app** and to **LLM**. The old connector stays. The guardrail is probably red, as the colour hints suggest.
+Expect: an AI guardrails shape, connected from **Chat app** and to **LLM**, and the old direct connector removed so traffic goes through the guardrail. The guardrail is probably red, as the colour hints suggest.
 
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
@@ -65,13 +69,13 @@ Expect: one new app server, labelled to match (for example "App server 2"), conn
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
 |      |         |          |                 |         |               |
 
-## 5. An instruction that can't be done by adding
+## 5. Renames and a removal
 
 Shapes: **Frontend** → **Backend**. Select both.
 
 Instruction: "Rename these to Client and Server, and delete the connector."
 
-Expect: **Nothing to add**, with a short reason, and no **Add to canvas** button. If anything is suggested, it must not rename or delete. Check the warnings list.
+Expect: three fixes (two renames, one connector removal), each with a reason, and no new shapes. Untick the removal before **Apply**: the shapes are renamed and the connector stays. The change log lists the two renames only.
 
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
@@ -83,7 +87,7 @@ Shapes: **Service A** → **Service B**. Select both.
 
 Instruction: "Make it better."
 
-Expect: **Nothing to add**, with a reason asking for something more specific, or a very small, clearly explained addition. Note which one.
+Expect: **Nothing to change**, with a summary asking for something more specific, or a few small, clearly explained fixes. Note which one, and whether each reason holds up.
 
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |
@@ -108,6 +112,30 @@ Shapes: load the example diagram, or draw at least 31 connected shapes, then sel
 Instruction: "Add logging everywhere."
 
 Expect: nothing is sent. With more than 30 selected, the sheet asks you to select fewer before **Generate** is enabled. With fewer selected but more than 30 shapes of context, the check step says so and **Send** is disabled.
+
+| Date | Version | Notes on | Tokens in / out | Verdict | What happened |
+| ---- | ------- | -------- | --------------- | ------- | ------------- |
+|      |         |          |                 |         |               |
+
+## 9. Fixing mistakes it wasn't asked about
+
+Shapes: **Orders API** (rectangle) → **Orders** (rectangle, meant to be the database), with the arrow drawn from **Orders** to **Orders API**, and a second, duplicate connector from **Orders API** to **Orders**. Select both.
+
+Instruction: "Add a cache in front of the database and fix anything that looks wrong."
+
+Expect: a cache; **Orders** changed to a database shape; the duplicate connector removed or the arrow turned round, each with a reason. The summary tells the story in a sentence or two. Nothing outside the selection changes.
+
+| Date | Version | Notes on | Tokens in / out | Verdict | What happened |
+| ---- | ------- | -------- | --------------- | ------- | ------------- |
+|      |         |          |                 |         |               |
+
+## 10. Locked and neighbouring shapes stay as they are
+
+Shapes: **Gateway** → **Svc** → **DB**. Lock **Svc**. Select **Svc** only.
+
+Instruction: "Give everything clearer names."
+
+Expect: Claude may suggest renaming **Svc**, but it's locked: the change log lists it as skipped ("it's locked or on a hidden layer"). **Gateway** and **DB** are neighbours, so they are never renamed; any such suggestion shows in the warnings list as left out.
 
 | Date | Version | Notes on | Tokens in / out | Verdict | What happened |
 | ---- | ------- | -------- | --------------- | ------- | ------------- |

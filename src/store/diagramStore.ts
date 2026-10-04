@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { applyFixes, type FixResult, type RefineFix } from '@/ai/refineFixes'
 import {
   createEmptyDiagram,
   DEFAULT_LAYER_ID,
@@ -179,14 +180,21 @@ export interface DiagramState {
    */
   insertGenerated: (content: StencilContent, viewCentre: Position, grid?: number) => string[] | null
   /**
-   * Refine (AI): adds new, already placed shapes and connectors, some of
-   * which may end on existing shapes. ADD-ONLY: nothing already there is
-   * changed. Connectors go to existing shapes as manual connecting allows
-   * (locked shapes included). Active layer, selected. One undo step. A
-   * connector whose ends aren't a new shape plus a new or existing shape is
-   * left out. Null if the active layer is hidden or locked.
+   * Refine (AI): applies the chosen fixes to existing shapes and connectors
+   * (see ai/refineFixes: anything deleted, locked or hidden since is skipped
+   * and reported), then adds new, already placed shapes and connectors, some
+   * of which may end on existing shapes. New connectors go to existing shapes
+   * as manual connecting allows (locked shapes included); one that would
+   * duplicate a connector between the same two shapes, or whose end is gone,
+   * is left out. Active layer; the new and changed items are selected. One
+   * undo step. Null if there is something to add and the active layer is
+   * hidden or locked (then nothing changes).
    */
-  insertRefinement: (nodes: readonly DiagramNode[], edges: readonly DiagramEdge[]) => { ids: string[]; dropped: number } | null
+  applyRefinement: (refinement: { nodes: readonly DiagramNode[]; edges: readonly DiagramEdge[]; fixes: readonly RefineFix[] }) => {
+    ids: string[]
+    dropped: number
+    results: FixResult[]
+  } | null
 
   /* Layers. Add, rename, reorder, delete and move-to-layer are undo steps; visibility and locks are view state (saved, not undoable). */
   /** Where new items go. Not part of the document. */
@@ -693,21 +701,33 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       return ids
     },
 
-    insertRefinement(newNodes, newEdges) {
+    applyRefinement({ nodes: newNodes, edges: newEdges, fixes }) {
       const active = usableActive()
-      if (!active) return null
+      if (!active && newNodes.length + newEdges.length > 0) return null
       const current = get().diagram
-      const existing = new Set(current.nodes.map((n) => n.id))
-      const taken = new Set([...existing, ...current.edges.map((e) => e.id), ...current.groups.map((g) => g.id)])
-      const nodes = newNodes.filter((n) => !taken.has(n.id)).map(({ groupId: _group, ...n }) => layers.withLayer({ ...n, locked: false }, active))
+      const { diagram: fixed, results } = applyFixes(current, fixes)
+      const existing = new Set(fixed.nodes.map((n) => n.id))
+      const taken = new Set([...current.nodes.map((n) => n.id), ...current.edges.map((e) => e.id), ...current.groups.map((g) => g.id)])
+      const nodes = active ? newNodes.filter((n) => !taken.has(n.id)).map(({ groupId: _group, ...n }) => layers.withLayer({ ...n, locked: false }, active)) : []
       const fresh = new Set(nodes.map((n) => n.id))
       const ok = (id: string) => fresh.has(id) || existing.has(id)
-      const edges = newEdges
-        .filter((e) => !taken.has(e.id) && e.source !== e.target && ok(e.source) && ok(e.target) && (fresh.has(e.source) || fresh.has(e.target)))
-        .map((e) => layers.withLayer(e, active))
+      const pair = (a: string, b: string) => (a < b ? `${a} ${b}` : `${b} ${a}`)
+      const linked = new Set(fixed.edges.map((e) => pair(e.source, e.target)))
+      const edges: DiagramEdge[] = []
+      for (const e of active ? newEdges : []) {
+        if (taken.has(e.id) || e.source === e.target || !ok(e.source) || !ok(e.target)) continue
+        // Between two existing shapes: only where they aren't already connected.
+        if (!fresh.has(e.source) && !fresh.has(e.target)) {
+          if (linked.has(pair(e.source, e.target))) continue
+          linked.add(pair(e.source, e.target))
+        }
+        edges.push(layers.withLayer(e, active!))
+      }
       const ids = [...nodes.map((n) => n.id), ...edges.map((e) => e.id)]
-      if (ids.length > 0) commit({ ...current, nodes: [...current.nodes, ...nodes], edges: [...current.edges, ...edges] }, { extra: { selection: ids } })
-      return { ids, dropped: newEdges.length - edges.length }
+      const touched = results.filter((r) => r.status === 'applied' && r.fix.action !== 'remove').map((r) => r.fix.id)
+      const next = ids.length > 0 ? { ...fixed, nodes: [...fixed.nodes, ...nodes], edges: [...fixed.edges, ...edges] } : fixed
+      if (next !== current) commit(next, { extra: { selection: pruneSelection(next, [...new Set([...ids, ...touched])]) } })
+      return { ids, dropped: newEdges.length - edges.length, results }
     },
 
     setActiveLayer(id) {

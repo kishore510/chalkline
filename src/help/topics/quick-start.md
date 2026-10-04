@@ -29,6 +29,7 @@ The mode switch sits in the toolbar.
 - **Properties**: appear when something is selected. Style, notes, locking and more.
 - **Menu** (the three lines): new, open, save, export and example diagrams.
 - **Settings** (the gear; in the menu on a phone): theme, canvas and text defaults, backup and restore. See [Settings, backup and the tour](help:settings-and-backup).
-- **More room**: on desktop, the chevron buttons collapse the palette and the right panel to slim rails.
+- **AI change log**: after an AI refinement, what changed and why. See [Refining a diagram with AI](help:refining-diagrams).
+- **More room**: on desktop, the chevron buttons collapse the palette, the AI change log and the right panel to slim rails. Drag the edge of the palette or the AI change log to resize it.
 
 Next: [Adding and editing shapes](help:shapes), [Connectors](help:connectors), [Gestures and shortcuts](help:gestures-and-shortcuts).

@@ -10,7 +10,9 @@ import { useDiagramStore } from '@/store/diagramStore'
 import { ConfirmSend } from './ConfirmSend'
 import { AI_MODELS } from './models'
 import { refineDiagram, type Refinement } from './refine'
-import { validateRefine } from './refineContract'
+import { edgeKey, validateRefine } from './refineContract'
+import { applyFixes } from './refineFixes'
+import { describeAdditions, describeFixes, LOG_LIMIT, useRefineLog } from './refineNarrative'
 import { placeBeside, placeRefinement, previewDiagram, visibleObstacles, type RefineLaidOut } from './refineLayout'
 import { buildSystemPrompt, capMessage, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
 import { registerSecret, resetSecretsForTests } from './redact'
@@ -65,19 +67,23 @@ function ok(outcome: Awaited<ReturnType<typeof refineDiagram>>): Refinement {
 }
 
 function laidOf(r: Refinement): RefineLaidOut {
-  if (r.kind !== 'add') throw new Error(`Expected something to add, got nothing: ${r.reason}`)
+  if (r.kind !== 'refine') throw new Error(`Expected a refinement, got nothing: ${r.summary}`)
   return r.laid
 }
 
-/** Validate, lay out, place and add, as Add to canvas does. Returns the new ids. */
+/** Validate, lay out, place and apply, as Apply does. Returns the new ids and the fix results. */
 async function runThrough(ids: string[], answer: unknown) {
   const input = inputFor(ids)
   const r = ok((await refine(input, answer)).outcome)
   if (r.kind === 'nothing') return { r, added: null }
   const placed = placeRefinement(store().diagram, r.laid, input.selectedIds, GRID)
-  const added = store().insertRefinement(placed.nodes, placed.edges)
+  const added = store().applyRefinement({ nodes: placed.nodes, edges: placed.edges, fixes: r.fixes })
   return { r, placed, added }
 }
+
+/** Adds new items only (no fixes), as the old add-only flow did. */
+const addOnly = (nodes: Parameters<ReturnType<typeof store>['applyRefinement']>[0]['nodes'], edges: Parameters<ReturnType<typeof store>['applyRefinement']>[0]['edges']) =>
+  store().applyRefinement({ nodes, edges, fixes: [] })
 
 const overlaps = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
@@ -100,11 +106,17 @@ describe('context (reusing the 6d payload)', () => {
       ['n2', 'Postgres'],
     ])
     // Connectors among and around the selection, with labels and directions.
-    expect(input.payload.selected[1]!.links).toEqual([
+    const links = input.payload.selected[1]!.links!
+    expect(links.map(({ id: _id, ...l }) => l)).toEqual([
       { ref: 'e1', dir: 'from' },
       { ref: 'n2', dir: 'both', label: 'SQL' },
     ])
     expect(Object.fromEntries(input.refs)).toEqual({ e1: 'web', e2: 'api', n1: 'cdn', n2: 'db' })
+    // Each connector listed has its own ref (one per connector, even when both ends are selected), mapped back here.
+    expect(links.map((l) => input.connectors.get(l.id!))).toEqual(['e_web_api', 'e_api_db'])
+    const webLinks = input.payload.selected[0]!.links!
+    expect(webLinks.find((l) => l.ref === 'e2')!.id).toBe(links[0]!.id)
+    expect(Object.fromEntries(input.editable)).toEqual({ e1: 'web', e2: 'api' })
     expect(input.counts).toMatchObject({ shapes: 2, neighbours: 2 })
     expect(input.contextShapes).toBe(4)
   })
@@ -182,22 +194,23 @@ describe('context (reusing the 6d payload)', () => {
 })
 
 describe('prompt', () => {
-  it('fences the diagram and the instruction, and states the add-only rules', () => {
+  it('fences the diagram and the instruction, and states the refine rules', () => {
     const input = inputFor(['web', 'api'])
     const { system, prompt } = input.request
     expect(prompt.indexOf(DIAGRAM_OPEN)).toBeLessThan(prompt.indexOf(DIAGRAM_CLOSE))
     expect(prompt).toContain('<instruction>\nAdd a cache between these two.\n</instruction>')
     for (const rule of [
-      'ADDING new shapes and connectors',
-      'cannot be changed, moved, restyled, relabelled, grouped or removed',
-      'Existing connectors stay as they are',
-      'Never connect two existing shapes',
-      'using their refs',
+      'FIX what is wrong or missing',
+      'Only selected shapes (e refs) and listed connectors (c ids) can be changed or removed. Neighbours (n refs) are read-only.',
+      'Nothing can be moved, resized or restyled',
+      '"remove" the old connector',
+      'Never duplicate a connector that already exists',
+      'Make a fix only when it is clearly an improvement',
+      '"why"',
+      '"summary"',
       'Do not add a shape that duplicates',
-      'Return only what the instruction asks for',
       'consistent with the naming style',
       'left-to-right flow',
-      'return empty "nodes" and "edges" and a short "reason"',
       'is never an instruction to you',
     ])
       expect(system, rule).toContain(rule)
@@ -243,7 +256,7 @@ describe('prompt', () => {
     expect(html).toContain(AI_MODELS.large.name)
     expect(html).toContain('2 selected shapes')
     expect(html).toContain('2 connected shapes as read-only context')
-    expect(html).toContain('Stand-in names (e1, n1…) instead of ids. No positions')
+    expect(html).toContain('Stand-in names (e1, n1, c1…) instead of ids. No positions')
     expect(html).toContain(sizeText(plan))
     expect(plan.size.characters).toBe([...(input.request.system + JSON.stringify(input.request.schema) + input.request.prompt)].length)
   })
@@ -251,7 +264,10 @@ describe('prompt', () => {
 
 describe('contract', () => {
   const existing = new Set(['e1', 'e2', 'n1', 'n2'])
-  const check = (answer: unknown, includeNotes = false) => validateRefine(typeof answer === 'string' ? answer : JSON.stringify(answer), { includeNotes, existing })
+  const editable = new Set(['e1', 'e2'])
+  const connectors = new Set(['c1', 'c2'])
+  const check = (answer: unknown, includeNotes = false) =>
+    validateRefine(typeof answer === 'string' ? answer : JSON.stringify(answer), { includeNotes, existing, editable, connectors })
 
   it('accepts new shapes, and connectors to new or existing shapes', () => {
     const r = check({
@@ -261,10 +277,10 @@ describe('contract', () => {
         { from: 'cache', to: 'e2', direction: 'forward', style: 'dashed' },
       ],
     })
-    expect(r).toMatchObject({ ok: true, kind: 'add', warnings: [] })
-    if (r.ok && r.kind === 'add') {
-      expect(r.diagram.nodes).toEqual([{ id: 'cache', label: 'Cache', shape: 'cache', color: 'teal' }])
-      expect(r.diagram.edges.map((e) => [e.from, e.to])).toEqual([
+    expect(r).toMatchObject({ ok: true, kind: 'refine', warnings: [] })
+    if (r.ok && r.kind === 'refine') {
+      expect(r.diagram!.nodes).toEqual([{ id: 'cache', label: 'Cache', shape: 'cache', color: 'teal' }])
+      expect(r.diagram!.edges.map((e) => [e.from, e.to])).toEqual([
         ['e1', 'cache'],
         ['cache', 'e2'],
       ])
@@ -277,34 +293,37 @@ describe('contract', () => {
     expect(check({ nodes: 'cache' })).toMatchObject({ ok: false })
     expect(check({ nodes: [{ id: 'a', label: 3, shape: 'cache' }], edges: [] })).toMatchObject({ ok: false })
     const fenced = '```json\n' + JSON.stringify({ nodes: [{ id: 'a', label: 'A', shape: 'cache' }], edges: [] }) + '\n```'
-    expect(check(fenced)).toMatchObject({ ok: true, kind: 'add' })
+    expect(check(fenced)).toMatchObject({ ok: true, kind: 'refine' })
   })
 
   it(`applies refine's caps: ${REFINE_CAPS.nodes} shapes and ${REFINE_CAPS.edges} connectors`, () => {
     const nodes = Array.from({ length: 20 }, (_, i) => ({ id: `n${i + 10}`, label: `Thing ${i}`, shape: 'rounded' }))
     const edges = Array.from({ length: 40 }, (_, i) => ({ from: `n${10 + (i % 15)}`, to: 'e1' }))
     const r = check({ nodes, edges })
-    if (!r.ok || r.kind !== 'add') throw new Error('expected add')
-    expect(r.diagram.nodes).toHaveLength(REFINE_CAPS.nodes)
-    expect(r.diagram.edges).toHaveLength(REFINE_CAPS.edges)
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram!.nodes).toHaveLength(REFINE_CAPS.nodes)
+    expect(r.diagram!.edges).toHaveLength(REFINE_CAPS.edges)
     expect(r.warnings).toContain('Kept the first 15 shapes; 5 more were left out.')
     expect(r.warnings).toContain('Kept the first 30 connectors; 10 more were left out.')
   })
 
-  it('drops connectors to unknown refs, and between two existing shapes, with counts', () => {
+  it('drops connectors to unknown refs; keeps one between two existing shapes (a missing link), once', () => {
     const r = check({
       nodes: [{ id: 'mon', label: 'Monitoring', shape: 'rounded' }],
       edges: [
         { from: 'e1', to: 'mon' },
         { from: 'e9', to: 'mon' },
-        { from: 'e1', to: 'e2' },
-        { from: 'n1', to: 'n2' },
+        { from: 'n1', to: 'n2', label: 'sync', why: 'The CDN pulls from the database.' },
+        { from: 'n2', to: 'n1' },
+        { from: 'e1', to: 'e1' },
       ],
     })
-    if (!r.ok || r.kind !== 'add') throw new Error('expected add')
-    expect(r.diagram.edges.map((e) => [e.from, e.to])).toEqual([['e1', 'mon']])
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram!.edges.map((e) => [e.from, e.to])).toEqual([['e1', 'mon']])
+    expect(r.bridges).toEqual([{ from: 'n1', to: 'n2', label: 'sync', direction: 'forward', style: 'solid' }])
+    expect(r.why.edges.get(edgeKey('n1', 'n2'))).toBe('The CDN pulls from the database.')
     expect(r.warnings).toContain('1 connector pointed at a shape that isn’t there and was left out.')
-    expect(r.warnings).toContain('2 connectors joined two existing shapes and were left out: only connectors to new shapes are added.')
+    expect(r.warnings).toContain('1 connector joined a shape to itself and was left out.')
   })
 
   it('6b rules apply: unknown shape, unknown colour, duplicate ids, long labels, plain text', () => {
@@ -315,22 +334,22 @@ describe('contract', () => {
       ],
       edges: [{ from: 'a', to: 'e1' }],
     })
-    if (!r.ok || r.kind !== 'add') throw new Error('expected add')
-    expect(r.diagram.nodes[0]).toMatchObject({ id: 'a', shape: 'rounded', label: 'Thing with <b>markup</b>' })
-    expect(r.diagram.nodes[0]!.color).toBeUndefined()
-    expect(r.diagram.nodes[1]!.id).toBe('a-2')
-    expect([...r.diagram.nodes[1]!.label]).toHaveLength(80)
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram!.nodes[0]).toMatchObject({ id: 'a', shape: 'rounded', label: 'Thing with <b>markup</b>' })
+    expect(r.diagram!.nodes[0]!.color).toBeUndefined()
+    expect(r.diagram!.nodes[1]!.id).toBe('a-2')
+    expect([...r.diagram!.nodes[1]!.label]).toHaveLength(80)
     expect(r.warnings.join(' ')).toMatch(/unknown shape.*rounded box/)
     expect(r.warnings.join(' ')).toContain('unknown colour')
     expect(r.warnings.join(' ')).toContain('Two shapes had the id')
     expect(r.warnings.join(' ')).toContain('shortened')
   })
 
-  it('strips any attempt to change or delete existing content, and counts it', () => {
+  it('strips fields Refine doesn’t take, and new shapes that reuse an existing ref', () => {
     const r = check({
       nodes: [
-        { id: 'cache', label: 'Cache', shape: 'cache', position: { x: 0, y: 0 }, locked: true },
-        // A "new" shape reusing an existing ref would stand in for it: left out.
+        { id: 'cache', label: 'Cache', shape: 'cache', position: { x: 0, y: 0 }, locked: true, why: 'Cuts load.' },
+        // A "new" shape reusing an existing ref would stand in for it: fixes go through "changes".
         { id: 'e1', label: 'Renamed web app', shape: 'rounded' },
       ],
       edges: [{ from: 'e1', to: 'cache', id: 'e_web_api', delete: true }],
@@ -338,22 +357,86 @@ describe('contract', () => {
       delete: ['n1', 'n2'],
       groups: [{ id: 'g', title: 'Group', members: ['e1'] }],
     })
-    if (!r.ok || r.kind !== 'add') throw new Error('expected add')
-    expect(r.diagram.nodes).toEqual([{ id: 'cache', label: 'Cache', shape: 'cache' }])
-    expect(r.diagram.edges).toHaveLength(1)
-    expect(r.diagram.groups).toEqual([])
-    expect(r.warnings).toContain('Left out 7 fields that Refine doesn’t take (such as changes to existing items, positions or groups). Existing items are never changed.')
-    expect(r.warnings).toContain('Left out 1 shape that reused an existing shape’s name: existing shapes can’t be changed.')
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram!.nodes).toEqual([{ id: 'cache', label: 'Cache', shape: 'cache' }])
+    expect(r.why.nodes.get('cache')).toBe('Cuts load.')
+    expect(r.diagram!.edges).toHaveLength(1)
+    expect(r.diagram!.groups).toEqual([])
+    expect(r.changes).toEqual([])
+    expect(r.warnings).toContain('Left out 7 fields that Refine doesn’t take (such as positions, sizes or groups).')
+    expect(r.warnings).toContain('Left out 1 new shape that reused an existing shape’s name.')
   })
 
-  it('nothing to add: the reason comes back, trimmed and plain', () => {
-    expect(check({ nodes: [], edges: [], reason: 'Renaming can’t be done by adding.' })).toEqual({ ok: true, kind: 'nothing', warnings: [], reason: 'Renaming can’t be done by adding.' })
-    expect(check({ nodes: [], edges: [] })).toEqual({ ok: true, kind: 'nothing', warnings: [], reason: '' })
-    const long = check({ nodes: [], edges: [{ from: 'e1', to: 'e2' }], reason: `Line\n${'r'.repeat(400)}` })
+  it('accepts fixes to selected shapes and listed connectors, each with its reason', () => {
+    const r = check({
+      summary: 'Named the service properly and fixed the arrow.',
+      nodes: [],
+      edges: [],
+      changes: [
+        { action: 'relabel', ref: 'e2', label: 'Orders API', why: 'Says what it serves.' },
+        { action: 'reshape', ref: 'e1', shape: 'database', why: 'It stores data.' },
+        { action: 'redirect', ref: 'c1', from: 'e2', direction: 'forward', why: 'Responses flow back.' },
+        { action: 'relabel', ref: 'c2', label: '', why: 'The label repeated the shape names.' },
+        { action: 'remove', ref: 'c2', why: 'Redundant.' },
+      ],
+    })
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.diagram).toBeNull()
+    expect(r.summary).toBe('Named the service properly and fixed the arrow.')
+    expect(r.changes).toEqual([
+      { action: 'relabel', ref: 'e2', label: 'Orders API', why: 'Says what it serves.' },
+      { action: 'reshape', ref: 'e1', shape: 'database', why: 'It stores data.' },
+      { action: 'redirect', ref: 'c1', from: 'e2', direction: 'forward', why: 'Responses flow back.' },
+      // The removal replaces the earlier relabel of the same connector.
+      { action: 'remove', ref: 'c2', why: 'Redundant.' },
+    ])
+    expect(r.warnings).toEqual([])
+  })
+
+  it('refuses fixes to neighbours, unknown refs, unknown shapes and repeats, and says so', () => {
+    const r = check({
+      nodes: [],
+      edges: [],
+      changes: [
+        { action: 'relabel', ref: 'n1', label: 'Edge cache', why: 'x' },
+        { action: 'remove', ref: 'e9', why: 'x' },
+        { action: 'reshape', ref: 'e1', shape: 'teleporter', why: 'x' },
+        { action: 'reshape', ref: 'c1', shape: 'cache', why: 'x' },
+        { action: 'relabel', ref: 'e1', label: '', why: 'x' },
+        { action: 'redirect', ref: 'c1', from: 'e9', direction: 'forward', why: 'x' },
+        { action: 'paint', ref: 'e1', why: 'x' },
+        { action: 'relabel', ref: 'e2', label: 'One', why: 'x' },
+        { action: 'relabel', ref: 'e2', label: 'Two', why: 'x' },
+      ],
+    })
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.changes).toEqual([{ action: 'relabel', ref: 'e2', label: 'One', why: 'x' }])
+    expect(r.warnings).toContain('Left out 1 change to connected shapes that weren’t selected: only selected shapes and their connectors can be changed.')
+    expect(r.warnings).toContain('Left out 1 change to something that isn’t in the selection.')
+    expect(r.warnings).toContain('Left out 5 changes that couldn’t be made as described.')
+    expect(r.warnings).toContain('Left out 1 change that repeated an earlier one.')
+  })
+
+  it(`caps fixes at ${REFINE_CAPS.changes}, and reasons and the summary at their lengths`, () => {
+    const changes = Array.from({ length: 25 }, (_, i) => ({ action: 'relabel', ref: i % 2 ? 'c1' : 'c2', label: `L${i}`, why: 'w'.repeat(400) }))
+    const r = check({ summary: 's'.repeat(500), nodes: [], edges: [], changes })
+    if (!r.ok || r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.warnings).toContain(`Kept the first ${REFINE_CAPS.changes} changes; 5 more were left out.`)
+    expect([...r.changes[0]!.why]).toHaveLength(REFINE_CAPS.why)
+    expect([...r.summary]).toHaveLength(REFINE_CAPS.summary)
+    expect(check({ nodes: [], edges: [], changes: 'all' })).toMatchObject({ ok: false })
+    expect(check({ nodes: [], edges: [], changes: ['x'] })).toMatchObject({ ok: false })
+  })
+
+  it('nothing to do: the summary comes back, trimmed and plain (an old "reason" still reads)', () => {
+    expect(check({ nodes: [], edges: [], changes: [], summary: 'Nothing looks wrong here.' })).toEqual({ ok: true, kind: 'nothing', warnings: [], summary: 'Nothing looks wrong here.' })
+    expect(check({ nodes: [], edges: [], reason: 'Unclear.' })).toEqual({ ok: true, kind: 'nothing', warnings: [], summary: 'Unclear.' })
+    expect(check({ nodes: [], edges: [] })).toEqual({ ok: true, kind: 'nothing', warnings: [], summary: '' })
+    const long = check({ nodes: [], edges: [{ from: 'new', to: 'e2' }], summary: `Line\n${'r'.repeat(400)}` })
     if (!long.ok || long.kind !== 'nothing') throw new Error('expected nothing')
-    expect([...long.reason]).toHaveLength(REFINE_CAPS.reason)
-    expect(long.reason.startsWith('Line r')).toBe(true)
-    expect(long.warnings).toContain('1 connector had no new shape to connect and was left out.')
+    expect([...long.summary]).toHaveLength(REFINE_CAPS.summary)
+    expect(long.summary.startsWith('Line r')).toBe(true)
+    expect(long.warnings).toContain('1 connector pointed at a shape that isn’t there and was left out.')
   })
 })
 
@@ -404,15 +487,16 @@ describe('layout and placement', () => {
     const r = laidOf(ok((await refine(input, { nodes: [{ id: 'c', label: 'Cache', shape: 'cache' }], edges: [{ from: 'e1', to: 'c' }, { from: 'c', to: 'e2' }] })).outcome))
     const placed = placeRefinement(store().diagram, r, input.selectedIds, GRID)
     expect(placed.anchors.map((n) => n.id).sort()).toEqual(['api', 'web'])
-    const preview = previewDiagram(placed)
+    const { diagram: preview, context } = previewDiagram(store().diagram, placed)
     expect(DiagramSchema.safeParse(preview).success).toBe(true)
+    expect([...context].sort()).toEqual(['api', 'web'])
     expect(preview.nodes.map((n) => n.label)).toEqual(expect.arrayContaining(['Web app', 'API service', 'Cache']))
     const { svg } = buildSvg(preview, themeEnv('light'), { dim: { ids: new Set(['web', 'api']), opacity: 0.4 } })
     expect(svg.match(/<g opacity="0.4">/g)).toHaveLength(2)
   })
 })
 
-describe('Add to canvas', () => {
+describe('Apply: adding', () => {
   const CACHE = { nodes: [{ id: 'cache', label: 'Cache', shape: 'cache' }], edges: [{ from: 'e1', to: 'cache' }, { from: 'cache', to: 'e2' }] }
 
   it('is ONE undo step, selects the new items, and Undo restores the exact previous state', async () => {
@@ -453,7 +537,7 @@ describe('Add to canvas', () => {
     const before = store().diagram
     const r = laidOf(ok((await refine(inputFor(['web', 'api']), CACHE)).outcome))
     const placed = placeRefinement(before, r, ['web', 'api'], GRID)
-    expect(store().insertRefinement(placed.nodes, placed.edges)).toBeNull()
+    expect(addOnly(placed.nodes, placed.edges)).toBeNull()
     expect(store().diagram).toBe(before)
   })
 
@@ -464,25 +548,30 @@ describe('Add to canvas', () => {
     store().deleteSelection()
     const placed = placeRefinement(store().diagram, r, input.selectedIds, GRID)
     expect(placed.droppedLinks).toBe(1)
-    const added = store().insertRefinement(placed.nodes, placed.edges)!
+    const added = addOnly(placed.nodes, placed.edges)!
     expect(added.ids).toHaveLength(2)
     // The store refuses a stray connector too.
     const stray = { ...placed.edges[0]!, id: 'e_stray', source: 'api', target: 'web' }
-    expect(store().insertRefinement([], [stray])).toEqual({ ids: [], dropped: 1 })
+    expect(addOnly([], [stray])).toEqual({ ids: [], dropped: 1, results: [] })
   })
 })
 
-describe('five canned answers, through check, layout and add', () => {
-  it('"add a cache between A and B": the old connector A to B stays', async () => {
+describe('five canned answers, through check, layout and apply', () => {
+  it('"add a cache between A and B": the flow goes through it and the old connector goes', async () => {
+    const input = inputFor(['web', 'api'])
+    const old = [...input.connectors].find(([, id]) => id === 'e_web_api')![0]
     const { added } = await runThrough(['web', 'api'], {
+      summary: 'Put a cache in front of the API.',
       nodes: [{ id: 'cache', label: 'Cache', shape: 'cache', color: 'teal' }],
       edges: [
         { from: 'e1', to: 'cache', label: 'lookup' },
         { from: 'cache', to: 'e2', label: 'miss' },
       ],
+      changes: [{ action: 'remove', ref: old, why: 'Requests now go through the cache.' }],
     })
     const d = store().diagram
-    expect(d.edges.find((e) => e.id === 'e_web_api')).toMatchObject({ source: 'web', target: 'api' })
+    expect(d.edges.find((e) => e.id === 'e_web_api')).toBeUndefined()
+    expect(added!.results).toEqual([expect.objectContaining({ status: 'applied' })])
     const cache = d.nodes.find((n) => n.label === 'Cache')!
     expect(cache.type).toBe('cache')
     expect(d.edges.filter((e) => added!.ids.includes(e.id)).map((e) => [e.source, e.target, e.label])).toEqual([
@@ -533,12 +622,169 @@ describe('five canned answers, through check, layout and add', () => {
     expect(edges[1]!.style).toMatchObject({ startArrow: 'arrow', endArrow: 'arrow', dashed: true })
   })
 
-  it('"rename everything": nothing to add, with the reason, and the diagram untouched', async () => {
+  it('"tidy this up": relabels and reshapes in one undo step; an unclear request changes nothing', async () => {
     const before = store().diagram
-    const { r, added } = await runThrough(['web'], { nodes: [], edges: [], reason: 'Renaming isn’t something Refine can do by adding.' })
-    expect(r).toMatchObject({ kind: 'nothing', reason: 'Renaming isn’t something Refine can do by adding.' })
-    expect(added).toBeNull()
+    const { r, added } = await runThrough(['web', 'api'], {
+      summary: 'Clearer names.',
+      nodes: [],
+      edges: [],
+      changes: [
+        { action: 'relabel', ref: 'e2', label: 'Orders API', why: 'Says what it serves.' },
+        { action: 'reshape', ref: 'e1', shape: 'rectangle', why: 'Matches the other services.' },
+      ],
+    })
+    expect(r.kind).toBe('refine')
+    const d = store().diagram
+    expect(d.nodes.find((n) => n.id === 'api')!.label).toBe('Orders API')
+    expect(d.nodes.find((n) => n.id === 'web')!.type).toBe('rectangle')
+    expect(added!.ids).toEqual([])
+    expect(store().selection.sort()).toEqual(['api', 'web'])
+    store().undo()
+    expect(store().diagram).toEqual(before)
+
+    load(web())
+    const again = store().diagram
+    const nothing = await runThrough(['web'], { nodes: [], edges: [], changes: [], summary: 'Not sure what to change.' })
+    expect(nothing.r).toMatchObject({ kind: 'nothing', summary: 'Not sure what to change.' })
+    expect(nothing.added).toBeNull()
+    expect(store().diagram).toBe(again)
+  })
+})
+
+describe('Apply: fixes', () => {
+  /** The connector ref the model saw for a connector id. */
+  const cref = (input: RefineInput, id: string) => [...input.connectors].find(([, v]) => v === id)![0]
+
+  it('redirects an arrow, keeping its arrowhead; "both" and "none" too', async () => {
+    const input = inputFor(['web', 'api'])
+    const c = cref(input, 'e_web_api')
+    const r = ok((await refine(input, { nodes: [], edges: [], changes: [{ action: 'redirect', ref: c, from: 'e2', direction: 'forward', why: 'Replies.' }] })).outcome)
+    if (r.kind !== 'refine') throw new Error('expected refine')
+    expect(r.fixes).toEqual([expect.objectContaining({ action: 'redirect', id: 'e_web_api', from: 'api', direction: 'forward' })])
+    store().applyRefinement({ nodes: [], edges: [], fixes: r.fixes })
+    const edge = store().diagram.edges.find((e) => e.id === 'e_web_api')!
+    expect(edge).toMatchObject({ source: 'web', target: 'api' })
+    expect(edge.style).toMatchObject({ startArrow: 'arrow', endArrow: 'none' })
+    const both = applyFixes(store().diagram, [{ key: 'f1', why: '', action: 'redirect', id: 'e_web_api', from: 'web', direction: 'both', head: 'arrow' }])
+    expect(both.diagram.edges.find((e) => e.id === 'e_web_api')!.style).toMatchObject({ startArrow: 'arrow', endArrow: 'arrow' })
+    const none = applyFixes(store().diagram, [{ key: 'f1', why: '', action: 'redirect', id: 'e_web_api', from: 'web', direction: 'none', head: 'arrow' }])
+    expect(none.diagram.edges.find((e) => e.id === 'e_web_api')!.style).toMatchObject({ startArrow: 'none', endArrow: 'none' })
+    // Asking for what's already there changes nothing.
+    const same = applyFixes(none.diagram, [{ key: 'f1', why: '', action: 'redirect', id: 'e_web_api', from: 'web', direction: 'none', head: 'arrow' }])
+    expect(same.results[0]!.status).toBe('unchanged')
+    expect(same.diagram).toBe(none.diagram)
+  })
+
+  it('removes a selected shape with its connectors, and a fix to something removed is skipped', () => {
+    const d = store().diagram
+    const { diagram: after, results } = applyFixes(d, [
+      { key: 'f1', why: '', action: 'remove', target: 'node', id: 'api' },
+      { key: 'f2', why: '', action: 'relabel', target: 'edge', id: 'e_api_db', label: 'reads' },
+      { key: 'f3', why: '', action: 'relabel', target: 'node', id: 'gone', label: 'x' },
+    ])
+    expect(after.nodes.some((n) => n.id === 'api')).toBe(false)
+    expect(after.edges.some((e) => e.source === 'api' || e.target === 'api')).toBe(false)
+    // Relabels go first, so the connector is relabelled and then removed with its shape.
+    expect(results.map((r) => r.status)).toEqual(['applied', 'applied', 'gone'])
+    expect(DiagramSchema.safeParse(after).success).toBe(true)
+  })
+
+  it('never changes locked or hidden items: those fixes are skipped and reported', () => {
+    store().setLocked(['api'], true)
+    const before = store().diagram
+    const done = store().applyRefinement({
+      nodes: [],
+      edges: [],
+      fixes: [
+        { key: 'f1', why: '', action: 'relabel', target: 'node', id: 'api', label: 'Hacked' },
+        { key: 'f2', why: '', action: 'remove', target: 'node', id: 'api' },
+      ],
+    })!
+    expect(done.results.map((r) => r.status)).toEqual(['locked', 'locked'])
     expect(store().diagram).toBe(before)
+  })
+
+  it('fixes still apply when the active layer is locked (only additions need it)', () => {
+    // An empty layer, active and locked: nothing can be added, but the shapes on Base can still be fixed.
+    const layer = store().addLayer('Locked')!
+    store().setLayerLocked(layer, true)
+    store().setActiveLayer(layer)
+    expect(store().activeLayerProblem()).toBe('locked')
+    expect(store().applyRefinement({ nodes: [createNode('cache', { x: 0, y: 0 })], edges: [], fixes: [] })).toBeNull()
+    const fix = { key: 'f1', why: '', action: 'relabel' as const, target: 'node' as const, id: 'web', label: 'Storefront' }
+    expect(store().applyRefinement({ nodes: [], edges: [], fixes: [fix] })).toMatchObject({ ids: [], results: [{ status: 'applied' }] })
+  })
+
+  it('a new connector between two existing shapes is added only where they aren’t already connected', async () => {
+    const input = inputFor(['web', 'api', 'db'])
+    const { added } = await runThrough(['web', 'api', 'db'], {
+      nodes: [],
+      edges: [
+        { from: 'e1', to: 'e3', label: 'direct', why: 'Missing link.' },
+        { from: 'e1', to: 'e2' },
+      ],
+      changes: [],
+    })
+    expect(input.refs.get('e3')).toBe('db')
+    expect(added!.ids).toHaveLength(1)
+    expect(added!.dropped).toBe(1)
+    expect(store().diagram.edges.find((e) => e.id === added!.ids[0])).toMatchObject({ source: 'web', target: 'db', label: 'direct' })
+  })
+
+  it('the preview shows the fixed shapes (not faded) and drops removed connectors', async () => {
+    const input = inputFor(['web', 'api'])
+    const c = cref(input, 'e_api_db')
+    const r = ok((await refine(input, { nodes: [], edges: [], changes: [{ action: 'relabel', ref: 'e2', label: 'Orders API', why: 'x' }, { action: 'remove', ref: c, why: 'y' }] })).outcome)
+    if (r.kind !== 'refine') throw new Error('expected refine')
+    const placed = placeRefinement(store().diagram, r.laid, input.selectedIds, GRID)
+    const { diagram: preview, context } = previewDiagram(store().diagram, placed, r.fixes)
+    expect(preview.nodes.find((n) => n.id === 'api')!.label).toBe('Orders API')
+    expect(context.has('api')).toBe(false)
+    expect(context.has('db')).toBe(true)
+    expect(preview.edges.some((e) => e.id === 'e_api_db')).toBe(false)
+  })
+})
+
+describe('the story', () => {
+  it('describes each fix and addition in words, with its reason, and what was skipped', () => {
+    const d = store().diagram
+    const fixes = [
+      { key: 'f1', why: 'Says what it serves.', action: 'relabel' as const, target: 'node' as const, id: 'api', label: 'Orders API' },
+      { key: 'f2', why: 'It stores data.', action: 'reshape' as const, id: 'web', shape: 'database' },
+      { key: 'f3', why: 'Replies.', action: 'redirect' as const, id: 'e_web_api', from: 'api', direction: 'forward' as const, head: 'arrow' as const },
+      { key: 'f4', why: 'Redundant.', action: 'remove' as const, target: 'edge' as const, id: 'e_api_db' },
+    ]
+    const items = describeFixes(d, fixes)
+    expect(items.map((i) => [i.kind, i.text, i.why])).toEqual([
+      ['fixed', 'Renamed “API service” to “Orders API”', 'Says what it serves.'],
+      ['fixed', 'Changed “Web app” from a rounded box to a database', 'It stores data.'],
+      ['fixed', 'Made the connector between “API service” and “Web app” point from “API service” to “Web app”', 'Replies.'],
+      ['removed', 'Removed the connector from “API service” to “Postgres” (“SQL”)', 'Redundant.'],
+    ])
+    const skipped = describeFixes(d, fixes.slice(0, 1), [{ fix: fixes[0]!, status: 'locked' }])
+    expect(skipped[0]).toMatchObject({ kind: 'skipped', text: 'Skipped: renamed “API service” to “Orders API”, because it’s locked or on a hidden layer' })
+
+    const node = createNode('cache', { x: 0, y: 0 }, { id: 'n_cache', label: 'Cache' })
+    const edges = [
+      { id: 'x1', source: 'web', target: 'n_cache', label: '', notes: '', style: {} },
+      { id: 'x2', source: 'web', target: 'db', label: '', notes: '', style: {} },
+    ]
+    const added = describeAdditions(d, [node], edges, new Map([['n_cache', 'Cuts load.']]))
+    // A plain connector to a new shape is part of adding it; one between existing shapes is listed.
+    expect(added.map((i) => [i.kind, i.text, i.why])).toEqual([
+      ['added', 'Added “Cache” (cache store)', 'Cuts load.'],
+      ['connected', 'Connected “Web app” to “Postgres”', ''],
+    ])
+  })
+
+  it('the change log keeps the newest entries first, up to its limit, and opens on a new entry', () => {
+    useRefineLog.getState().reset()
+    for (let i = 0; i < LOG_LIMIT + 3; i++) useRefineLog.getState().add({ at: i, instruction: `#${i}`, summary: '', items: [], historySize: i })
+    const { entries, open } = useRefineLog.getState()
+    expect(entries).toHaveLength(LOG_LIMIT)
+    expect(entries[0]!.instruction).toBe(`#${LOG_LIMIT + 2}`)
+    expect(open).toBe(true)
+    useRefineLog.getState().reset()
   })
 })
 
@@ -548,8 +794,8 @@ describe('safety', () => {
     const { outcome, calls } = await refine(input, { nodes: [{ id: 'c', label: 'Cache', shape: 'cache' }], edges: [{ from: 'e1', to: 'c' }] })
     const r = laidOf(ok(outcome))
     const placed = placeRefinement(store().diagram, r, input.selectedIds, GRID)
-    for (const text of [String(calls[0]!.init.body), JSON.stringify(input.payload), JSON.stringify(ok(outcome)), JSON.stringify(previewDiagram(placed))]) expect(text).not.toContain(FAKE)
-    store().insertRefinement(placed.nodes, placed.edges)
+    for (const text of [String(calls[0]!.init.body), JSON.stringify(input.payload), JSON.stringify(ok(outcome)), JSON.stringify(previewDiagram(store().diagram, placed).diagram)]) expect(text).not.toContain(FAKE)
+    addOnly(placed.nodes, placed.edges)
     expect(JSON.stringify(store().diagram)).not.toContain(FAKE)
   })
 
@@ -561,7 +807,7 @@ describe('safety', () => {
       const input = inputFor([first.id])
       const r = laidOf(ok((await refine(input, { nodes: [{ id: 'x', label: 'Extra', shape: 'rounded' }], edges: [{ from: 'e1', to: 'x' }] })).outcome))
       const placed = placeRefinement(store().diagram, r, input.selectedIds, GRID)
-      const added = store().insertRefinement(placed.nodes, placed.edges)
+      const added = addOnly(placed.nodes, placed.edges)
       if (store().activeLayerProblem()) expect(added, name).toBeNull()
       else expect(added?.ids, name).toHaveLength(2)
       expect(DiagramSchema.safeParse(store().diagram).success, name).toBe(true)

@@ -17,7 +17,7 @@ import { THEME_PREFERENCES } from '@/lib/theme'
  * own storage entry (see src/ai/keyStore.ts), never a field here.
  */
 
-export const SETTINGS_VERSION = 2
+export const SETTINGS_VERSION = 3
 
 /** A field that falls back to `fallback` when missing or invalid. */
 const field = <T extends z.ZodType>(schema: T, fallback: z.infer<T>) => schema.catch(fallback)
@@ -59,6 +59,10 @@ const SECTIONS = {
     paletteWidth: field(z.number().positive().finite().nullable(), null),
     paletteCollapsed: field(z.boolean(), false),
     rightCollapsed: field(z.boolean(), false),
+    /** AI change log width in CSS px (tablet and desktop); null means the token default. */
+    logWidth: field(z.number().positive().finite().nullable(), null),
+    /** The AI change log is collapsed to a rail (a bar on phones). */
+    logCollapsed: field(z.boolean(), false),
   }),
   onboarding: section({
     /** The first-run welcome has been shown and acted on, or wasn't needed. */
@@ -105,6 +109,8 @@ export const SETTINGS_MIGRATIONS: Readonly<Record<number, SettingsMigration>> = 
   // v2 adds the AI section. Whatever was under `ai` before (only a newer
   // version could have written it) is replaced by the defaults.
   1: (raw) => ({ ...raw, settingsVersion: 2, ai: { keyStorage: 'session', noticeAcknowledged: false, includeNotes: false } }),
+  // v3 adds the AI change log's width and collapsed state to `panels`, keeping the rest of the section.
+  2: (raw) => ({ ...raw, settingsVersion: 3, panels: { ...(isRecord(raw.panels) ? raw.panels : {}), logWidth: null, logCollapsed: false } }),
 }
 
 const isRecord = (value: unknown): value is RawSettings => typeof value === 'object' && value !== null && !Array.isArray(value)

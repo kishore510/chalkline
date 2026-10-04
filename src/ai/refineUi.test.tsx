@@ -14,7 +14,10 @@ import { AI_BUTTON_LABEL, GenerateSheetHost, openRefine, useAiSheet } from './Ge
 import { forgetKey, saveKey } from './keyStore'
 import { AI_MODELS } from './models'
 import { resetSecretsForTests } from './redact'
-import { REFINE_EXAMPLES, UNCHANGED_NOTE } from './RefineSheet'
+import { RefineLogPanel, RefineLogSheet } from './RefineLog'
+import { useSettingsStore } from '@/settings/settingsStore'
+import { useRefineLog } from './refineNarrative'
+import { NOTHING_SILENT, REFINE_EXAMPLES } from './RefineSheet'
 import { useUsageStore } from './usage'
 
 /*
@@ -96,6 +99,7 @@ const CACHE = JSON.stringify({
 })
 
 beforeEach(() => {
+  useRefineLog.getState().reset()
   store().load(parseDiagram(fixtures['web-architecture']), { undoable: false })
   store().setSelection([])
   updateSettings({ ai: { noticeAcknowledged: true } })
@@ -151,7 +155,7 @@ describe('five modes', () => {
     await act(async () => document.querySelector<HTMLButtonElement>('[data-mode="notes"]')!.click())
     expect(text()).toContain('Suggest notes')
     await act(async () => document.querySelector<HTMLButtonElement>('[data-mode="refine"]')!.click())
-    expect(text()).toContain('What should be added?')
+    expect(text()).toContain('What should be added or improved?')
     await unmount()
   })
 
@@ -165,7 +169,7 @@ describe('five modes', () => {
 })
 
 describe('Refine sheet', () => {
-  it('select -> instruction -> check (model, scope, size) -> preview -> Add: one undo step, selected, old connector kept', async () => {
+  it('select -> instruction -> check (model, scope, size) -> preview -> Apply: one undo step, selected, logged', async () => {
     saveKey(FAKE, 'session')
     store().setSelection(['web', 'api'])
     const calls = respondWith(CACHE)
@@ -187,9 +191,9 @@ describe('Refine sheet', () => {
     expect(text()).toMatch(/about [\d,]+ tokens/)
     await click('Send')
     expect(announced()).toContain(`Refining with ${AI_MODELS.large.name}`)
-    await until('Add to canvas')
+    await until('Apply')
     expect(text()).toContain('1 new shape, 2 new connectors (2 to existing shapes)')
-    expect(text()).toContain(UNCHANGED_NOTE)
+    expect(text()).toContain(NOTHING_SILENT)
     expect(text()).toContain('Faded: 2 existing shapes')
     expect(announced()).toContain('Ready: 1 new shape')
     // The drawing itself (faded anchors included) is checked in refine.test.tsx; happy-dom drops its content here.
@@ -199,35 +203,35 @@ describe('Refine sheet', () => {
 
     const before = store().diagram
     const past = store().past.length
-    await click('Add to canvas')
+    await click('Apply')
     await settle(2)
     expect(store().past.length).toBe(past + 1)
     const cache = store().diagram.nodes.find((n) => n.label === 'Cache')!
     expect(store().selection).toContain(cache.id)
     expect(store().diagram.edges.find((e) => e.id === 'e_web_api')).toBeDefined()
-    expect(announced()).toContain('Added 1 new shape, 2 new connectors')
+    expect(announced()).toContain('Applied 1 new shape, 2 new connectors')
     expect(dialog()).toBeNull()
     store().undo()
     expect(store().diagram).toEqual(before)
     await unmount()
   })
 
-  it('nothing to add: the reason, and no Add button', async () => {
+  it('nothing to change: the summary, and no Apply button', async () => {
     saveKey(FAKE, 'session')
     store().setSelection(['web'])
-    respondWith(JSON.stringify({ nodes: [], edges: [], reason: 'Renaming can’t be done by adding.' }))
+    respondWith(JSON.stringify({ nodes: [], edges: [], changes: [], summary: 'Renaming can’t be done by adding.' }))
     const { unmount } = await mount()
     await open()
     await type(field(), 'Rename this to Frontend.')
     await click('Generate')
     await settle(2)
     await click('Send')
-    await until('Nothing to add')
+    await until('Nothing to change')
     expect(text()).toContain('The AI said: Renaming can’t be done by adding.')
-    expect(buttons('Add to canvas')).toHaveLength(0)
+    expect(buttons('Apply')).toHaveLength(0)
     expect(buttons('Edit instruction')).toHaveLength(1)
     expect(buttons('Regenerate')).toHaveLength(1)
-    expect(announced()).toContain('Nothing to add.')
+    expect(announced()).toContain('Nothing to change.')
     await unmount()
   })
 
@@ -249,13 +253,13 @@ describe('Refine sheet', () => {
     expect(text()).toContain('selected when you pressed Send')
     await act(async () => store().setSelection(['note']))
     release()
-    await until('Add to canvas')
+    await until('Apply')
     const prompt = sentPrompt(calls[0]!)
     expect(prompt).toContain('Customer')
     expect(prompt).not.toContain('Postgres')
     expect(prompt).not.toContain('All traffic over TLS')
     expect(text()).toContain('The selection has changed since you sent this')
-    await click('Add to canvas')
+    await click('Apply')
     await settle(2)
     const login = store().diagram.nodes.find((n) => n.label === 'Login')!
     expect(store().diagram.edges.some((e) => e.source === 'user' && e.target === login.id)).toBe(true)
@@ -274,7 +278,7 @@ describe('Refine sheet', () => {
     await unmount()
   })
 
-  it('a locked active layer: Add explains, keeps the preview and offers Switch layer', async () => {
+  it('a locked active layer: Apply explains, keeps the preview and offers Switch layer', async () => {
     saveKey(FAKE, 'session')
     store().setSelection(['web', 'api'])
     respondWith(CACHE)
@@ -284,13 +288,182 @@ describe('Refine sheet', () => {
     await click('Generate')
     await settle(2)
     await click('Send')
-    await until('Add to canvas')
+    await until('Apply')
     await act(async () => store().setLayerLocked(store().activeLayerId, true))
     const before = store().diagram
-    await click('Add to canvas')
+    await click('Apply')
     expect(store().diagram).toBe(before)
     expect(text()).toContain('hidden or locked')
     expect(buttons('Switch layer')).toHaveLength(1)
     await unmount()
+  })
+
+  it('fixes: each with its reason and a tick box; an unticked fix isn’t applied; the story goes to the change log', async () => {
+    saveKey(FAKE, 'session')
+    store().setSelection(['web', 'api'])
+    respondWith(
+      JSON.stringify({
+        summary: 'Gave the API a clearer name and made the web app a plain box like the other services.',
+        nodes: [],
+        edges: [],
+        changes: [
+          { action: 'relabel', ref: 'e2', label: 'Orders API', why: 'Says what it serves.' },
+          { action: 'reshape', ref: 'e1', shape: 'rectangle', why: 'Matches the other services.' },
+        ],
+      }),
+    )
+    const { unmount } = await mount()
+    await open()
+    await type(field(), 'Tidy this up.')
+    await click('Generate')
+    await settle(2)
+    await click('Send')
+    await until('Apply')
+    expect(text()).toContain('2 fixes')
+    expect(text()).toContain('Gave the API a clearer name')
+    expect(text()).toContain('Renamed “API service” to “Orders API”')
+    expect(text()).toContain('Why: Says what it serves.')
+    expect(text()).toContain('Fixes to what’s there')
+    const boxes = [...dialog()!.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+    expect(boxes.map((b) => b.checked)).toEqual([true, true])
+    expect(boxes[1]!.getAttribute('aria-label')).toBe('Apply: Changed “Web app” from a rounded box to a rectangle')
+    await act(async () => boxes[1]!.click())
+
+    const past = store().past.length
+    await click('Apply')
+    await settle(2)
+    expect(store().past.length).toBe(past + 1)
+    expect(store().diagram.nodes.find((n) => n.id === 'api')!.label).toBe('Orders API')
+    expect(store().diagram.nodes.find((n) => n.id === 'web')!.type).toBe('rounded')
+    expect(announced()).toContain('Applied 1 fix')
+
+    const { entries, open: logOpen } = useRefineLog.getState()
+    expect(logOpen).toBe(true)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({ instruction: 'Tidy this up.', summary: expect.stringContaining('clearer name') })
+    expect(entries[0]!.items.map((i) => [i.kind, i.text, i.why])).toEqual([['fixed', 'Renamed “API service” to “Orders API”', 'Says what it serves.']])
+    await unmount()
+  })
+})
+
+describe('AI change log', () => {
+  beforeEach(() => updateSettings({ panels: { logWidth: null, logCollapsed: false } }))
+
+  async function mountLog(node: React.ReactNode) {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    await act(async () => root.render(<ReactFlowProvider>{node}</ReactFlowProvider>))
+    await act(async () =>
+      useRefineLog.getState().add({
+        at: Date.now(),
+        instruction: 'x'.repeat(300),
+        summary: 'A'.repeat(400),
+        items: [{ key: 'f1', kind: 'fixed', text: `Renamed “${'Supercalifragilistic'.repeat(10)}”`, why: 'Long.', ids: ['api'] }],
+        historySize: store().past.length,
+      }),
+    )
+    return () => act(() => root.unmount())
+  }
+
+  it('docked beside the canvas on desktop: resizable from its inner edge, remembered, within the token limits', async () => {
+    const unmount = await mountLog(<RefineLogPanel docked />)
+    const aside = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
+    // Docked: part of the layout, not floating over the canvas.
+    expect(aside().className).toContain('relative')
+    expect(aside().className).not.toContain('absolute')
+    expect(aside().className).toContain('shrink-0')
+    const handle = aside().querySelector<HTMLElement>('[role="separator"]')!
+    expect(handle.getAttribute('aria-label')).toBe('Resize the AI change log')
+    expect(handle.className).toContain('left-0')
+    const start = Number(handle.getAttribute('aria-valuenow'))
+    // On a right-hand panel, Left grows it (towards the canvas).
+    await act(async () => handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBe(start + 16)
+    await act(async () => handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBe(Number(handle.getAttribute('aria-valuemin')))
+    await act(async () => handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })))
+    expect(useSettingsStore.getState().settings.panels.logWidth).toBeNull()
+    // Long text wraps rather than bleeding sideways.
+    const scroller = aside().firstElementChild as HTMLElement
+    expect(scroller.className).toContain('overflow-x-hidden')
+    expect(scroller.className).toContain('min-w-0')
+    expect(aside().querySelector('article')!.className).toContain('wrap-anywhere')
+    await unmount()
+  })
+
+  it('collapses to a rail and expands again, remembered; the tablet version floats over the canvas', async () => {
+    const unmount = await mountLog(<RefineLogPanel />)
+    const aside = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
+    expect(aside().className).toContain('absolute')
+    await act(async () => aside().querySelector<HTMLButtonElement>('button[aria-label="Collapse the AI change log"]')!.click())
+    expect(useSettingsStore.getState().settings.panels.logCollapsed).toBe(true)
+    expect(aside().className).toContain('w-rail')
+    expect(aside().querySelector('article')).toBeNull()
+    for (const b of aside().querySelectorAll('button')) expect(b.getAttribute('aria-label')).toBeTruthy()
+    await act(async () => aside().querySelector<HTMLButtonElement>('button[aria-label="Expand the AI change log"]')!.click())
+    expect(useSettingsStore.getState().settings.panels.logCollapsed).toBe(false)
+    expect(aside().querySelector('article')).not.toBeNull()
+    await unmount()
+  })
+
+  it('phone: a bottom sheet that collapses to a slim bar', async () => {
+    const unmount = await mountLog(<RefineLogSheet />)
+    const sheet = () => document.querySelector<HTMLElement>('section[aria-label="AI change log"]')!
+    expect(sheet().className).toContain('max-h-(--cl-sheet-max-height)')
+    expect(sheet().className).toContain('overflow-x-hidden')
+    await act(async () => sheet().querySelector<HTMLButtonElement>('button[aria-label="Collapse the AI change log"]')!.click())
+    expect(sheet().querySelector('article')).toBeNull()
+    expect(sheet().className).toContain('min-h-touch')
+    await act(async () => sheet().querySelector<HTMLButtonElement>('button[aria-label="Expand the AI change log"]')!.click())
+    expect(sheet().querySelector('article')).not.toBeNull()
+    await unmount()
+  })
+
+  it('lists each refinement with its summary and reasons; a line selects its items; Undo works while nothing else changed', async () => {
+    const host = document.createElement('div')
+    document.body.append(host)
+    const root = createRoot(host)
+    await act(async () =>
+      root.render(
+        <ReactFlowProvider>
+          <RefineLogPanel />
+        </ReactFlowProvider>,
+      ),
+    )
+    const panel = () => document.querySelector<HTMLElement>('aside[aria-label="AI change log"]')!
+    expect(document.querySelector('aside[aria-label="AI change log"]')).toBeNull()
+
+    store().applyRefinement({ nodes: [], edges: [], fixes: [{ key: 'f1', why: 'Says what it serves.', action: 'relabel', target: 'node', id: 'api', label: 'Orders API' }] })
+    await act(async () =>
+      useRefineLog.getState().add({
+        at: Date.now(),
+        instruction: 'Tidy this up.',
+        summary: 'A clearer name for the API.',
+        items: [{ key: 'f1', kind: 'fixed', text: 'Renamed “API service” to “Orders API”', why: 'Says what it serves.', ids: ['api'] }],
+        historySize: store().past.length,
+      }),
+    )
+    expect(panel()).not.toBeNull()
+    const content = panel().textContent ?? ''
+    expect(content).toContain('You asked: “Tidy this up.”')
+    expect(content).toContain('A clearer name for the API.')
+    expect(content).toContain('Why: Says what it serves.')
+
+    await act(async () => store().setSelection([]))
+    const line = [...panel().querySelectorAll('button')].find((b) => b.textContent?.includes('Renamed'))!
+    await act(async () => line.click())
+    expect(store().selection).toEqual(['api'])
+
+    const undo = [...panel().querySelectorAll('button')].find((b) => b.textContent?.includes('Undo this refinement'))!
+    await act(async () => undo.click())
+    expect(store().diagram.nodes.find((n) => n.id === 'api')!.label).toBe('API service')
+    // Undone: the button goes (the history no longer matches).
+    expect([...panel().querySelectorAll('button')].some((b) => b.textContent?.includes('Undo this refinement'))).toBe(false)
+
+    const close = panel().querySelector<HTMLButtonElement>('button[aria-label="Close the AI change log"]')!
+    await act(async () => close.click())
+    expect(useRefineLog.getState().open).toBe(false)
+    await act(async () => root.unmount())
   })
 })

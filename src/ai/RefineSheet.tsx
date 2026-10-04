@@ -1,5 +1,5 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react'
-import { Blocks, Layers, Loader2, Pencil, Plus, RotateCcw, Settings as SettingsIcon, TriangleAlert, X } from 'lucide-react'
+import { Blocks, Check, Layers, Loader2, Pencil, RotateCcw, Settings as SettingsIcon, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { announce } from '@/a11y/announce'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,6 @@ import { LearnMore } from '@/help/HelpEntry'
 import { LEARN_MORE } from '@/help/links'
 import { readToken } from '@/lib/cssVar'
 import { motionMs } from '@/lib/motion'
-import type { Diagram } from '@/schema/diagram'
 import { openSettings } from '@/settings/SettingsEntry'
 import { getSettings, updateSettings, useSettingsStore } from '@/settings/settingsStore'
 import { useDiagramStore } from '@/store/diagramStore'
@@ -24,17 +23,21 @@ import { Preview } from './GenerateSheet'
 import { getApiKey, useKeyStatus } from './keyStore'
 import { aiError } from './messages'
 import type { Refinement } from './refine'
+import type { RefineFix } from './refineFixes'
 import { placeRefinement, previewDiagram, type RefinePlacement } from './refineLayout'
+import { ShowLogButton, StoryLine } from './RefineLog'
+import { describeAdditions, describeFixes, useRefineLog, type StoryItem } from './refineNarrative'
 import { capMessage, REFINE_CAPS, refineHint, refineInput, refineModel, refinePlan, refineSelection, type RefineInput } from './refinePrompt'
 import { useUsageStore } from './usage'
 
 /*
- * Refine with AI: select shapes, say what to add around them, check what
- * will be sent, wait (or cancel), look at the preview, then Add to canvas.
- * ADD-ONLY: new shapes and connectors, some ending on existing shapes;
- * nothing already there is changed. Add is one undo step. Everything here is
- * view state: the instruction, the preview and its warnings are never saved,
- * undone or exported.
+ * Refine with AI: select shapes, say what to add or fix, check what will be
+ * sent, wait (or cancel), read the preview and the AI's reasons, untick any
+ * fix you don't want, then Apply. Refine adds shapes and connectors and FIXES
+ * the selected part: relabel, reshape or remove selected shapes; relabel,
+ * redirect or remove their connectors. Apply is one undo step, and its story
+ * goes to the AI change log. Everything here is view state: the instruction,
+ * the preview and its warnings are never saved, undone or exported.
  */
 
 type Page = 'compose' | 'confirm' | 'sending' | 'preview'
@@ -53,46 +56,60 @@ export const REFINE_EXAMPLES = [
   { label: 'Guardrail', text: 'Add a guardrail before the selected model.' },
 ] as const
 
-export const UNCHANGED_NOTE = 'Existing connectors are not changed.'
+export const NOTHING_SILENT = 'Nothing changes until you choose Apply, and Undo puts everything back in one step.'
 
 const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 const nameOf = (label: string) => (label.trim() ? `“${label.trim()}”` : 'Untitled shape')
 const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id) => b.includes(id))
 
-/** What a placement adds, in words: "2 new shapes, 3 new connectors (2 to existing shapes)". */
-export function refineSummary(p: Pick<RefinePlacement, 'nodes' | 'edges'>): string {
+/** What a refinement does, in words: "2 new shapes, 3 new connectors (2 to existing shapes), 1 fix". */
+export function refineSummary(p: Pick<RefinePlacement, 'nodes' | 'edges'>, fixes = 0): string {
   const fresh = new Set(p.nodes.map((n) => n.id))
   const toExisting = p.edges.filter((e) => !fresh.has(e.source) || !fresh.has(e.target)).length
-  const connectors = p.edges.length ? `, ${count(p.edges.length, 'new connector')}${toExisting ? ` (${toExisting} to existing shapes)` : ''}` : ''
-  return `${count(p.nodes.length, 'new shape')}${connectors}`
+  const parts = [
+    ...(p.nodes.length ? [count(p.nodes.length, 'new shape')] : []),
+    ...(p.edges.length ? [`${count(p.edges.length, 'new connector')}${toExisting ? ` (${toExisting} to existing shapes)` : ''}`] : []),
+    ...(fixes ? [count(fixes, 'fix', 'fixes')] : []),
+  ]
+  return parts.length ? parts.join(', ') : 'No changes'
 }
 
 const gridNow = () => (useUiStore.getState().snapToGrid ? readToken('--cl-grid-gap', 20) : 0)
 
-/** The new items in words, for screen readers and anyone who wants to read the labels. */
-function ItemList({ placement, diagram }: { placement: RefinePlacement; diagram: Diagram }) {
-  const label = new Map([...diagram.nodes, ...placement.nodes].map((n) => [n.id, n.label.trim() || 'Untitled']))
-  const fresh = new Set(placement.nodes.map((n) => n.id))
-  const end = (id: string) => (fresh.has(id) ? label.get(id) : `${label.get(id)} (existing)`)
+/** The fixes, each with a tick box (on by default), then the additions; each with the AI's reason. */
+function Story({ fixes, additions, off, toggle }: { fixes: StoryItem[]; additions: StoryItem[]; off: ReadonlySet<string>; toggle: (key: string) => void }) {
   return (
-    <details className="text-sm text-text">
-      <summary className="flex min-h-touch cursor-pointer items-center font-medium">List the new shapes and connectors</summary>
-      <ul className="flex list-disc flex-col gap-0.5 pl-5">
-        {placement.nodes.map((n) => (
-          <li key={n.id}>{n.label}</li>
-        ))}
-      </ul>
-      {placement.edges.length > 0 && (
-        <ul className="mt-2 flex list-disc flex-col gap-0.5 pl-5 text-text-muted">
-          {placement.edges.map((e) => (
-            <li key={e.id}>
-              {end(e.source)} to {end(e.target)}
-              {e.label ? `: ${e.label}` : ''}
-            </li>
-          ))}
-        </ul>
+    <div className="flex flex-col gap-3">
+      {fixes.length > 0 && (
+        <div role="group" aria-label="Fixes to what’s there" className="flex flex-col gap-2">
+          <p className="font-semibold">Fixes to what’s there</p>
+          <p className="text-xs text-text-muted">Untick any fix you don’t want.</p>
+          <ul className="flex flex-col gap-2">
+            {fixes.map((item) => (
+              <StoryLine key={item.key} item={item}>
+                <input
+                  type="checkbox"
+                  aria-label={`Apply: ${item.text}`}
+                  checked={!off.has(item.key)}
+                  onChange={() => toggle(item.key)}
+                  className="mt-0.5 size-4 shrink-0 accent-accent"
+                />
+              </StoryLine>
+            ))}
+          </ul>
+        </div>
       )}
-    </details>
+      {additions.length > 0 && (
+        <div role="group" aria-label="Additions" className="flex flex-col gap-2">
+          <p className="font-semibold">Additions</p>
+          <ul className="flex flex-col gap-2">
+            {additions.map((item) => (
+              <StoryLine key={item.key} item={item} />
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -128,6 +145,8 @@ export function RefinePanel({ active }: { active: boolean }) {
   const [captured, setCaptured] = useState<RefineInput | null>(null)
   /** The answer, with the input it was made for. */
   const [result, setResult] = useState<{ input: RefineInput; refinement: Refinement } | null>(null)
+  /** Fixes the person unticked, by key. */
+  const [off, setOff] = useState<ReadonlySet<string>>(new Set())
   const [problem, setProblem] = useState<FriendlyError | null>(null)
   const [blocked, setBlocked] = useState(false)
   const controller = useRef<AbortController | null>(null)
@@ -145,13 +164,27 @@ export function RefinePanel({ active }: { active: boolean }) {
   const chars = [...instruction].length
   const selectionChanged = !sameIds(openedWith, selectionIds)
 
-  // The preview, placed in the diagram as it is now (Add places it again, the same way).
+  // The preview, placed in the diagram as it is now (Apply places it again, the same way).
   const placement = useMemo(
-    () => (result?.refinement.kind === 'add' ? placeRefinement(diagram, result.refinement.laid, result.input.selectedIds, gridNow()) : null),
+    () => (result?.refinement.kind === 'refine' ? placeRefinement(diagram, result.refinement.laid, result.input.selectedIds, gridNow()) : null),
     [diagram, result],
   )
-  const preview = useMemo(() => (placement ? previewDiagram(placement) : null), [placement])
-  const dim = useMemo(() => new Set(placement?.anchors.map((n) => n.id) ?? []), [placement])
+  const fixes: RefineFix[] = useMemo(() => (result?.refinement.kind === 'refine' ? result.refinement.fixes : []), [result])
+  const chosen = useMemo(() => fixes.filter((f) => !off.has(f.key)), [fixes, off])
+  const preview = useMemo(() => (placement ? previewDiagram(diagram, placement, chosen) : null), [diagram, placement, chosen])
+  const story = useMemo(
+    () =>
+      result?.refinement.kind === 'refine' && placement
+        ? { fixes: describeFixes(diagram, fixes), additions: describeAdditions(diagram, placement.nodes, placement.edges, result.refinement.laid.why) }
+        : null,
+    [diagram, fixes, placement, result],
+  )
+  const toggle = (key: string) =>
+    setOff((current) => {
+      const next = new Set(current)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
 
   const shut = () => {
     controller.current?.abort()
@@ -205,13 +238,16 @@ export function RefinePanel({ active }: { active: boolean }) {
         return
       }
       setResult({ input, refinement: outcome.value })
+      setOff(new Set())
       setPage('preview')
       if (outcome.value.kind === 'nothing') {
-        announce(`Nothing to add.${outcome.value.reason ? ` ${outcome.value.reason}` : ''}`)
+        announce(`Nothing to change.${outcome.value.summary ? ` ${outcome.value.summary}` : ''}`)
       } else {
         const p = placeRefinement(useDiagramStore.getState().diagram, outcome.value.laid, input.selectedIds, gridNow())
         const warnings = outcome.value.warnings.length
-        announce(`Ready: ${refineSummary(p)}${warnings ? `, with ${count(warnings, 'note')} on what was changed or left out` : ''}. Choose Add to canvas to add them.`)
+        announce(
+          `Ready: ${refineSummary(p, outcome.value.fixes.length)}${warnings ? `, with ${count(warnings, 'note')} on what was left out` : ''}. ${outcome.value.summary} Choose Apply to make these changes.`,
+        )
       }
     } catch {
       const error = aiError('ai-unexpected', 'Refining failed before an answer could be read.')
@@ -223,22 +259,26 @@ export function RefinePanel({ active }: { active: boolean }) {
     }
   }
 
-  function add() {
-    if (result?.refinement.kind !== 'add') return
+  function apply() {
+    if (result?.refinement.kind !== 'refine') return
+    const r = result.refinement
     const store = useDiagramStore.getState()
-    const placed = placeRefinement(store.diagram, result.refinement.laid, result.input.selectedIds, gridNow())
-    const added = store.insertRefinement(placed.nodes, placed.edges)
-    if (!added) {
+    const before = store.diagram
+    const placed = placeRefinement(before, r.laid, result.input.selectedIds, gridNow())
+    const applied = store.applyRefinement({ nodes: placed.nodes, edges: placed.edges, fixes: chosen })
+    if (!applied) {
       // The active layer is hidden or locked: say so here, keeping the preview (it cost a request).
       setBlocked(true)
       explainBlockedAdd()
       return
     }
-    // Centre on the new items and the shapes they were made for.
+    // Centre on what changed and the shapes it was made for.
     const { diagram: now, past } = useDiagramStore.getState()
     const historySize = past.length
-    const show = new Set([...added.ids, ...result.input.selectedIds])
-    const bounds = unionBox(now.nodes.filter((n) => show.has(n.id)).map((n) => ({ ...n.position, ...n.size })))
+    const changedIds = applied.results.filter((x) => x.status === 'applied' && x.fix.action !== 'remove').map((x) => x.fix.id)
+    const show = new Set([...applied.ids, ...result.input.selectedIds, ...changedIds])
+    const boxes = now.nodes.filter((n) => show.has(n.id) || now.edges.some((e) => show.has(e.id) && (e.source === n.id || e.target === n.id)))
+    const bounds = unionBox(boxes.map((n) => ({ ...n.position, ...n.size })))
     const rect = rfStore.getState().domNode?.getBoundingClientRect()
     if (bounds && rect) {
       const zoom = flow.getZoom()
@@ -248,10 +288,32 @@ export function RefinePanel({ active }: { active: boolean }) {
         void flow.setCenter(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, { zoom, duration })
       else void flow.fitBounds(bounds, { padding: 0.2, duration })
     }
-    const dropped = placed.droppedLinks + added.dropped
-    const what = refineSummary({ nodes: placed.nodes, edges: placed.edges.filter((e) => added.ids.includes(e.id)) })
-    const extra = dropped ? ` ${count(dropped, 'connector')} to shapes that were deleted or hidden since ${dropped === 1 ? 'was' : 'were'} left out.` : ''
-    useUiStore.getState().notify(`Added ${what}.${extra}`, {
+    const added = new Set(applied.ids)
+    const fixed = applied.results.filter((x) => x.status === 'applied').length
+    const what = refineSummary({ nodes: placed.nodes.filter((n) => added.has(n.id)), edges: placed.edges.filter((e) => added.has(e.id)) }, fixed)
+    const skipped = applied.results.length - fixed
+    const dropped = placed.droppedLinks + applied.dropped
+    const extra = [
+      ...(skipped ? [`${count(skipped, 'fix', 'fixes')} skipped.`] : []),
+      ...(dropped ? [`${count(dropped, 'connector')} left out (an end is gone, hidden, or already connected).`] : []),
+    ].join(' ')
+    // The story, against the diagram as it was, so names read as they were.
+    useRefineLog.getState().add({
+      at: Date.now(),
+      instruction: result.input.instruction,
+      summary: r.summary,
+      items: [
+        ...describeFixes(before, chosen, applied.results),
+        ...describeAdditions(
+          before,
+          placed.nodes.filter((n) => added.has(n.id)),
+          placed.edges.filter((e) => added.has(e.id)),
+          r.laid.why,
+        ),
+      ],
+      historySize,
+    })
+    useUiStore.getState().notify(`Applied ${what}.${extra ? ` ${extra}` : ''}`, {
       label: 'Undo',
       run: () => {
         const s = useDiagramStore.getState()
@@ -259,7 +321,7 @@ export function RefinePanel({ active }: { active: boolean }) {
         else useUiStore.getState().notify('Something else changed since; use the Undo button instead.')
       },
     })
-    announce(`Added ${what}. They’re selected; Undo removes them.${extra}`)
+    announce(`Applied ${what}. The AI change log explains each change; Undo puts it all back.${extra ? ` ${extra}` : ''}`)
     close()
   }
 
@@ -294,7 +356,7 @@ export function RefinePanel({ active }: { active: boolean }) {
     body = (
       <div className="flex flex-col gap-4 pt-4 text-sm text-text">
         <ModeSwitch />
-        <p>Adds new shapes and connectors around the selected shapes. Nothing already on your canvas is changed, moved or removed.</p>
+        <p>Adds shapes and connectors around the selected shapes, and fixes what needs fixing there: names, shape types, arrow directions, missing or redundant connectors. Every change comes with the AI’s reason, and you choose what to apply.</p>
         {selection.kind === 'ok' ? (
           <div className="flex flex-col gap-1">
             <p className="font-medium">{count(selection.shapes.length, 'selected shape')}</p>
@@ -310,7 +372,7 @@ export function RefinePanel({ active }: { active: boolean }) {
         </p>
         <div className="flex flex-col gap-1">
           <label htmlFor={fieldId} className="font-medium">
-            What should be added?
+            What should be added or improved?
           </label>
           <textarea
             id={fieldId}
@@ -319,7 +381,7 @@ export function RefinePanel({ active }: { active: boolean }) {
             maxLength={REFINE_CAPS.instruction}
             onChange={(e) => setInstruction(e.target.value)}
             aria-describedby={countId}
-            placeholder="For example: add a cache between these two."
+            placeholder="For example: add a cache between these two and fix anything that looks wrong."
             className="min-h-(--cl-ai-description-height) w-full resize-y rounded-md border border-border bg-surface p-3 text-sm text-text placeholder:text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           />
           <p id={countId} className="text-xs text-text-muted tabular-nums">
@@ -359,6 +421,7 @@ export function RefinePanel({ active }: { active: boolean }) {
             Back to the last preview
           </Button>
         )}
+        <ShowLogButton className={WRAP} onOpen={close} />
         <UsageLine />
         <LearnMore topic={LEARN_MORE.refine} className="self-start px-0" />
       </div>
@@ -372,7 +435,10 @@ export function RefinePanel({ active }: { active: boolean }) {
           needsNotice={needsNotice}
           details={[
             { term: 'Scope', value: `${count(captured.counts.shapes, 'selected shape')} and ${count(captured.counts.neighbours, 'connected shape')} (${captured.contextShapes} of at most ${REFINE_CAPS.context}).` },
-            { term: 'Result', value: `A preview of at most ${REFINE_CAPS.nodes} new shapes and ${REFINE_CAPS.edges} new connectors. Nothing is added until you choose Add to canvas, and nothing already there is changed.` },
+            {
+              term: 'Result',
+              value: `A preview of at most ${REFINE_CAPS.nodes} new shapes, ${REFINE_CAPS.edges} new connectors and ${REFINE_CAPS.changes} fixes to the selected shapes and their connectors, each with a reason. Nothing changes until you choose Apply.`,
+            },
           ]}
           limit={limit ? { message: limit } : undefined}
           onCancel={() => setPage(result ? 'preview' : 'compose')}
@@ -388,7 +454,7 @@ export function RefinePanel({ active }: { active: boolean }) {
       <div className="flex flex-col gap-4 pt-4 text-sm text-text">
         <p className="flex min-h-touch items-center gap-2" role="status">
           <Loader2 aria-hidden="true" className="size-5 shrink-0 motion-safe:animate-spin" />
-          Asking {refineModel.name} what to add. This can take up to a minute.
+          Asking {refineModel.name} what to add or fix. This can take up to a minute.
         </p>
         <p className="text-xs text-text-muted">It uses the {captured ? count(captured.counts.shapes, 'shape') : 'shapes'} selected when you pressed Send; changing the selection now doesn’t change this request.</p>
         <Button variant="secondary" className={WRAP} onClick={() => controller.current?.abort()} data-autofocus="">
@@ -402,31 +468,37 @@ export function RefinePanel({ active }: { active: boolean }) {
     const moved = !sameIds(result.input.selectedIds, selectionIds)
     body = (
       <div className="flex flex-col gap-4 pt-4 text-sm text-text">
-        {r.kind === 'nothing' || !placement || !preview ? (
+        {r.kind === 'nothing' || !placement || !preview || !story ? (
           <>
             <h3 tabIndex={-1} data-autofocus="" className="font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-              Nothing to add
+              Nothing to change
             </h3>
-            <p>{r.reason ? `The AI said: ${r.reason}` : 'The AI didn’t suggest anything that could be added. Try rewording the instruction.'}</p>
-            <p className="text-xs text-text-muted">Refine can only add shapes and connectors; it can’t rename, move, restyle or delete anything.</p>
+            <p>{r.summary ? `The AI said: ${r.summary}` : 'The AI didn’t suggest anything to add or fix. Try rewording the instruction.'}</p>
+            <p className="text-xs text-text-muted">Refine can add shapes and connectors and fix the selected ones. It doesn’t move, resize or restyle anything.</p>
             <Warnings items={r.warnings} />
           </>
         ) : (
           <>
-            <p>
-              <span className="font-medium">{refineSummary(placement)}</span>, placed beside the selection. Nothing is on your canvas until you choose Add to canvas.
-            </p>
-            <Preview diagram={preview} dim={dim} />
+            <div className="flex flex-col gap-1">
+              <p className="font-medium">{refineSummary(placement, r.fixes.length)}</p>
+              {r.summary && (
+                <p className="rounded-md border-l-2 border-accent bg-accent-subtle px-3 py-2">
+                  <span className="sr-only">The AI’s summary: </span>
+                  {r.summary}
+                </p>
+              )}
+            </div>
+            <Preview diagram={preview.diagram} dim={preview.context} />
             <p className="text-xs text-text-muted">
-              {placement.anchors.length ? `Faded: ${count(placement.anchors.length, 'existing shape')} the new connectors attach to. ` : ''}
-              {UNCHANGED_NOTE}
+              {preview.context.size ? `Faded: ${count(preview.context.size, 'existing shape')} shown for context. ` : ''}
+              {NOTHING_SILENT}
             </p>
-            <ItemList placement={placement} diagram={diagram} />
+            <Story fixes={story.fixes} additions={story.additions} off={off} toggle={toggle} />
             <Warnings items={[...r.warnings, ...(placement.droppedLinks ? [`${count(placement.droppedLinks, 'connector')} to shapes deleted or hidden since will be left out.`] : [])]} />
-            {moved && <p className="text-xs text-text-muted">The selection has changed since you sent this. Add to canvas still places it beside the shapes it was made for.</p>}
+            {moved && <p className="text-xs text-text-muted">The selection has changed since you sent this. Apply still works on the shapes it was made for.</p>}
             {blocked && (
               <div className="flex flex-col gap-2 rounded-md border border-danger p-3">
-                <p>The layer you’re adding to is hidden or locked. Switch to another layer, then choose Add to canvas again.</p>
+                <p>The layer you’re adding to is hidden or locked. Switch to another layer, then choose Apply again.</p>
                 <Button
                   variant="secondary"
                   className={WRAP}
@@ -443,10 +515,10 @@ export function RefinePanel({ active }: { active: boolean }) {
           </>
         )}
         <div className="flex flex-col gap-2">
-          {r.kind === 'add' && placement && (
-            <Button variant="primary" className={WRAP} onClick={add} data-autofocus="">
-              <Plus />
-              Add to canvas
+          {r.kind === 'refine' && placement && (
+            <Button variant="primary" className={WRAP} onClick={apply} disabled={placement.nodes.length + placement.edges.length + chosen.length === 0} data-autofocus="">
+              <Check />
+              Apply
             </Button>
           )}
           <Button variant="secondary" className={WRAP} onClick={() => check(result.input.selectedIds)}>
