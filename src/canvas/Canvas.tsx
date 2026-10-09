@@ -45,6 +45,7 @@ import { beginGesture, endGesture, keys, session, snapContext, useGuideStore, VI
 import { guideTargets, nearView, snapDrag, snapResize } from './guideTargets'
 import { buildRenderModel, type RenderModel } from './renderModel'
 import { createRouteCache } from './routing'
+import { carryGroups, groupsInBox, screenRectToBox } from './selectionScope'
 import { ShapeNode } from './ShapeNode'
 import { spreadAttachments, type Spread } from './spread'
 import { useLongPress, type PressTarget } from './useLongPress'
@@ -197,7 +198,7 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
           measured: { width: view.box.width, height: view.box.height },
           // Within its layer, behind connectors and nodes; nested groups above their parents.
           zIndex: zForGroup(view.layer, view.depth),
-          // Selected through the header (see GroupNode), never by box-select or body clicks.
+          // Selected through the header (see GroupNode) or a box drawn round it (see selectionScope), never by body clicks.
           selectable: false,
           connectable: false,
           // A keyboard stop like shapes (see focusOrder.ts), outside the page's Tab order.
@@ -248,8 +249,10 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
     const { removed, selection: flags } = summary
     const d = diagramStore().diagram
     const gesture = useGuideStore.getState().gesture
+    // Dragging selected shapes carries the selected groups too (React Flow only drags shapes).
+    const dragged = { ...summary, moves: carryGroups(d, modelRef.current, diagramStore().selection, summary.moves) }
     const { moves, resizes } =
-      gesture && uiStore().tool === 'select' ? snapGesture(d, modelRef.current, flowStore.getState(), sizes.grid, gesture, summary) : summary
+      gesture && uiStore().tool === 'select' ? snapGesture(d, modelRef.current, flowStore.getState(), sizes.grid, gesture, dragged) : dragged
     const groupIds = new Set(d.groups.map((g) => g.id))
     // Groups move first, taking everything inside; members dragged along too aren't moved twice.
     const movedWithGroup = new Set<string>()
@@ -276,6 +279,22 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
     if (removed.length) diagramStore().deleteElements(removed)
     if (flags.size) diagramStore().setSelection(applySelection(diagramStore().selection, flags))
   }, [])
+
+  // Box-select: React Flow picks the shapes; groups, pools and lanes wholly inside the box join
+  // live. `added` holds the groups this box added, so shrinking the box drops them again.
+  const boxing = useRef<{ added: Set<string> } | null>(null)
+  useEffect(
+    () =>
+      flowStore.subscribe((s, prev) => {
+        const box = boxing.current
+        if (!box || !s.userSelectionRect || s.userSelectionRect === prev.userSelectionRect) return
+        const kept = diagramStore().selection.filter((id) => !box.added.has(id))
+        const inBox = groupsInBox(modelRef.current, screenRectToBox(s.userSelectionRect, s.transform)).filter((id) => !kept.includes(id))
+        box.added = new Set(inBox)
+        diagramStore().setSelection([...kept, ...inBox])
+      }),
+    [flowStore],
+  )
 
   // New connections float: they attach to the nearest sides, whichever handle was dragged.
   const onConnect = useCallback((c: Connection) => {
@@ -367,8 +386,13 @@ export function Canvas({ minimap }: { minimap: 'none' | 'top-right' | 'bottom-ri
         onNodeDrag={(_, node, dragged) => showDropTarget(dragged, node)}
         onNodeDragStop={(_, __, dragged) => endNodeDrag(dragged)}
         // A fresh box-select starts from nothing (groups and lanes included); Shift/Cmd/Ctrl adds.
+        // Groups wholly inside the box are selected too (see the subscription above).
         onSelectionStart={(e) => {
           if (!isAdditive(e)) diagramStore().setSelection([])
+          boxing.current = { added: new Set() }
+        }}
+        onSelectionEnd={() => {
+          boxing.current = null
         }}
         onSelectionDragStart={beginDrag}
         onSelectionDrag={(_, dragged) => dragged[0] && showDropTarget(dragged, dragged[0])}

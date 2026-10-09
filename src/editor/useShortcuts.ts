@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
+import { selectAllIds } from '@/canvas/selectionScope'
 import { parseFragment, serializeFragment } from '@/store/clipboard'
 import { useHelpStore } from '@/help/helpStore'
 import { useSearchStore } from '@/search/searchStore'
@@ -84,7 +85,7 @@ export function useShortcuts() {
           return true
         }
         case 'select-all':
-          diagram.setSelection([...diagram.diagram.nodes.map((n) => n.id), ...diagram.diagram.edges.map((edge) => edge.id)])
+          diagram.setSelection(selectAllIds(diagram.diagram))
           return true
         case 'delete':
           if (diagram.selection.length === 0) return false

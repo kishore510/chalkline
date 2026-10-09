@@ -2,6 +2,16 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.29.2] - 2026-10-09
+
+### Fixed
+- **Drawing a selection box now selects groups, pools and lanes** that sit completely inside it, along with the shapes and connectors it touches. A box drawn inside a group still picks just the shapes.
+- **Select all (`Ctrl A`) includes groups, pools and lanes**, so everything on visible layers is selected.
+- **Groups move with the rest of the selection.** Dragging selected shapes now carries any selected groups and pools (and everything in them) by the same amount, instead of leaving them behind.
+
+### Added
+- **Select all** in the empty-canvas menu (long-press or right-click), so selecting everything works on touch too.
+
 ## [0.29.1] - 2026-10-04
 
 ### Fixed
