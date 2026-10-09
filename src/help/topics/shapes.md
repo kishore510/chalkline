@@ -21,8 +21,8 @@ Labels wrap to fit, and the shape grows if the text needs more room.
 
 - Drag a shape to move it (in Select mode).
 - Drag the small square handles on a selected shape to resize it.
-- To select several: drag a box around them on empty canvas, or hold `Shift` and click.
-- `Ctrl A` selects everything.
+- To select several: drag a box around them on empty canvas, or hold `Shift` and click. A box selects the shapes it touches, and any group, pool or lane it surrounds completely.
+- **Select all** (long-press or right-click empty canvas) or `Ctrl A` selects everything, groups included.
 
 ## Duplicate, copy and delete
 

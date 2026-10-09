@@ -1,8 +1,9 @@
 import { useReactFlow } from '@xyflow/react'
-import { BookmarkPlus, ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2, Ungroup } from 'lucide-react'
+import { BookmarkPlus, BoxSelect, ClipboardPaste, Copy, CopyPlus, Pencil, RotateCcw, Trash2, Ungroup } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
+import { selectAllIds } from '@/canvas/selectionScope'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
 import { explainBlockedAdd } from './layerNotices'
@@ -112,6 +113,10 @@ export function ContextMenu() {
           Paste here
         </Button>
         {!hasClipboard && <p className="px-3 pt-1 pb-2 text-xs text-text-muted">Copy a shape first.</p>}
+        <Button role="menuitem" variant="ghost" className="justify-start" onClick={run(() => store().setSelection(selectAllIds(store().diagram)))}>
+          <BoxSelect />
+          Select all
+        </Button>
       </Panel>
     )
   }

@@ -1,7 +1,7 @@
 ---
 title: Groups and swimlanes
 order: 5
-keywords: group, ungroup, container, swimlane, lane, pool, nest, collapse
+keywords: group, ungroup, container, swimlane, lane, pool, nest, collapse, select, select all, selection box
 ---
 ## Groups
 
@@ -9,7 +9,8 @@ A group is a named box that holds shapes and moves with them.
 
 - **Create**: select some shapes, then **Group** in the properties (or `Ctrl G`).
 - **Add a shape**: drag it into the group. **Remove from group** is in the shape's properties.
-- **Move**: drag the group by its header.
+- **Select**: click or tap its header, or drag a selection box all the way round it. **Select all** (`Ctrl A`) includes every group, pool and lane.
+- **Move**: drag the group by its header. A selected group also moves when you drag other selected shapes with it.
 - **Collapse** a group to hide its contents for a while.
 - **Ungroup** (`Ctrl Shift G`) keeps the shapes. **Delete group and contents** removes them too.
 
