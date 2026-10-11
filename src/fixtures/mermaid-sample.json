@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 5,
+  "meta": {"title": "Order handling sample", "created": "2026-10-11T00:00:00.000Z", "updated": "2026-10-11T00:00:00.000Z"},
+  "nodes": [
+    {"id": "n-start", "type": "ellipse", "position": {"x": 0, "y": 120}, "size": {"width": 120, "height": 64}, "label": "Start"},
+    {"id": "n input 1", "type": "parallelogram", "position": {"x": 180, "y": 112}, "size": {"width": 160, "height": 80}, "label": "Read \"order\" [v2]", "notes": "Checks the order form.\nRuns on every request."},
+    {"id": "n_check", "type": "diamond", "position": {"x": 400, "y": 102}, "size": {"width": 120, "height": 100}, "label": "Valid?\n(yes/no)", "style": {"fill": "token:swatch-amber-soft", "stroke": "token:swatch-amber"}},
+    {"id": "n_api", "type": "rounded", "position": {"x": 620, "y": 60}, "size": {"width": 160, "height": 80}, "label": "API {v1}", "groupId": "g_services", "style": {"fill": "token:swatch-blue-soft", "stroke": "token:swatch-blue"}},
+    {"id": "n_db", "type": "database", "position": {"x": 640, "y": 180}, "size": {"width": 120, "height": 100}, "label": "Orders DB", "groupId": "g_services", "style": {"fill": "token:swatch-blue-soft", "stroke": "token:swatch-blue"}, "locked": true},
+    {"id": "n_customer", "type": "actor", "position": {"x": 180, "y": 360}, "size": {"width": 96, "height": 128}, "label": "Customer 🙂", "groupId": "g_lane_customer"},
+    {"id": "n_agent", "type": "hexagon", "position": {"x": 420, "y": 520}, "size": {"width": 160, "height": 80}, "label": "end", "groupId": "g_lane_agent", "style": {"fill": "#fff4cc"}},
+    {"id": "n_partner", "type": "cloud", "position": {"x": 880, "y": 380}, "size": {"width": 180, "height": 110}, "label": "Partner `API`"},
+    {"id": "n_label", "type": "text", "position": {"x": 900, "y": 120}, "size": {"width": 160, "height": 40}, "label": "数据 %% comment", "style": {"fontSize": 20, "fontWeight": 700}},
+    {"id": "n_draft", "type": "rectangle", "position": {"x": 1200, "y": 120}, "size": {"width": 160, "height": 80}, "label": "Draft idea", "layerId": "drafts"}
+  ],
+  "edges": [
+    {"id": "e1", "source": "n-start", "target": "n input 1"},
+    {"id": "e2", "source": "n input 1", "target": "n_check", "label": "submit | send"},
+    {"id": "e3", "source": "n_check", "target": "n_api", "label": "yes", "style": {"dashed": true}, "notes": "Only when every field is filled in."},
+    {"id": "e4", "source": "n_check", "target": "n-start", "label": "no", "style": {"endArrow": "none"}},
+    {"id": "e5", "source": "n_api", "target": "n_db", "style": {"startArrow": "arrow", "width": 3}},
+    {"id": "e6", "source": "n_partner", "target": "n_customer", "style": {"startArrow": "arrow", "endArrow": "none"}, "targetHandle": "right"},
+    {"id": "e7", "source": "n_agent", "target": "n_api", "style": {"dashed": true, "width": 5, "colour": "token:swatch-red"}},
+    {"id": "e8", "source": "n_customer", "target": "n_agent", "label": "(asks)", "style": {"endArrow": "closed", "lineType": "straight"}},
+    {"id": "e9", "source": "n_api", "target": "n_draft", "label": "maybe later"}
+  ],
+  "groups": [
+    {"id": "g_services", "label": "Services | core", "kind": "container", "position": {"x": 600, "y": 20}, "size": {"width": 200, "height": 280}, "style": {"fill": "token:swatch-slate-soft"}},
+    {"id": "g_pool", "label": "Support", "kind": "container", "orientation": "horizontal", "position": {"x": 120, "y": 340}, "size": {"width": 700, "height": 300}},
+    {"id": "g_lane_agent", "label": "Agent", "kind": "lane", "parentId": "g_pool", "orientation": "horizontal", "position": {"x": 160, "y": 490}, "size": {"width": 660, "height": 150}},
+    {"id": "g_lane_customer", "label": "Customer", "kind": "lane", "parentId": "g_pool", "orientation": "horizontal", "position": {"x": 160, "y": 340}, "size": {"width": 660, "height": 150}}
+  ],
+  "layers": [
+    {"id": "default", "name": "Base"},
+    {"id": "drafts", "name": "Drafts", "visible": false}
+  ]
+}

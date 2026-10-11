@@ -231,6 +231,8 @@
   --cl-ai-preview-min-height: 160px;
   --cl-ai-preview-max-height: 45dvh;
   --cl-ai-description-height: 160px;
+  /* Mermaid export preview: scrolls inside itself, so long diagrams never stretch the sheet. */
+  --cl-code-preview-max-height: 35dvh;
   --cl-content-max: 1200px;
 }
 

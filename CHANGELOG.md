@@ -2,6 +2,13 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.30.0] - 2026-10-11
+
+### Added
+- **Export as Mermaid.** **Mermaid (.mmd)** in the menu turns your diagram into a Mermaid flowchart you can paste into Markdown, wikis and docs. Choose the direction (**Auto**, **Top-down** or **Left-right**), optionally **Include notes** as comments, check the preview, then **Download .mmd** or **Copy to clipboard**.
+- Groups and swimlanes export as nested subgraphs, a collapsed group as a single shape, and colour presets as their light-theme colours. Dashed, thick, two-way and no-arrow connectors keep their look.
+- A **What is not included** list says what Mermaid can't show for this diagram: positions and sizes, shapes it has no match for (they become rectangles), text styling, hidden layers, locks and more. Help > Saving, opening and exporting has the full list.
+
 ## [0.29.2] - 2026-10-09
 
 ### Fixed
