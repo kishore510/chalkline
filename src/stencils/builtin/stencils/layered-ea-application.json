@@ -1,0 +1,90 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-application",
+  "name": "Application layer elements",
+  "category": "Layered EA: Application",
+  "tags": [
+    "layered-ea",
+    "application"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "component",
+        "type": "microservice",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Application component",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "A deployable part of an application."
+      },
+      {
+        "id": "service",
+        "type": "rounded",
+        "position": {
+          "x": 180,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Application service",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Behaviour an application exposes to its users or to other applications."
+      },
+      {
+        "id": "interface",
+        "type": "api-gateway",
+        "position": {
+          "x": 380,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "API",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "The interface other applications call."
+      },
+      {
+        "id": "worker",
+        "type": "worker",
+        "position": {
+          "x": 580,
+          "y": 0
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Background job",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Scheduled or queued processing with no user interface."
+      }
+    ],
+    "edges": [],
+    "groups": []
+  }
+}

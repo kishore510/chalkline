@@ -70,6 +70,14 @@
   --cl-swatch-red-soft: #f8dcda;
   --cl-swatch-purple: #6b46c1;
   --cl-swatch-purple-soft: #e9e1f8;
+  --cl-swatch-yellow: #6f5f00;
+  --cl-swatch-yellow-soft: #f7f0b6;
+  --cl-swatch-steel: #4a5d80;
+  --cl-swatch-steel-soft: #e0e4ee;
+  --cl-swatch-tan: #74583a;
+  --cl-swatch-tan-soft: #ece2d2;
+  --cl-swatch-pink: #a82f6a;
+  --cl-swatch-pink-soft: #f9dcea;
 }
 
 /* ── Dark: slate blackboard with chalk lines ────────────────────────── */
@@ -130,6 +138,14 @@
   --cl-swatch-red-soft: #4d2522;
   --cl-swatch-purple: #b9a1f0;
   --cl-swatch-purple-soft: #362c52;
+  --cl-swatch-yellow: #e3d36b;
+  --cl-swatch-yellow-soft: #3d3a17;
+  --cl-swatch-steel: #aab8d8;
+  --cl-swatch-steel-soft: #2a3247;
+  --cl-swatch-tan: #d9bc94;
+  --cl-swatch-tan-soft: #3d3328;
+  --cl-swatch-pink: #f292c4;
+  --cl-swatch-pink-soft: #4d2239;
 }
 
 /* ── Theme-independent tokens ───────────────────────────────────────── */

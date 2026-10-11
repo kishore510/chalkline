@@ -1,0 +1,162 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-network",
+  "name": "Network layer elements",
+  "category": "Layered EA: Network",
+  "tags": [
+    "layered-ea",
+    "network"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "internet",
+        "type": "cloud",
+        "position": {
+          "x": 20,
+          "y": 60
+        },
+        "size": {
+          "width": 180,
+          "height": 110
+        },
+        "label": "Internet",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Public network outside the organisation.",
+        "groupId": "zone"
+      },
+      {
+        "id": "router",
+        "type": "router",
+        "position": {
+          "x": 280,
+          "y": 60
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Router",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Connects networks and routes traffic between them.",
+        "groupId": "zone"
+      },
+      {
+        "id": "fw",
+        "type": "firewall",
+        "position": {
+          "x": 500,
+          "y": 60
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Firewall",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Controls what crosses into the zone.",
+        "groupId": "zone"
+      },
+      {
+        "id": "lb",
+        "type": "load-balancer",
+        "position": {
+          "x": 20,
+          "y": 220
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Load balancer",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Spreads traffic across the services in the zone.",
+        "groupId": "zone"
+      },
+      {
+        "id": "cdn",
+        "type": "cdn",
+        "position": {
+          "x": 260,
+          "y": 220
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Gateway",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Edge gateway where traffic enters the zone.",
+        "groupId": "zone"
+      },
+      {
+        "id": "segment",
+        "type": "ellipse",
+        "position": {
+          "x": 480,
+          "y": 220
+        },
+        "size": {
+          "width": 150,
+          "height": 90
+        },
+        "label": "Network segment",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "A subnet or segment inside the zone.",
+        "groupId": "zone"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "internet",
+        "target": "router",
+        "label": "link"
+      },
+      {
+        "id": "e2",
+        "source": "router",
+        "target": "fw"
+      }
+    ],
+    "groups": [
+      {
+        "id": "zone",
+        "label": "Network zone",
+        "kind": "container",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 660,
+          "height": 340
+        },
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-application-ai",
+  "name": "AI and MCP application elements",
+  "category": "Layered EA: Application",
+  "tags": [
+    "layered-ea",
+    "application"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "agent",
+        "type": "ai-agent",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "AI agent",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Plans and carries out tasks using models and tools."
+      },
+      {
+        "id": "identity",
+        "type": "agent-identity",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Agent identity",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "The credentials and permissions the agent acts with."
+      },
+      {
+        "id": "model",
+        "type": "llm",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Language model",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "The model that generates answers."
+      },
+      {
+        "id": "prompt",
+        "type": "prompt-template",
+        "position": {
+          "x": 600,
+          "y": 0
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "Prompt template",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Reusable instructions given to the model."
+      },
+      {
+        "id": "gateway",
+        "type": "ai-gateway",
+        "position": {
+          "x": 0,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "AI gateway",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "One controlled entry point to models and tools."
+      },
+      {
+        "id": "guardrails",
+        "type": "ai-guardrails",
+        "position": {
+          "x": 200,
+          "y": 160
+        },
+        "size": {
+          "width": 160,
+          "height": 140
+        },
+        "label": "Guardrails",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Checks on what goes into and comes out of the model."
+      },
+      {
+        "id": "embeddings",
+        "type": "embeddings",
+        "position": {
+          "x": 400,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Embeddings",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Turns text into vectors for search."
+      },
+      {
+        "id": "semcache",
+        "type": "semantic-cache",
+        "position": {
+          "x": 600,
+          "y": 160
+        },
+        "size": {
+          "width": 120,
+          "height": 120
+        },
+        "label": "Semantic cache",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Reuses answers to similar questions."
+      },
+      {
+        "id": "mcpclient",
+        "type": "mcp-client",
+        "position": {
+          "x": 0,
+          "y": 340
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "MCP client",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Connects the agent to MCP servers."
+      },
+      {
+        "id": "mcpserver",
+        "type": "mcp-server",
+        "position": {
+          "x": 200,
+          "y": 340
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "MCP server",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Exposes tools and data to agents over MCP."
+      },
+      {
+        "id": "tool",
+        "type": "tool",
+        "position": {
+          "x": 400,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Tool",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "An action the agent can call."
+      }
+    ],
+    "edges": [],
+    "groups": []
+  }
+}

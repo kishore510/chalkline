@@ -60,9 +60,9 @@ function checkRenders(d: Diagram) {
 const NAMED_VENDORS = /\b(aws|azure|gcp|google|amazon|microsoft|kafka|postgres|mysql|redis|kubernetes|docker|github|jenkins|oracle|ibm)\b/i
 
 describe('built-in stencils', () => {
-  it('has the eight expected stencils with unique ids', () => {
-    expect(BUILTIN_STENCILS).toHaveLength(8)
-    expect(new Set(BUILTIN_STENCILS.map((s) => s.id)).size).toBe(8)
+  it('has the twenty expected stencils with unique ids', () => {
+    expect(BUILTIN_STENCILS).toHaveLength(20)
+    expect(new Set(BUILTIN_STENCILS.map((s) => s.id)).size).toBe(20)
     expect(BUILTIN_STENCILS.every((s) => isBuiltinId(s.id))).toBe(true)
   })
 
@@ -122,9 +122,9 @@ describe('AI gateway stencil', () => {
 })
 
 describe('templates', () => {
-  it('has the seven expected templates with unique ids', () => {
-    expect(TEMPLATES).toHaveLength(7)
-    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(7)
+  it('has the eight expected templates with unique ids', () => {
+    expect(TEMPLATES).toHaveLength(8)
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(8)
   })
 
   it.each(Object.entries(templateFiles))('%s validates, renders and starts a fresh diagram', (_name, raw) => {

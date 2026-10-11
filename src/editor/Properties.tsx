@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import type { DiagramEdge, DiagramGroup, DiagramNode, EdgeStyle, NodeStyle } from '@/schema/diagram'
 import { MIN_NODE_SIZE } from '@/schema/factories'
 import { useDiagramStore } from '@/store/diagramStore'
-import { groupById, isGroupLocked, isNodeLocked, isPool, laneOrder, minLaneThickness } from '@/store/groups'
+import { groupById, isGroupFixed, isGroupLocked, isNodeLocked, isPool, laneOrder, minLaneThickness } from '@/store/groups'
 import { layerIdOf } from '@/store/layers'
 import type { StylePatch } from '@/store/ops'
 import { useUiStore } from '@/store/uiStore'
@@ -106,9 +106,9 @@ function useLabelFocus() {
   return ref
 }
 
-function ResetButton({ onClick }: { onClick: () => void }) {
+function ResetButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
-    <Button variant="ghost" onClick={onClick} className="self-start px-3 text-text-muted">
+    <Button variant="ghost" onClick={onClick} disabled={disabled} className="self-start px-3 text-text-muted">
       <RotateCcw />
       Reset to default
     </Button>
@@ -161,6 +161,32 @@ function EdgeStyleSection({ edges }: { edges: DiagramEdge[] }) {
       <ColourField label="Colour" variant="strong" defaultColour="var(--cl-edge)" value={get('colour')} onChange={(colour) => set({ colour })} />
       <SelectField label="Width" value={get('width')} options={EDGE_WIDTHS} onChange={(width) => set({ width })} />
       {hasStyle && <ResetButton onClick={() => store().resetEdgeStyles(ids)} />}
+    </Section>
+  )
+}
+
+/**
+ * Fill and border of one or more groups, pools or lanes. Locked groups (or on a
+ * locked layer) can't change: the controls disable when all are locked, and
+ * locked ones are skipped otherwise. One undo step per change.
+ */
+function GroupStyleSection({ groups }: { groups: DiagramGroup[] }) {
+  const ids = groups.map((g) => g.id)
+  const lockedCount = useDiagramStore((s) => groups.filter((g) => isGroupFixed(s.diagram, groupById(s.diagram, g.id))).length)
+  const allLocked = lockedCount === groups.length
+  const set = (patch: StylePatch<NodeStyle>) => store().updateGroupStyles(ids, patch)
+  const get = (key: 'fill' | 'stroke'): Shared<string> => shared(groups, (g) => g.style[key])
+  const hasColour = groups.some((g) => g.style.fill !== undefined || g.style.stroke !== undefined)
+  return (
+    <Section title="Style">
+      <ColourField label="Fill" variant="soft" defaultColour="var(--cl-group-fill)" value={get('fill')} disabled={allLocked} onChange={(fill) => set({ fill })} />
+      <ColourField label="Border" variant="strong" defaultColour="var(--cl-group-border)" value={get('stroke')} disabled={allLocked} onChange={(stroke) => set({ stroke })} />
+      {hasColour && <ResetButton disabled={allLocked} onClick={() => set({ fill: undefined, stroke: undefined })} />}
+      {lockedCount > 0 && (
+        <p className="text-xs text-text-muted">
+          {allLocked ? 'Unlock to change colours.' : `${lockedCount} locked ${lockedCount === 1 ? 'group keeps its' : 'groups keep their'} colours.`}
+        </p>
+      )}
     </Section>
   )
 }
@@ -422,6 +448,7 @@ function GroupProperties({ group }: { group: DiagramGroup }) {
           Add lane
         </Button>
       )}
+      <GroupStyleSection groups={[group]} />
       <Section title="Remove">
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={locked} onClick={() => store().ungroup(group.id)}>
@@ -480,6 +507,7 @@ function LaneProperties({ lane }: { lane: DiagramGroup }) {
         </Button>
         <p className="text-xs text-text-muted">Deleting a lane keeps its shapes; they stay in the pool.</p>
       </Section>
+      <GroupStyleSection groups={[lane]} />
       <LockField ids={[lane.id]} locked={lane.locked} inherited={locked && !lane.locked} />
     </>
   )
@@ -567,6 +595,7 @@ type Summary =
   | { kind: 'nodes'; title: string; nodes: DiagramNode[] }
   | { kind: 'edges'; title: string; edges: DiagramEdge[] }
   | { kind: 'group'; title: string; group: DiagramGroup }
+  | { kind: 'groups'; title: string; groups: DiagramGroup[] }
   | { kind: 'mixed'; title: string }
 
 /** The selected items only (each kept while unchanged), so edits elsewhere don't re-render the panel. */
@@ -592,6 +621,7 @@ function useSelectionSummary(): Summary {
     const group = groups[0]!
     return { kind: 'group', title: group.kind === 'lane' ? 'Lane' : pool ? 'Pool' : 'Group', group }
   }
+  if (groups.length > 1 && nodes.length + edges.length === 0) return { kind: 'groups', title: `${groups.length} groups`, groups }
   if (groups.length > 0) return { kind: 'mixed', title: `${nodes.length + edges.length + groups.length} selected` }
   if (nodes.length + edges.length === 0) return { kind: 'none', title: 'Diagram' }
   if (nodes.length === 1 && edges.length === 0) return { kind: 'node', title: isKnownShape(nodes[0]!.type) ? getShape(nodes[0]!.type).name : 'Unknown shape', node: nodes[0]! }
@@ -622,6 +652,12 @@ function PropertiesBody({ summary, arrange = false }: { summary: Summary; arrang
         </>
       )}
       {summary.kind === 'group' && (summary.group.kind === 'lane' ? <LaneProperties lane={summary.group} /> : <GroupProperties group={summary.group} />)}
+      {summary.kind === 'groups' && (
+        <>
+          <GroupStyleSection groups={summary.groups} />
+          <LockField ids={summary.groups.map((g) => g.id)} locked={summary.groups.every((g) => g.locked)} inherited={false} />
+        </>
+      )}
       {summary.kind === 'edges' && (
         <>
           <ConnectionSection edges={summary.edges} />
@@ -650,12 +686,12 @@ function Header({ summary, onClose }: { summary: Summary; onClose?: () => void }
           variant="ghost"
           size="icon"
           // Deleting a group keeps its contents; "Delete group and contents" is in the panel.
-          aria-label={summary.kind === 'group' ? 'Ungroup (keep contents)' : 'Delete selection'}
-          title={summary.kind === 'group' ? 'Ungroup (keeps contents)' : 'Delete (Del)'}
+          aria-label={summary.kind === 'group' || summary.kind === 'groups' ? 'Ungroup (keep contents)' : 'Delete selection'}
+          title={summary.kind === 'group' || summary.kind === 'groups' ? 'Ungroup (keeps contents)' : 'Delete (Del)'}
           onClick={deleteSelectionWithNotice}
           className="text-danger"
         >
-          {summary.kind === 'group' ? <Ungroup /> : <Trash2 />}
+          {summary.kind === 'group' || summary.kind === 'groups' ? <Ungroup /> : <Trash2 />}
         </Button>
       )}
       {onClose && (

@@ -119,6 +119,8 @@ export interface DiagramState {
   /** Locks or unlocks nodes and/or groups. */
   setLocked: (ids: string[], locked: boolean) => void
   setGroupLabel: (id: string, label: string) => void
+  /** Fill and border (any style key) of groups, pools and lanes; locked ones are skipped. Undefined resets a key. */
+  updateGroupStyles: (ids: string[], patch: ops.StylePatch<NodeStyle>) => void
   /** Grows a group's header so its title fits. Joins the previous undo step. */
   growGroupHeader: (id: string, size: number) => void
   /** A pool with three lanes centred on `center`, on the active layer; selects it and returns its id (null if the active layer can't take it). */
@@ -537,6 +539,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     setCollapsed: (id, collapsed) => apply((d) => groups.setGroupCollapsed(d, id, collapsed)),
     setLocked: (ids, locked) => apply((d) => groups.setItemsLocked(d, ids, locked)),
     setGroupLabel: (id, label) => apply((d) => groups.setGroupLabel(d, id, label), { key: `group-label:${id}` }),
+    updateGroupStyles(ids, patch) {
+      const free = ids.filter((id) => !groupLocked(id))
+      if (free.length > 0) apply((d) => ops.updateGroupStyles(d, free, patch), { key: `group-style:${free.join()}:${Object.keys(patch).join()}` })
+    },
     growGroupHeader: (id, size) => apply((d) => groups.growGroupHeader(d, id, size), { merge: true }),
     addPool(center, orientation) {
       const active = usableActive()

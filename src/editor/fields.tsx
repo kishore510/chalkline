@@ -123,12 +123,14 @@ function Swatch({
   colour,
   pressed,
   onClick,
+  disabled,
   children,
 }: {
   label: string
   colour?: string
   pressed: boolean
   onClick?: () => void
+  disabled?: boolean
   children?: ReactNode
 }) {
   return (
@@ -138,7 +140,8 @@ function Swatch({
       title={label}
       aria-pressed={pressed}
       onClick={onClick}
-      className="flex size-touch items-center justify-center rounded-md transition-colors hover:bg-surface-muted aria-pressed:bg-accent-subtle"
+      disabled={disabled}
+      className="flex size-touch items-center justify-center rounded-md transition-colors hover:bg-surface-muted disabled:opacity-50 aria-pressed:bg-accent-subtle"
     >
       <span
         className="flex size-7 items-center justify-center rounded-full border border-border-strong text-text"
@@ -161,6 +164,7 @@ export function ColourField({
   onChange,
   variant,
   defaultColour,
+  disabled = false,
 }: {
   label: string
   value: Shared<string>
@@ -168,6 +172,8 @@ export function ColourField({
   variant: PresetVariant
   /** CSS value of the theme default, shown on the "Default" swatch. */
   defaultColour: string
+  /** Shown but not changeable (e.g. a locked group). */
+  disabled?: boolean
 }) {
   const id = useId()
   const isCustom = typeof value === 'string' && !value.startsWith('token:')
@@ -188,7 +194,7 @@ export function ColourField({
         <span className="truncate text-xs text-text-muted">{current in PRESET_NAMES ? PRESET_NAMES[current as keyof typeof PRESET_NAMES] : current}</span>
       </div>
       <div className="grid grid-cols-5 gap-1">
-        <Swatch label="Default" colour={defaultColour} pressed={value === undefined} onClick={() => onChange(undefined)} />
+        <Swatch label="Default" colour={defaultColour} pressed={value === undefined} disabled={disabled} onClick={() => onChange(undefined)} />
         {COLOUR_PRESETS.map((preset) => {
           const token = presetToken(preset, variant)
           return (
@@ -197,13 +203,17 @@ export function ColourField({
               label={PRESET_NAMES[preset]}
               colour={resolveColour(token, defaultColour)}
               pressed={value === token}
+              disabled={disabled}
               onClick={() => onChange(token)}
             />
           )
         })}
         <label
           title="Custom colour"
-          className="relative flex size-touch cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface-muted has-focus-visible:outline-2 has-focus-visible:outline-focus"
+          className={cn(
+            'relative flex size-touch cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-surface-muted has-focus-visible:outline-2 has-focus-visible:outline-focus',
+            disabled && 'pointer-events-none opacity-50',
+          )}
         >
           <span
             className={cn(
@@ -220,6 +230,7 @@ export function ColourField({
             type="color"
             aria-label={`Custom ${label.toLowerCase()} colour`}
             defaultValue={isCustom ? value : undefined}
+            disabled={disabled}
             onChange={(e) => {
               const hex = normaliseHex(e.target.value)
               if (hex) onChange(hex)

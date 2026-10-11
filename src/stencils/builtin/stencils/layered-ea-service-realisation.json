@@ -1,0 +1,143 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-service-realisation",
+  "name": "Service realisation across layers",
+  "category": "Layered EA: Cross-layer",
+  "tags": [
+    "layered-ea",
+    "cross-layer"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "process",
+        "type": "predefined-process",
+        "position": {
+          "x": 80,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Business process",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "The business work being supported."
+      },
+      {
+        "id": "service",
+        "type": "rounded",
+        "position": {
+          "x": 80,
+          "y": 140
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Application service",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "What the application offers the process."
+      },
+      {
+        "id": "component",
+        "type": "microservice",
+        "position": {
+          "x": 80,
+          "y": 280
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Application component",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "The software that provides the service."
+      },
+      {
+        "id": "server",
+        "type": "server",
+        "position": {
+          "x": 80,
+          "y": 440
+        },
+        "size": {
+          "width": 140,
+          "height": 120
+        },
+        "label": "Server",
+        "style": {
+          "stroke": "token:swatch-green",
+          "fill": "token:swatch-green-soft"
+        },
+        "notes": "Where the component runs."
+      },
+      {
+        "id": "data",
+        "type": "database",
+        "position": {
+          "x": 340,
+          "y": 280
+        },
+        "size": {
+          "width": 120,
+          "height": 100
+        },
+        "label": "Data store",
+        "style": {
+          "stroke": "token:swatch-teal",
+          "fill": "token:swatch-teal-soft"
+        },
+        "notes": "The data the component reads and writes."
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "service",
+        "target": "process",
+        "label": "serves",
+        "style": {
+          "dashed": true,
+          "endArrow": "arrow"
+        }
+      },
+      {
+        "id": "e2",
+        "source": "component",
+        "target": "service",
+        "label": "realises",
+        "style": {
+          "endArrow": "closed"
+        }
+      },
+      {
+        "id": "e3",
+        "source": "component",
+        "target": "data",
+        "label": "reads and writes",
+        "style": {
+          "dashed": true
+        }
+      },
+      {
+        "id": "e4",
+        "source": "component",
+        "target": "server",
+        "label": "runs on"
+      }
+    ],
+    "groups": []
+  }
+}

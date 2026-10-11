@@ -1,0 +1,93 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-motivation",
+  "name": "Motivation elements",
+  "category": "Layered EA: Other",
+  "tags": [
+    "layered-ea",
+    "motivation"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "driver",
+        "type": "hexagon",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Driver",
+        "style": {
+          "stroke": "token:swatch-purple",
+          "fill": "token:swatch-purple-soft"
+        },
+        "notes": "Why change is needed, inside or outside the organisation."
+      },
+      {
+        "id": "goal",
+        "type": "ellipse",
+        "position": {
+          "x": 260,
+          "y": 0
+        },
+        "size": {
+          "width": 150,
+          "height": 90
+        },
+        "label": "Goal",
+        "style": {
+          "stroke": "token:swatch-purple",
+          "fill": "token:swatch-purple-soft"
+        },
+        "notes": "An outcome the organisation wants."
+      },
+      {
+        "id": "requirement",
+        "type": "parallelogram",
+        "position": {
+          "x": 520,
+          "y": 0
+        },
+        "size": {
+          "width": 200,
+          "height": 80
+        },
+        "label": "Requirement",
+        "style": {
+          "stroke": "token:swatch-purple",
+          "fill": "token:swatch-purple-soft"
+        },
+        "notes": "Something a solution must do to meet the goal."
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "driver",
+        "target": "goal",
+        "label": "motivates",
+        "style": {
+          "dashed": true,
+          "endArrow": "arrow"
+        }
+      },
+      {
+        "id": "e2",
+        "source": "goal",
+        "target": "requirement",
+        "label": "realised by",
+        "style": {
+          "dashed": true,
+          "endArrow": "arrow"
+        }
+      }
+    ],
+    "groups": []
+  }
+}

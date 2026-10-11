@@ -2,6 +2,18 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.31.0] - 2026-10-11
+
+### Added
+- **Group colours.** Select a group, pool or lane to set its **Fill** and **Border** from the same presets and custom colour as shapes. **Default** resets one colour, **Reset to default** clears both.
+- Select several groups or lanes to colour them all in one go, undone in one step. Locked groups keep their colours.
+- **Four more colour presets: Yellow, Steel, Tan and Pink**, each with a soft fill and a strong line for light and dark themes. Help > Notes and colours lists which preset suits each layer of a layered architecture view.
+- **Layered EA stencils.** Twelve built-in stencils for layered architecture views: one per layer (Business, Data, Application, Technology, Network), AI and MCP application elements, strategy, motivation and implementation elements, two cross-layer examples and an AI stack. Each is coloured with its layer's preset. Search for `layered-ea`, or filter by the **Layered EA:** categories, and duplicate any of them into My library to edit.
+- **Layered architecture view template**: five coloured bands (Business, Data, Application, Technology and Network) with example shapes, including AI and network shapes, and connectors.
+
+### Changed
+- In **Save as stencil**, the existing categories now scroll sideways in one row instead of wrapping, so a long list doesn't push the form down on phones.
+
 ## [0.30.0] - 2026-10-11
 
 ### Added

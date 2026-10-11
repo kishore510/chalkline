@@ -1,0 +1,185 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-ai-stack",
+  "name": "AI stack across layers",
+  "category": "Layered EA: AI layer",
+  "tags": [
+    "layered-ea",
+    "ai"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "agent",
+        "type": "ai-agent",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "AI agent",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Plans the task and calls the model and tools."
+      },
+      {
+        "id": "gateway",
+        "type": "ai-gateway",
+        "position": {
+          "x": 220,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "AI gateway",
+        "style": {
+          "stroke": "token:swatch-green",
+          "fill": "token:swatch-green-soft"
+        },
+        "notes": "Routes, logs and limits calls to models."
+      },
+      {
+        "id": "model",
+        "type": "llm",
+        "position": {
+          "x": 440,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Language model",
+        "style": {
+          "stroke": "token:swatch-green",
+          "fill": "token:swatch-green-soft"
+        },
+        "notes": "Generates answers."
+      },
+      {
+        "id": "mcp",
+        "type": "mcp-server",
+        "position": {
+          "x": 0,
+          "y": 180
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "MCP server",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "Gives the agent controlled access to tools."
+      },
+      {
+        "id": "guardrails",
+        "type": "ai-guardrails",
+        "position": {
+          "x": 260,
+          "y": 160
+        },
+        "size": {
+          "width": 160,
+          "height": 140
+        },
+        "label": "Guardrails",
+        "style": {
+          "stroke": "token:swatch-green",
+          "fill": "token:swatch-green-soft"
+        },
+        "notes": "Checks prompts and answers."
+      },
+      {
+        "id": "tool",
+        "type": "tool",
+        "position": {
+          "x": 0,
+          "y": 340
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Tool",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "An action such as a search or an update."
+      },
+      {
+        "id": "vectors",
+        "type": "vector-db",
+        "position": {
+          "x": 240,
+          "y": 340
+        },
+        "size": {
+          "width": 120,
+          "height": 120
+        },
+        "label": "Vector store",
+        "style": {
+          "stroke": "token:swatch-teal",
+          "fill": "token:swatch-teal-soft"
+        },
+        "notes": "Knowledge the agent retrieves."
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "agent",
+        "target": "gateway",
+        "label": "prompts"
+      },
+      {
+        "id": "e2",
+        "source": "gateway",
+        "target": "model"
+      },
+      {
+        "id": "e3",
+        "source": "gateway",
+        "target": "guardrails",
+        "label": "checks",
+        "style": {
+          "dashed": true
+        }
+      },
+      {
+        "id": "e4",
+        "source": "agent",
+        "target": "mcp",
+        "label": "calls tools"
+      },
+      {
+        "id": "e5",
+        "source": "mcp",
+        "target": "tool"
+      },
+      {
+        "id": "e6",
+        "source": "agent",
+        "target": "vectors",
+        "label": "retrieves",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": []
+  }
+}

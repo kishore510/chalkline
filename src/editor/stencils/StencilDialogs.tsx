@@ -99,13 +99,14 @@ function DetailsDialog({
             <option key={c} value={c} />
           ))}
         </datalist>
-        <div role="group" aria-label="Existing categories" className="-mt-2 flex flex-wrap gap-2">
+        {/* One sideways-scrolling row, like the palette's filter, so a long category list doesn't push the form down on phones. */}
+        <div role="group" aria-label="Existing categories" className="-mx-1 -mt-2 flex touch-pan-x gap-2 overflow-x-auto px-1 pb-1">
           {categories.map((c) => (
             <Button
               key={c}
               variant="ghost"
               aria-pressed={values.category.trim() === c}
-              className="h-auto min-h-touch rounded-full border border-border px-3 text-xs"
+              className="h-auto min-h-touch shrink-0 rounded-full border border-border px-3 text-xs"
               onClick={() => set({ category: c })}
             >
               {c}

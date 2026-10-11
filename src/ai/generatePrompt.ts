@@ -22,6 +22,10 @@ export const PRESET_HINTS: Record<ColourPreset, string> = {
   amber: 'queues, background or asynchronous work, and things needing attention',
   red: 'security, trust boundaries, risk and errors',
   purple: 'AI and machine learning parts',
+  yellow: 'business processes, roles and business services',
+  steel: 'networks, zones and connectivity',
+  tan: 'strategy, goals and capabilities',
+  pink: 'projects, work packages and delivery steps',
 }
 
 /** Shapes the model may use: the whole registry, with what each stands for. Throws if one has no description. */
