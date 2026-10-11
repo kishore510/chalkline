@@ -7,6 +7,7 @@ All notable changes to Chalkline are listed here, newest first. The format follo
 ### Added
 - **Group colours.** Select a group, pool or lane to set its **Fill** and **Border** from the same presets and custom colour as shapes. **Default** resets one colour, **Reset to default** clears both.
 - Select several groups or lanes to colour them all in one go, undone in one step. Locked groups keep their colours.
+- **Four more colour presets: Yellow, Steel, Tan and Pink**, each with a soft fill and a strong line for light and dark themes. Help > Notes and colours lists which preset suits each layer of a layered architecture view.
 
 ## [0.30.0] - 2026-10-11
 

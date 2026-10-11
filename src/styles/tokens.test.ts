@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { COLOUR_PRESETS } from '@/lib/colour'
+import { COLOUR_PRESETS, LAYER_PRESETS } from '@/lib/colour'
 
 const SRC = join(import.meta.dirname, '..')
 const TOKENS_FILE = join(import.meta.dirname, 'tokens.css')
@@ -111,8 +111,25 @@ for (const name of COLOUR_PRESETS) {
     [`swatch-${name}`, 'node-fill', TEXT],
     [`swatch-${name}`, `swatch-${name}-soft`, TEXT],
     ['node-text', `swatch-${name}-soft`, TEXT],
+    // Soft presets fill shapes and groups: default borders, glyphs and connectors stay visible on them.
+    ['node-stroke', `swatch-${name}-soft`, UI],
+    ['edge', `swatch-${name}-soft`, UI],
   )
 }
+
+describe('layer presets', () => {
+  it.each(Object.entries(LAYER_PRESETS))('%s uses a preset (%s) defined in both themes', (_layer, preset) => {
+    expect(COLOUR_PRESETS).toContain(preset)
+    for (const theme of ['light', 'dark'] as const) {
+      expect(readColours(theme)[`swatch-${preset}`]).toBeDefined()
+      expect(readColours(theme)[`swatch-${preset}-soft`]).toBeDefined()
+    }
+  })
+
+  it('gives every layer its own preset', () => {
+    expect(new Set(Object.values(LAYER_PRESETS)).size).toBe(Object.keys(LAYER_PRESETS).length)
+  })
+})
 
 describe.each<Theme>(['light', 'dark'])('%s theme', (theme) => {
   const colours = readColours(theme)

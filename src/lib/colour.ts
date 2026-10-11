@@ -3,7 +3,7 @@
  * point at --cl-<name> in tokens.css, so they follow the light/dark theme.
  */
 
-export const COLOUR_PRESETS = ['slate', 'blue', 'teal', 'green', 'amber', 'red', 'purple'] as const
+export const COLOUR_PRESETS = ['slate', 'blue', 'teal', 'green', 'amber', 'red', 'purple', 'yellow', 'steel', 'tan', 'pink'] as const
 export type ColourPreset = (typeof COLOUR_PRESETS)[number]
 
 export const PRESET_NAMES: Record<ColourPreset, string> = {
@@ -14,7 +14,27 @@ export const PRESET_NAMES: Record<ColourPreset, string> = {
   amber: 'Amber',
   red: 'Red',
   purple: 'Purple',
+  yellow: 'Yellow',
+  steel: 'Steel',
+  tan: 'Tan',
+  pink: 'Pink',
 }
+
+/**
+ * Layered EA views: the preset each layer uses, soft as a fill and strong as a
+ * border. Several reuse general presets that already fit.
+ */
+export const LAYER_PRESETS = {
+  business: 'yellow',
+  data: 'teal',
+  application: 'blue',
+  technology: 'green',
+  network: 'steel',
+  strategy: 'tan',
+  motivation: 'purple',
+  implementation: 'pink',
+} as const satisfies Record<string, ColourPreset>
+export type LayerName = keyof typeof LAYER_PRESETS
 
 /** Soft variants suit fills; strong variants suit borders, lines and text. */
 export type PresetVariant = 'soft' | 'strong'
