@@ -23,7 +23,7 @@ Select a shape to set its **Fill**, **Border** colour and width, and **Text** co
 
 ## Layer colours
 
-Layered enterprise architecture views often colour each layer the same way. These presets suit each layer (soft for the fill, strong for the border):
+Layered enterprise architecture views often colour each layer the same way. The built-in **Layered EA** stencils and template use these presets (soft for the fill, strong for the border):
 
 - **Business**: Yellow
 - **Data**: Teal

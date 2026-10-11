@@ -1,0 +1,108 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-business",
+  "name": "Business layer elements",
+  "category": "Layered EA: Business",
+  "tags": [
+    "layered-ea",
+    "business"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "actor",
+        "type": "actor",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 96,
+          "height": 128
+        },
+        "label": "Customer",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "Business actor: a person or organisation that takes part in the business."
+      },
+      {
+        "id": "role",
+        "type": "user-group",
+        "position": {
+          "x": 140,
+          "y": 0
+        },
+        "size": {
+          "width": 128,
+          "height": 128
+        },
+        "label": "Role",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "Business role: a responsibility people take on, such as an adviser or an approver."
+      },
+      {
+        "id": "process",
+        "type": "predefined-process",
+        "position": {
+          "x": 320,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Business process",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "A sequence of business steps that produces a result."
+      },
+      {
+        "id": "service",
+        "type": "rounded",
+        "position": {
+          "x": 520,
+          "y": 20
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Business service",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "A service the business offers, inside or outside the organisation."
+      },
+      {
+        "id": "object",
+        "type": "document",
+        "position": {
+          "x": 720,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 90
+        },
+        "label": "Business object",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "Information the business works with, such as a contract or an order."
+      }
+    ],
+    "edges": [],
+    "groups": []
+  }
+}

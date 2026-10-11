@@ -1,0 +1,115 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-request-path",
+  "name": "Request path across layers",
+  "category": "Layered EA: Cross-layer",
+  "tags": [
+    "layered-ea",
+    "cross-layer"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "customer",
+        "type": "actor",
+        "position": {
+          "x": 100,
+          "y": 0
+        },
+        "size": {
+          "width": 96,
+          "height": 128
+        },
+        "label": "Customer",
+        "style": {
+          "stroke": "token:swatch-yellow",
+          "fill": "token:swatch-yellow-soft"
+        },
+        "notes": "Who starts the request."
+      },
+      {
+        "id": "app",
+        "type": "api-gateway",
+        "position": {
+          "x": 80,
+          "y": 200
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Web API",
+        "style": {
+          "stroke": "token:swatch-blue",
+          "fill": "token:swatch-blue-soft"
+        },
+        "notes": "The entry point of the application."
+      },
+      {
+        "id": "lb",
+        "type": "load-balancer",
+        "position": {
+          "x": 80,
+          "y": 360
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "label": "Load balancer",
+        "style": {
+          "stroke": "token:swatch-green",
+          "fill": "token:swatch-green-soft"
+        },
+        "notes": "Spreads requests across servers."
+      },
+      {
+        "id": "fw",
+        "type": "firewall",
+        "position": {
+          "x": 80,
+          "y": 520
+        },
+        "size": {
+          "width": 140,
+          "height": 100
+        },
+        "label": "Firewall",
+        "style": {
+          "stroke": "token:swatch-steel",
+          "fill": "token:swatch-steel-soft"
+        },
+        "notes": "Filters traffic into the zone."
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "customer",
+        "target": "app",
+        "label": "uses"
+      },
+      {
+        "id": "e2",
+        "source": "app",
+        "target": "lb",
+        "label": "hosted behind",
+        "style": {
+          "dashed": true
+        }
+      },
+      {
+        "id": "e3",
+        "source": "lb",
+        "target": "fw",
+        "label": "protected by",
+        "style": {
+          "dashed": true
+        }
+      }
+    ],
+    "groups": []
+  }
+}

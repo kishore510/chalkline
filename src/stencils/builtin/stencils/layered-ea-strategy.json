@@ -1,0 +1,72 @@
+{
+  "kind": "chalkline-stencil",
+  "schemaVersion": 5,
+  "id": "builtin:layered-ea-strategy",
+  "name": "Strategy elements",
+  "category": "Layered EA: Other",
+  "tags": [
+    "layered-ea",
+    "strategy"
+  ],
+  "created": "2026-10-11T00:00:00.000Z",
+  "content": {
+    "nodes": [
+      {
+        "id": "capability",
+        "type": "rounded",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Capability",
+        "style": {
+          "stroke": "token:swatch-tan",
+          "fill": "token:swatch-tan-soft"
+        },
+        "notes": "Something the organisation is able to do."
+      },
+      {
+        "id": "stream",
+        "type": "step",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Value stream",
+        "style": {
+          "stroke": "token:swatch-tan",
+          "fill": "token:swatch-tan-soft"
+        },
+        "notes": "The stages that deliver value to a customer."
+      },
+      {
+        "id": "resource",
+        "type": "rectangle",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "size": {
+          "width": 160,
+          "height": 80
+        },
+        "label": "Resource",
+        "style": {
+          "stroke": "token:swatch-tan",
+          "fill": "token:swatch-tan-soft"
+        },
+        "notes": "People, money or assets a capability needs."
+      }
+    ],
+    "edges": [],
+    "groups": []
+  }
+}
