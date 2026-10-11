@@ -206,6 +206,21 @@ export function resetNodeStyles(diagram: Diagram, ids: Iterable<string>): Diagra
   return mapNodes(diagram, (node) => (targets.has(node.id) && Object.keys(node.style).length > 0 ? { ...node, style: {} } : node))
 }
 
+/** Fill, border and other style on containers, pools and lanes. Same rules as node styles; lock checks are the store's. */
+export function updateGroupStyles(diagram: Diagram, ids: Iterable<string>, patch: StylePatch<NodeStyle>): Diagram {
+  const targets = new Set(ids)
+  if (patchStyle({}, patch, NodeStyleSchema) === null) return diagram
+  let changed = false
+  const groups = diagram.groups.map((group) => {
+    if (!targets.has(group.id)) return group
+    const style = patchStyle(group.style, patch, NodeStyleSchema)
+    if (!style || style === group.style) return group
+    changed = true
+    return { ...group, style }
+  })
+  return changed ? { ...diagram, groups } : diagram
+}
+
 export function setNodeNotes(diagram: Diagram, id: string, notes: string): Diagram {
   return mapNodes(diagram, (node) => (node.id === id && node.notes !== notes ? { ...node, notes } : node))
 }

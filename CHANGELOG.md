@@ -2,6 +2,12 @@
 
 All notable changes to Chalkline are listed here, newest first. The format follows Keep a Changelog, and versions follow the project convention: 0.x, a minor bump for each merged slice and a patch bump for each follow-up fix.
 
+## [0.31.0] - 2026-10-11
+
+### Added
+- **Group colours.** Select a group, pool or lane to set its **Fill** and **Border** from the same presets and custom colour as shapes. **Default** resets one colour, **Reset to default** clears both.
+- Select several groups or lanes to colour them all in one go, undone in one step. Locked groups keep their colours.
+
 ## [0.30.0] - 2026-10-11
 
 ### Added
