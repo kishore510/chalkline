@@ -10,6 +10,7 @@ import legacyV1 from './legacy-v1.json'
 import legacyV2 from './legacy-v2.json'
 import legacyV3 from './legacy-v3.json'
 import legacyV4 from './legacy-v4.json'
+import mermaidSample from './mermaid-sample.json'
 import processFlow from './process-flow.json'
 import stencilCurrent from './stencil-current.json'
 import stencilLibrary from './stencil-library.json'
@@ -72,4 +73,13 @@ export const stencilFixtures = {
   unknownShape: stencilUnknownShape as unknown,
   /** A template with a swimlane pool and a container. */
   template: templateSwimlane as unknown,
+}
+
+/**
+ * Fixtures for text exports, kept apart from `fixtures` so the SVG golden
+ * hashes don't change. Each must be valid; a golden `.mmd` sits beside it.
+ */
+export const exportFixtures: Record<string, unknown> = {
+  /** A few shapes, a group, a swimlane pool, mixed connector styles, a hidden layer and awkward labels. */
+  'mermaid-sample': mermaidSample,
 }

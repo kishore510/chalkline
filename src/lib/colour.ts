@@ -41,3 +41,15 @@ export function resolveColour(value: string | undefined, fallback: string): stri
 export function normaliseHex(value: string): string | null {
   return HEX.test(value) ? value.toLowerCase() : null
 }
+
+/**
+ * The --cl-* hex colours a theme block of tokens.css sets, keyed by token name
+ * (without --cl-). Lets code outside the browser (export, tests) read real
+ * theme values from the one token file instead of copying them.
+ */
+export function parseThemeColours(css: string, theme: 'light' | 'dark'): Record<string, string> {
+  const block = css.match(new RegExp(`\\[data-theme='${theme}'\\]\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+  const colours: Record<string, string> = {}
+  for (const [, name, value] of block.matchAll(/--cl-([\w-]+):\s*(#[0-9a-f]{6,8})\s*;/gi)) colours[name!] = value!.toLowerCase()
+  return colours
+}

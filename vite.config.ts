@@ -35,6 +35,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Vitest blanks CSS imports by default; the Mermaid export reads theme colours from tokens.css?raw.
+    css: { include: [/tokens\.css/] },
     // .test.tsx files render components (with happy-dom, declared per file).
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },

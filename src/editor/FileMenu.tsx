@@ -1,4 +1,4 @@
-import { Blocks, CircleHelp, Download, EyeOff, FileImage, FilePlus, FileText, FolderOpen, Info, ListChecks, Menu, NotebookPen, PenTool, ScrollText, Search, Settings, Sparkles, WandSparkles } from 'lucide-react'
+import { Blocks, CircleHelp, Download, EyeOff, FileCode, FileImage, FilePlus, FileText, FolderOpen, Info, ListChecks, Menu, NotebookPen, PenTool, ScrollText, Search, Settings, Sparkles, WandSparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { openGenerate, openNotes, openRefine, openReview, openSummarise } from '@/ai/GenerateEntry'
 import { useCanvasActions } from '@/canvas/useCanvasActions'
@@ -18,6 +18,8 @@ import { readDiagramFile } from '@/persistence/openFile'
 import { useStencilStore } from '@/stencils/stencilStore'
 import { useDiagramStore } from '@/store/diagramStore'
 import { useUiStore } from '@/store/uiStore'
+import type { Diagram } from '@/schema/diagram'
+import { MermaidDialog } from './MermaidDialog'
 import { ViewOptions } from './ViewMenu'
 
 const notify = (text: string) => useUiStore.getState().notify(text)
@@ -69,6 +71,8 @@ export function FileMenu({ layout }: { layout: Layout }) {
   const actions = useCanvasActions()
   const anyHidden = useDiagramStore((s) => s.diagram.layers.some((l) => !l.visible))
   const [includeHidden, setIncludeHidden] = useState(false)
+  // The diagram as it was when Mermaid export was opened (export reads it, never changes it).
+  const [mermaidOf, setMermaidOf] = useState<Diagram | null>(null)
   // Phone: help lives in this menu, so the "what's new" dot shows on its button.
   const unseen = useHelpStore((s) => s.unseen) && layout === 'phone'
   const openHelp = useHelpStore((s) => s.openHelp)
@@ -165,6 +169,9 @@ export function FileMenu({ layout }: { layout: Layout }) {
           <Item icon={<FileText />} onClick={run(() => void exportAs('pdf', includeHidden))}>
             Export PDF
           </Item>
+          <Item icon={<FileCode />} onClick={run(() => setMermaidOf(useDiagramStore.getState().diagram))}>
+            Mermaid (.mmd)…
+          </Item>
           {anyHidden && (
             <Item icon={<EyeOff />} pressed={includeHidden} onClick={() => setIncludeHidden((v) => !v)}>
               Include hidden layers
@@ -218,6 +225,16 @@ export function FileMenu({ layout }: { layout: Layout }) {
           )}
           <SaveStatusLine />
         </Panel>
+      )}
+      {mermaidOf && (
+        <MermaidDialog
+          diagram={mermaidOf}
+          onClose={() => {
+            setMermaidOf(null)
+            // The menu item that opened it is gone: focus goes back to the menu button.
+            setTimeout(() => buttonRef.current?.focus())
+          }}
+        />
       )}
     </div>
   )
